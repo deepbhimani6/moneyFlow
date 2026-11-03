@@ -64,6 +64,14 @@ const getDashboardStats = async (req, res) => {
       },
     ]);
 
+    // 4. Split Group stats: count items and distinct groups
+    const splitDocs = await Entry.find({ isSplit: true }).lean();
+    const splitItemCount = splitDocs.length;
+    const splitGroupIds = new Set(splitDocs.map((e) => e.splitGroupId).filter(Boolean));
+    const splitGroupCount = splitGroupIds.size;
+    const splitPendingCount = splitDocs.filter((e) => e.paymentStatus !== "Received").length;
+    const splitReceivedCount = splitDocs.filter((e) => e.paymentStatus === "Received").length;
+
     let totalExpenses = 0;
     let totalLoans = 0;
     let totalReceived = receivedEntries.length > 0 ? receivedEntries[0].totalAmount : 0;
@@ -91,6 +99,10 @@ const getDashboardStats = async (req, res) => {
         totalPending: parseFloat(totalPending.toFixed(2)),
         totalSplit: parseFloat(totalSplit.toFixed(2)),
         totalAddBalance: parseFloat(totalAddBalance.toFixed(2)),
+        splitItemCount,
+        splitGroupCount,
+        splitPendingCount,
+        splitReceivedCount,
       },
     });
   } catch (error) {
