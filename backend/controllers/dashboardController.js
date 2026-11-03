@@ -4,21 +4,16 @@ const Entry = require("../models/Entry");
 // @route   GET /api/dashboard/stats
 const getDashboardStats = async (req, res) => {
   try {
+    // 1. Group by Type for Add Balance, Expense, Loan, Split
     const stats = await Entry.aggregate([
       {
         $group: {
           _id: {
             $cond: [
-              { $in: ["$type", ["Add Balance", "Expense", "Loan", "Received", "Split"]] },
+              { $in: ["$type", ["Add Balance", "Expense", "Loan", "Split"]] },
               "$type",
-              {
-                $cond: [
-                  { $in: ["$status", ["Add Balance", "Expense", "Loan", "Received", "Split"]] },
-                  "$status",
-                  "Expense"
-                ]
-              }
-            ]
+              "Expense",
+            ],
           },
           totalAmount: { $sum: "$amount" },
           count: { $sum: 1 },
@@ -26,9 +21,28 @@ const getDashboardStats = async (req, res) => {
       },
     ]);
 
+    // 2. Aggregate Received from Status (paymentStatus === 'Received' or status === 'Received' or legacy type === 'Received')
+    const receivedEntries = await Entry.aggregate([
+      {
+        $match: {
+          $or: [
+            { paymentStatus: "Received" },
+            { status: "Received" },
+            { type: "Received" },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: "Received",
+          totalAmount: { $sum: "$amount" },
+        },
+      },
+    ]);
+
     let totalExpenses = 0;
     let totalLoans = 0;
-    let totalReceived = 0;
+    let totalReceived = receivedEntries.length > 0 ? receivedEntries[0].totalAmount : 0;
     let totalSplit = 0;
     let totalAddBalance = 0;
 
@@ -36,7 +50,6 @@ const getDashboardStats = async (req, res) => {
       if (item._id === "Add Balance") totalAddBalance = item.totalAmount;
       if (item._id === "Expense") totalExpenses = item.totalAmount;
       if (item._id === "Loan") totalLoans = item.totalAmount;
-      if (item._id === "Received") totalReceived = item.totalAmount;
       if (item._id === "Split") totalSplit = item.totalAmount;
     });
 

@@ -9,16 +9,16 @@ const getEntries = async (req, res) => {
     let query = {};
     const andConditions = [];
 
-    const targetType = type || (["Add Balance", "Expense", "Loan", "Received", "Split"].includes(status) ? status : null);
+    const targetType = type || (["Add Balance", "Expense", "Loan", "Split"].includes(status) ? status : null);
     if (targetType && targetType !== 'All') {
       andConditions.push({
         $or: [{ type: targetType }, { status: targetType }]
       });
     }
 
-    const filterStatus = paymentStatus || (status === 'Pending' ? 'Pending' : null);
+    const filterStatus = paymentStatus || (["Received", "Pending"].includes(status) && !["Add Balance", "Expense", "Loan", "Split"].includes(status) ? status : null);
     if (filterStatus && filterStatus !== 'All') {
-      query.paymentStatus = filterStatus;
+      andConditions.push({ paymentStatus: filterStatus });
     }
 
     if (search) {
@@ -58,7 +58,7 @@ const getEntries = async (req, res) => {
 const createEntry = async (req, res) => {
   try {
     const { names, status, type, paymentStatus, amount, date, time, includeMine, description } = req.body;
-    const entryType = type || (["Add Balance", "Expense", "Loan", "Received", "Split"].includes(status) ? status : "Expense");
+    const entryType = type || (["Add Balance", "Expense", "Loan", "Split"].includes(status) ? status : "Expense");
     const entryPaymentStatus = paymentStatus || (["Received", "Pending"].includes(status) ? status : "Pending");
 
     if (!names || (Array.isArray(names) && names.length === 0)) {
@@ -194,7 +194,7 @@ const updateEntry = async (req, res) => {
       return res.status(404).json({ success: false, message: "Entry not found" });
     }
 
-    const entryType = type || (["Add Balance", "Expense", "Loan", "Received", "Split"].includes(status) ? status : undefined);
+    const entryType = type || (["Add Balance", "Expense", "Loan", "Split"].includes(status) ? status : undefined);
     const entryPaymentStatus = paymentStatus || (["Received", "Pending"].includes(status) ? status : undefined);
 
     // IF THIS IS A SPLIT ENTRY:
@@ -291,7 +291,7 @@ const bulkUpdateStatus = async (req, res) => {
     } else if (paymentStatus || (["Received", "Pending"].includes(status) && !isTypeUpdate)) {
       const targetStatus = paymentStatus || status;
       updateData = { paymentStatus: targetStatus };
-    } else if (type || ["Add Balance", "Expense", "Loan", "Received", "Split"].includes(status)) {
+    } else if (type || ["Add Balance", "Expense", "Loan", "Split"].includes(status)) {
       const targetType = type || status;
       updateData = { type: targetType, status: targetType };
     } else {

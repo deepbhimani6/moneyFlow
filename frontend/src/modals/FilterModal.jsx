@@ -17,6 +17,7 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
   const handleReset = () => {
     const emptyFilters = {
       status: "All",
+      paymentStatus: "All",
       search: "",
       startDate: "",
       endDate: "",
@@ -39,8 +40,21 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
             <MenuItem value="Add Balance">Add Balance</MenuItem>
             <MenuItem value="Expense">Expense</MenuItem>
             <MenuItem value="Loan">Loan</MenuItem>
-            <MenuItem value="Received">Received</MenuItem>
             <MenuItem value="Split">Split</MenuItem>
+          </Select>
+        </FormControl>
+
+        <FormControl fullWidth>
+          <InputLabel id="filter-status-label">Status</InputLabel>
+          <Select
+            labelId="filter-status-label"
+            value={filters.paymentStatus || "All"}
+            label="Status"
+            onChange={(e) => handleChange("paymentStatus", e.target.value)}
+          >
+            <MenuItem value="All">All Statuses</MenuItem>
+            <MenuItem value="Pending">Pending</MenuItem>
+            <MenuItem value="Received">Received</MenuItem>
           </Select>
         </FormControl>
 

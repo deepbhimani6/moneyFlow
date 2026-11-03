@@ -202,7 +202,6 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
                   <MenuItem key="Add Balance" value="Add Balance">Add Balance</MenuItem>,
                   <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
                   <MenuItem key="Loan" value="Loan">Loan</MenuItem>,
-                  <MenuItem key="Received" value="Received">Received</MenuItem>,
                 ]
               )}
             </Select>

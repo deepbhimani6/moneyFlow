@@ -58,6 +58,7 @@ const EntriesPage = () => {
   // Filters state
   const [filters, setFilters] = useState({
     status: "All",
+    paymentStatus: "All",
     search: "",
     startDate: "",
     endDate: "",
@@ -224,7 +225,6 @@ const EntriesPage = () => {
             <MenuItem onClick={() => handleBulkTypeChange("Add Balance")}>Set Add Balance</MenuItem>
             <MenuItem onClick={() => handleBulkTypeChange("Expense")}>Set Expense</MenuItem>
             <MenuItem onClick={() => handleBulkTypeChange("Loan")}>Set Loan</MenuItem>
-            <MenuItem onClick={() => handleBulkTypeChange("Received")}>Set Received</MenuItem>
           </Menu>
 
           {/* Submenu for Status */}
@@ -360,6 +360,7 @@ const EntriesPage = () => {
         onResetFilters={() =>
           setFilters({
             status: "All",
+            paymentStatus: "All",
             search: "",
             startDate: "",
             endDate: "",
