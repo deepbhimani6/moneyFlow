@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, FormControl, InputLabel, Select, MenuItem, Box } from "@mui/material";
+import { formatDate } from "../utils/formatters";
 
 const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFilters }) => {
   const [filters, setFilters] = useState(currentFilters);
@@ -46,8 +47,24 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
         <TextField label="For/From Name Keyword" value={filters.search || ""} onChange={(e) => handleChange("search", e.target.value)} placeholder="Filter by person or description..." fullWidth />
 
         <Box sx={{ display: "flex", gap: 1.5 }}>
-          <TextField label="From Date" type="date" value={filters.startDate || ""} onChange={(e) => handleChange("startDate", e.target.value)} InputLabelProps={{ shrink: true }} fullWidth />
-          <TextField label="To Date" type="date" value={filters.endDate || ""} onChange={(e) => handleChange("endDate", e.target.value)} InputLabelProps={{ shrink: true }} fullWidth />
+          <TextField
+            label="From Date"
+            type="date"
+            value={filters.startDate || ""}
+            onChange={(e) => handleChange("startDate", e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            helperText={filters.startDate ? formatDate(filters.startDate) : "dd-mm-yyyy"}
+            fullWidth
+          />
+          <TextField
+            label="To Date"
+            type="date"
+            value={filters.endDate || ""}
+            onChange={(e) => handleChange("endDate", e.target.value)}
+            InputLabelProps={{ shrink: true }}
+            helperText={filters.endDate ? formatDate(filters.endDate) : "dd-mm-yyyy"}
+            fullWidth
+          />
         </Box>
 
         <Box sx={{ display: "flex", gap: 1.5 }}>

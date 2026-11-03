@@ -11,6 +11,7 @@ import { entryService } from "../services/api";
 import AddEntryModal from "../modals/AddEntryModal";
 import EditEntryModal from "../modals/EditEntryModal";
 import FilterModal from "../modals/FilterModal";
+import { formatDate, formatTime } from "../utils/formatters";
 
 const getTypeChip = (type) => {
   switch (type) {
@@ -278,8 +279,8 @@ const EntriesPage = () => {
                     <TableCell padding="checkbox">
                       <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
                     </TableCell>
-                    <TableCell>{row.date}</TableCell>
-                    <TableCell>{row.time}</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>{formatDate(row.date)}</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>{formatTime(row.time)}</TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>
                       <Box sx={{ display: "flex", alignItems: "center" }}>
                         {row.forFromName}

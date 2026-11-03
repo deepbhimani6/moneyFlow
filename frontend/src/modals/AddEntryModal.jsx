@@ -3,6 +3,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, F
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import PersonIcon from "@mui/icons-material/Person";
 import { memberService, entryService } from "../services/api";
+import { formatDate, formatTime } from "../utils/formatters";
 
 const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   const [members, setMembers] = useState([]);
@@ -277,8 +278,26 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
 
           {/* 4. Date & 5. Time */}
           <Box sx={{ display: "flex", gap: 2 }}>
-            <TextField label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} fullWidth InputLabelProps={{ shrink: true }} required />
-            <TextField label="Time" type="time" value={time} onChange={(e) => setTime(e.target.value)} fullWidth InputLabelProps={{ shrink: true }} required />
+            <TextField
+              label="Date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              helperText={`dd-mm-yyyy: ${formatDate(date)}`}
+              required
+            />
+            <TextField
+              label="Time"
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              helperText={`12-hour: ${formatTime(time)}`}
+              required
+            />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>

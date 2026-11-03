@@ -10,6 +10,7 @@ import { memberService } from "../services/api";
 import InviteMemberModal from "../modals/InviteMemberModal";
 import EditMemberModal from "../modals/EditMemberModal";
 import DeleteConfirmModal from "../modals/DeleteConfirmModal";
+import { formatDate } from "../utils/formatters";
 
 const MembersPage = () => {
   const [members, setMembers] = useState([]);
@@ -226,7 +227,7 @@ const MembersPage = () => {
             ) : (
               members.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                 const isSelected = selectedIds.includes(row._id);
-                const formattedDate = row.joinDate ? new Date(row.joinDate).toLocaleDateString() : "N/A";
+                const formattedDate = formatDate(row.joinDate);
 
                 return (
                   <TableRow key={row._id} hover selected={isSelected}>

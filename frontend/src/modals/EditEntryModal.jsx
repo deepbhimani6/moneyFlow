@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
 import { entryService } from '../services/api';
+import { formatDate, formatTime, toInputDateFormat, toInputTimeFormat } from '../utils/formatters';
 
 const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
   const [forFromName, setForFromName] = useState('');
@@ -42,8 +43,8 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
       setStatus(entry.type || entry.status || 'Expense');
       setPaymentStatus(entry.paymentStatus || 'Pending');
       setAmount(entry.amount !== undefined ? String(entry.amount) : '');
-      setDate(entry.date || '');
-      setTime(entry.time || '');
+      setDate(toInputDateFormat(entry.date) || '');
+      setTime(toInputTimeFormat(entry.time) || '');
       setDescription(entry.description || '');
       setError('');
 
@@ -281,6 +282,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
               onChange={(e) => setDate(e.target.value)}
               fullWidth
               InputLabelProps={{ shrink: true }}
+              helperText={`dd-mm-yyyy: ${formatDate(date)}`}
               required
             />
             <TextField
@@ -290,6 +292,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
               onChange={(e) => setTime(e.target.value)}
               fullWidth
               InputLabelProps={{ shrink: true }}
+              helperText={`12-hour: ${formatTime(time)}`}
               required
             />
           </Box>
