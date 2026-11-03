@@ -60,10 +60,11 @@ const getDashboardStats = async (req, res) => {
     ]);
     const totalPending = pendingRes[0]?.total || 0;
 
-    // 5. Total Received: Status: Received
+    // 5. Total Received: Status: Received (Without Type: Expenses, Add Balance)
     const receivedRes = await Entry.aggregate([
       {
         $match: {
+          type: { $nin: ["Expense", "Expenses", "expense", "expenses", "Add Balance", "add balance", "Add balance"] },
           $or: [
             { paymentStatus: "Received" },
             { status: "Received" },
