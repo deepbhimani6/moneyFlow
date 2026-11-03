@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, Menu, MenuItem, IconButton, CircularProgress, TablePagination, Tooltip, Snackbar, Alert } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -17,8 +17,6 @@ const getTypeChip = (type) => {
   switch (type) {
     case "Expense":
       return <Chip label="Expense" size="small" color="error" variant="outlined" />;
-    case "Received":
-      return <Chip label="Received" size="small" color="success" variant="outlined" />;
     case "Loan":
       return <Chip label="Loan" size="small" color="warning" variant="outlined" />;
     case "Split":
@@ -77,6 +75,40 @@ const EntriesPage = () => {
 
   // Notification
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
+  // Scroll direction for sticky header (scroll DOWN) & sticky footer (scroll UP)
+  const [scrollDirection, setScrollDirection] = useState("down");
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    let ticking = false;
+    const threshold = 5;
+
+    const updateScrollDirection = () => {
+      const scrollY = window.scrollY || window.pageYOffset;
+      const deltaY = scrollY - lastScrollY.current;
+
+      if (Math.abs(deltaY) >= threshold) {
+        if (deltaY > 0) {
+          setScrollDirection("down");
+        } else {
+          setScrollDirection("up");
+        }
+        lastScrollY.current = scrollY > 0 ? scrollY : 0;
+      }
+      ticking = false;
+    };
+
+    const onScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(updateScrollDirection);
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const fetchEntries = async () => {
     try {
@@ -236,9 +268,31 @@ const EntriesPage = () => {
       </Box>
 
       {/* Entries Data Table */}
-      <TableContainer component={Paper} sx={{ borderRadius: 2, border: "1px solid #e2e8f0", boxShadow: "none" }}>
+      <TableContainer
+        component={Paper}
+        sx={{
+          borderRadius: 2,
+          border: "1px solid #e2e8f0",
+          boxShadow: "none",
+          overflow: "visible",
+        }}
+      >
         <Table sx={{ minWidth: 650 }}>
-          <TableHead sx={{ bgcolor: "#f8fafc" }}>
+          <TableHead
+            sx={{
+              bgcolor: "#f8fafc",
+              position: scrollDirection === "down" ? "sticky" : "static",
+              top: { xs: 56, sm: 64 },
+              zIndex: 5,
+              "& th": {
+                bgcolor: "#f8fafc",
+                position: scrollDirection === "down" ? "sticky" : "static",
+                top: { xs: 56, sm: 64 },
+                boxShadow: scrollDirection === "down" ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
+                transition: "box-shadow 0.2s",
+              },
+            }}
+          >
             <TableRow>
               <TableCell padding="checkbox">
                 <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
@@ -272,7 +326,13 @@ const EntriesPage = () => {
             ) : (
               entries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                 const isSelected = selectedIds.includes(row._id);
-                const rowType = row.type || (["Add Balance", "Expense", "Loan", "Received", "Split"].includes(row.status) ? row.status : "Expense");
+                const rowType = row.type || (["Add Balance", "Expense", "Loan", "Split"].includes(row.status) ? row.status : "Expense");
+                const isMyself = Boolean(
+                  (row.forFromName && row.forFromName.toLowerCase().includes("myself")) ||
+                  row.isMine
+                );
+                const isAddBalance = rowType === "Add Balance";
+                const shouldHideStatus = isMyself || isAddBalance;
 
                 return (
                   <TableRow key={row._id} hover selected={isSelected} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
@@ -293,7 +353,15 @@ const EntriesPage = () => {
                       )}
                     </TableCell>
                     <TableCell>{getTypeChip(rowType)}</TableCell>
-                    <TableCell>{getStatusChip(row.paymentStatus, () => handleToggleStatus(row))}</TableCell>
+                    <TableCell>
+                      {shouldHideStatus ? (
+                        <Typography variant="body2" color="text.disabled" sx={{ fontStyle: "italic", pl: 1 }}>
+                          —
+                        </Typography>
+                      ) : (
+                        getStatusChip(row.paymentStatus, () => handleToggleStatus(row))
+                      )}
+                    </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700 }}>
                       ₹ {Number(row.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
                     </TableCell>
@@ -318,18 +386,31 @@ const EntriesPage = () => {
           </TableBody>
         </Table>
 
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={entries.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={(e, newPage) => setPage(newPage)}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
+        {/* Sticky Footer on Scroll UP */}
+        <Box
+          sx={{
+            position: scrollDirection === "up" ? "sticky" : "static",
+            bottom: 0,
+            zIndex: 6,
+            bgcolor: "background.paper",
+            borderTop: "1px solid #e2e8f0",
+            boxShadow: scrollDirection === "up" ? "0 -3px 10px rgba(0,0,0,0.08)" : "none",
+            transition: "box-shadow 0.2s",
           }}
-        />
+        >
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 20, 50, 100]}
+            component="div"
+            count={entries.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={(e, newPage) => setPage(newPage)}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+          />
+        </Box>
       </TableContainer>
 
       {/* Modals */}
