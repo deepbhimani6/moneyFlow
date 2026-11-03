@@ -5,7 +5,7 @@ const Entry = require("../models/Entry");
 const getDashboardStats = async (req, res) => {
   try {
     // 1. Group by Type for Add Balance, Expense, Loan, Split
-    const stats = await Entry.aggregate([
+    const typeStats = await Entry.aggregate([
       {
         $group: {
           _id: {
@@ -21,14 +21,13 @@ const getDashboardStats = async (req, res) => {
       },
     ]);
 
-    // 2. Aggregate Received from Status (paymentStatus === 'Received' or status === 'Received' or legacy type === 'Received')
+    // 2. Aggregate Received from Status (only entries with status "Received")
     const receivedEntries = await Entry.aggregate([
       {
         $match: {
           $or: [
             { paymentStatus: "Received" },
             { status: "Received" },
-            { type: "Received" },
           ],
         },
       },
@@ -36,6 +35,31 @@ const getDashboardStats = async (req, res) => {
         $group: {
           _id: "Received",
           totalAmount: { $sum: "$amount" },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    // 3. Aggregate Pending from Status (entries with status "Pending" or not "Received")
+    const pendingEntries = await Entry.aggregate([
+      {
+        $match: {
+          $or: [
+            { paymentStatus: "Pending" },
+            {
+              $and: [
+                { paymentStatus: { $ne: "Received" } },
+                { status: { $ne: "Received" } },
+              ],
+            },
+          ],
+        },
+      },
+      {
+        $group: {
+          _id: "Pending",
+          totalAmount: { $sum: "$amount" },
+          count: { $sum: 1 },
         },
       },
     ]);
@@ -43,10 +67,11 @@ const getDashboardStats = async (req, res) => {
     let totalExpenses = 0;
     let totalLoans = 0;
     let totalReceived = receivedEntries.length > 0 ? receivedEntries[0].totalAmount : 0;
+    let totalPending = pendingEntries.length > 0 ? pendingEntries[0].totalAmount : 0;
     let totalSplit = 0;
     let totalAddBalance = 0;
 
-    stats.forEach((item) => {
+    typeStats.forEach((item) => {
       if (item._id === "Add Balance") totalAddBalance = item.totalAmount;
       if (item._id === "Expense") totalExpenses = item.totalAmount;
       if (item._id === "Loan") totalLoans = item.totalAmount;
@@ -63,6 +88,7 @@ const getDashboardStats = async (req, res) => {
         totalExpenses: parseFloat(totalExpenses.toFixed(2)),
         totalLoans: parseFloat(totalLoans.toFixed(2)),
         totalReceived: parseFloat(totalReceived.toFixed(2)),
+        totalPending: parseFloat(totalPending.toFixed(2)),
         totalSplit: parseFloat(totalSplit.toFixed(2)),
         totalAddBalance: parseFloat(totalAddBalance.toFixed(2)),
       },

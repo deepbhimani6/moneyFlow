@@ -222,11 +222,15 @@ const updateEntry = async (req, res) => {
       if (date) updateData.date = date;
       if (time) updateData.time = time;
       if (description !== undefined) updateData.description = description ? description.trim() : '';
-      if (entryPaymentStatus) {
-        updateData.paymentStatus = entryPaymentStatus;
-      }
 
+      // Update group fields across all split members
       await Entry.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
+
+      // Only update paymentStatus for this specific entry (not all split members)
+      if (entryPaymentStatus) {
+        entry.paymentStatus = entryPaymentStatus;
+        await entry.save();
+      }
 
       const updatedEntries = await Entry.find({ splitGroupId: entry.splitGroupId });
 

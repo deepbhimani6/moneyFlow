@@ -14,6 +14,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
 import { dashboardService } from '../services/api';
 
@@ -23,6 +24,7 @@ const DashboardPage = () => {
     totalExpenses: 0,
     totalLoans: 0,
     totalReceived: 0,
+    totalPending: 0,
     totalSplit: 0,
     totalAddBalance: 0,
   });
@@ -55,6 +57,20 @@ const DashboardPage = () => {
       subtitle: 'Net Available (Added + Received - Expenses - Loans)',
     },
     {
+      title: 'Total Received',
+      amount: stats.totalReceived,
+      color: '#2e7d32',
+      icon: <TrendingUpIcon sx={{ fontSize: 32, color: '#2e7d32' }} />,
+      subtitle: 'Entries with Status: Received',
+    },
+    {
+      title: 'Total Pending',
+      amount: stats.totalPending,
+      color: '#ed6c02',
+      icon: <PendingActionsIcon sx={{ fontSize: 32, color: '#ed6c02' }} />,
+      subtitle: 'Entries with Status: Pending',
+    },
+    {
       title: 'Total Expenses',
       amount: stats.totalExpenses,
       color: '#d32f2f',
@@ -64,16 +80,9 @@ const DashboardPage = () => {
     {
       title: 'Total Loans',
       amount: stats.totalLoans,
-      color: '#ed6c02',
-      icon: <MonetizationOnIcon sx={{ fontSize: 32, color: '#ed6c02' }} />,
+      color: '#7b1fa2',
+      icon: <MonetizationOnIcon sx={{ fontSize: 32, color: '#7b1fa2' }} />,
       subtitle: 'Active loans recorded',
-    },
-    {
-      title: 'Total Received',
-      amount: stats.totalReceived,
-      color: '#2e7d32',
-      icon: <TrendingUpIcon sx={{ fontSize: 32, color: '#2e7d32' }} />,
-      subtitle: 'Total incoming funds',
     },
   ];
 
@@ -97,7 +106,7 @@ const DashboardPage = () => {
       ) : (
         <Grid container spacing={3}>
           {cards.map((card, index) => (
-            <Grid item xs={12} sm={6} md={6} key={index}>
+            <Grid item xs={12} sm={6} md={4} key={index}>
               <Card
                 sx={{
                   height: '100%',
@@ -137,13 +146,13 @@ const DashboardPage = () => {
           ))}
 
           {/* Additional Quick Stats Card for Group Splits */}
-          <Grid item xs={12}>
-            <Card sx={{ bgcolor: 'rgba(25, 118, 210, 0.04)', borderColor: 'rgba(25, 118, 210, 0.2)' }}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Grid item xs={12} sm={6} md={8}>
+            <Card sx={{ height: '100%', bgcolor: 'rgba(25, 118, 210, 0.04)', borderColor: 'rgba(25, 118, 210, 0.2)', display: 'flex', alignItems: 'center' }}>
+              <CardContent sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <CallSplitIcon color="primary" sx={{ fontSize: 28 }} />
+                  <CallSplitIcon color="primary" sx={{ fontSize: 32 }} />
                   <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                       Total Group Split Obligations
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -151,7 +160,7 @@ const DashboardPage = () => {
                     </Typography>
                   </Box>
                 </Box>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
                   ₹ {Number(stats.totalSplit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                 </Typography>
               </CardContent>
