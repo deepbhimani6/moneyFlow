@@ -65,7 +65,7 @@ const DashboardPage = () => {
       amount: stats.totalBalance,
       color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f',
       icon: <AccountBalanceWalletIcon sx={{ fontSize: 32, color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f' }} />,
-      subtitle: 'Net Available (Added + Received - Expenses - Loans)',
+      subtitle: 'Added + Received - Expenses - Loans',
       gridProps: { xs: 12, sm: 6, md: 6 },
     },
     {
@@ -74,7 +74,7 @@ const DashboardPage = () => {
       amount: stats.totalExpenses,
       color: '#d32f2f',
       icon: <TrendingDownIcon sx={{ fontSize: 32, color: '#d32f2f' }} />,
-      subtitle: 'All recorded expenditures',
+      subtitle: 'Type: Expenses (For/From Name: Myself (You))',
       gridProps: { xs: 12, sm: 6, md: 6 },
     },
     {
@@ -83,7 +83,7 @@ const DashboardPage = () => {
       amount: stats.totalLoans,
       color: '#7b1fa2',
       icon: <MonetizationOnIcon sx={{ fontSize: 32, color: '#7b1fa2' }} />,
-      subtitle: 'Active loans recorded',
+      subtitle: 'Type: Loans (Status: Pending)',
       gridProps: { xs: 12, sm: 6, md: 6 },
     },
     {
@@ -92,7 +92,7 @@ const DashboardPage = () => {
       amount: stats.totalPending,
       color: '#ed6c02',
       icon: <PendingActionsIcon sx={{ fontSize: 32, color: '#ed6c02' }} />,
-      subtitle: 'Entries with Status: Pending',
+      subtitle: 'Type: Split (Status: Pending)',
       gridProps: { xs: 12, sm: 6, md: 6 },
     },
     {
@@ -101,7 +101,7 @@ const DashboardPage = () => {
       amount: stats.totalReceived,
       color: '#2e7d32',
       icon: <TrendingUpIcon sx={{ fontSize: 32, color: '#2e7d32' }} />,
-      subtitle: 'Entries with Status: Received',
+      subtitle: 'Status: Received',
       gridProps: { xs: 12, sm: 12, md: 12 }, // full column (col-span 2)
     },
   ];
