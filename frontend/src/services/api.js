@@ -65,6 +65,14 @@ export const memberService = {
     const res = await api.delete(`/members/${id}`);
     return res.data;
   },
+  getEntriesSummary: async (id) => {
+    const res = await api.get(`/members/${id}/entries-summary`);
+    return res.data;
+  },
+  getBulkEntriesSummary: async (ids) => {
+    const res = await api.post('/members/bulk-entries-summary', { ids });
+    return res.data;
+  },
   bulkDelete: async (ids) => {
     const res = await api.post('/members/bulk-delete', { ids });
     return res.data;

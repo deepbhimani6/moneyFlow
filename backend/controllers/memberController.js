@@ -1,4 +1,5 @@
 const Member = require('../models/Member');
+const Entry = require('../models/Entry');
 const { sendInviteEmail } = require('../utils/email');
 
 // @desc    Get all members
@@ -97,7 +98,99 @@ const updateMember = async (req, res) => {
   }
 };
 
-// @desc    Delete single member
+// @desc    Get summary of member's entries before deletion
+// @route   GET /api/members/:id/entries-summary
+const getMemberEntriesSummary = async (req, res) => {
+  try {
+    const member = await Member.findById(req.params.id);
+    if (!member) {
+      return res.status(404).json({ success: false, message: 'Member not found' });
+    }
+
+    const escapedName = member.fullName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    const entryQuery = {
+      $or: [
+        { memberId: member._id },
+        { forFromName: { $regex: new RegExp(`^${escapedName}$`, 'i') } },
+      ],
+    };
+
+    const entries = await Entry.find(entryQuery).sort({ date: -1, time: -1 });
+    const totalAmount = entries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+    res.json({
+      success: true,
+      data: {
+        member: {
+          _id: member._id,
+          fullName: member.fullName,
+          email: member.email,
+        },
+        hasEntries: entries.length > 0,
+        entryCount: entries.length,
+        totalAmount: Math.trunc(totalAmount),
+        entries: entries.slice(0, 10),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get summary of multiple members' entries before bulk deletion
+// @route   POST /api/members/bulk-entries-summary
+const getBulkMembersEntriesSummary = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: 'No member IDs provided' });
+    }
+
+    const members = await Member.find({ _id: { $in: ids } });
+    const names = members.map((m) => m.fullName);
+    const escapedNames = names.map((n) => n.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'));
+
+    const entryQuery = {
+      $or: [
+        { memberId: { $in: ids } },
+        { forFromName: { $in: names } },
+        ...escapedNames.map((n) => ({ forFromName: { $regex: new RegExp(`^${n}$`, 'i') } })),
+      ],
+    };
+
+    const entries = await Entry.find(entryQuery);
+    const totalAmount = entries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+    const memberSummary = members.map((m) => {
+      const esc = m.fullName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      const reg = new RegExp(`^${esc}$`, 'i');
+      const mEntries = entries.filter(
+        (e) => String(e.memberId) === String(m._id) || reg.test(e.forFromName)
+      );
+      return {
+        _id: m._id,
+        fullName: m.fullName,
+        count: mEntries.length,
+        totalAmount: Math.trunc(mEntries.reduce((a, c) => a + (c.amount || 0), 0)),
+      };
+    });
+
+    res.json({
+      success: true,
+      data: {
+        memberCount: members.length,
+        hasEntries: entries.length > 0,
+        entryCount: entries.length,
+        totalAmount: Math.trunc(totalAmount),
+        memberSummary,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Delete single member and associated entries in entries page
 // @route   DELETE /api/members/:id
 const deleteMember = async (req, res) => {
   try {
@@ -106,14 +199,33 @@ const deleteMember = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Member not found' });
     }
 
+    const escapedName = member.fullName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    const entryQuery = {
+      $or: [
+        { memberId: member._id },
+        { forFromName: { $regex: new RegExp(`^${escapedName}$`, 'i') } },
+      ],
+    };
+
+    const deletedEntriesResult = await Entry.deleteMany(entryQuery);
     await Member.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: 'Member deleted successfully' });
+
+    const message = deletedEntriesResult.deletedCount > 0
+      ? `Member '${member.fullName}' and ${deletedEntriesResult.deletedCount} associated entry/entries deleted successfully`
+      : `Member '${member.fullName}' deleted successfully`;
+
+    res.json({
+      success: true,
+      message,
+      deletedMemberName: member.fullName,
+      deletedEntriesCount: deletedEntriesResult.deletedCount,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Bulk delete members
+// @desc    Bulk delete members and their associated entries in entries page
 // @route   POST /api/members/bulk-delete
 const bulkDeleteMembers = async (req, res) => {
   try {
@@ -122,8 +234,31 @@ const bulkDeleteMembers = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No member IDs provided for deletion' });
     }
 
+    const members = await Member.find({ _id: { $in: ids } });
+    const names = members.map((m) => m.fullName);
+    const escapedNames = names.map((n) => n.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'));
+
+    const entryQuery = {
+      $or: [
+        { memberId: { $in: ids } },
+        { forFromName: { $in: names } },
+        ...escapedNames.map((n) => ({ forFromName: { $regex: new RegExp(`^${n}$`, 'i') } })),
+      ],
+    };
+
+    const deletedEntriesResult = await Entry.deleteMany(entryQuery);
     const result = await Member.deleteMany({ _id: { $in: ids } });
-    res.json({ success: true, message: `${result.deletedCount} members deleted successfully` });
+
+    const message = deletedEntriesResult.deletedCount > 0
+      ? `${result.deletedCount} member(s) and ${deletedEntriesResult.deletedCount} associated entry/entries deleted successfully`
+      : `${result.deletedCount} member(s) deleted successfully`;
+
+    res.json({
+      success: true,
+      message,
+      deletedMembersCount: result.deletedCount,
+      deletedEntriesCount: deletedEntriesResult.deletedCount,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -230,6 +365,8 @@ const bulkInviteMembers = async (req, res) => {
 
 module.exports = {
   getMembers,
+  getMemberEntriesSummary,
+  getBulkMembersEntriesSummary,
   createMember,
   updateMember,
   deleteMember,

@@ -12,7 +12,7 @@ import { memberService } from "../services/api";
 import InviteMemberModal from "../modals/InviteMemberModal";
 import EditMemberModal from "../modals/EditMemberModal";
 import DeleteConfirmModal from "../modals/DeleteConfirmModal";
-import { formatDate } from "../utils/formatters";
+import { formatDate, formatAmount } from "../utils/formatters";
 
 const TABLE_RADIUS = 10;
 
@@ -25,8 +25,17 @@ const MembersPage = () => {
   // Modals
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
-  const [deletingId, setDeletingId] = useState(null);
-  const [isBulkDeleteConfirmOpen, setIsBulkDeleteConfirmOpen] = useState(false);
+  const [singleDeleteState, setSingleDeleteState] = useState({
+    open: false,
+    loadingSummary: false,
+    member: null,
+    summary: null,
+  });
+  const [bulkDeleteState, setBulkDeleteState] = useState({
+    open: false,
+    loadingSummary: false,
+    summary: null,
+  });
   const [actionLoading, setActionLoading] = useState(false);
 
   // Bulk actions menu
@@ -171,35 +180,119 @@ const MembersPage = () => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
-  // Delete single member
+  // Open single member delete confirmation modal and fetch entry details
+  const handleOpenSingleDelete = async (member) => {
+    setSingleDeleteState({
+      open: true,
+      loadingSummary: true,
+      member,
+      summary: null,
+    });
+
+    try {
+      const res = await memberService.getEntriesSummary(member._id);
+      if (res.success) {
+        setSingleDeleteState((prev) => ({
+          ...prev,
+          loadingSummary: false,
+          summary: res.data,
+        }));
+      } else {
+        setSingleDeleteState((prev) => ({
+          ...prev,
+          loadingSummary: false,
+          summary: { hasEntries: false, entryCount: 0, totalAmount: 0, entries: [] },
+        }));
+      }
+    } catch (err) {
+      setSingleDeleteState((prev) => ({
+        ...prev,
+        loadingSummary: false,
+        summary: { hasEntries: false, entryCount: 0, totalAmount: 0, entries: [] },
+      }));
+    }
+  };
+
+  // Confirm delete single member & associated entries
   const handleConfirmSingleDelete = async () => {
-    if (!deletingId) return;
+    if (!singleDeleteState.member) return;
     try {
       setActionLoading(true);
-      await memberService.deleteMember(deletingId);
-      setSnackbar({ open: true, message: "Member deleted", severity: "success" });
-      setDeletingId(null);
-      setSelectedIds((prev) => prev.filter((id) => id !== deletingId));
+      const res = await memberService.deleteMember(singleDeleteState.member._id);
+      setSnackbar({
+        open: true,
+        message: res.message || "Member deleted successfully",
+        severity: "success",
+      });
+      setSingleDeleteState({ open: false, loadingSummary: false, member: null, summary: null });
+      setSelectedIds((prev) => prev.filter((id) => id !== singleDeleteState.member._id));
       fetchMembers();
     } catch (err) {
-      setSnackbar({ open: true, message: "Failed to delete member", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Failed to delete member",
+        severity: "error",
+      });
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Bulk delete members
+  // Open bulk delete members confirmation modal and fetch entry details
+  const handleOpenBulkDelete = async () => {
+    setBulkAnchorEl(null);
+    if (selectedIds.length === 0) return;
+
+    setBulkDeleteState({
+      open: true,
+      loadingSummary: true,
+      summary: null,
+    });
+
+    try {
+      const res = await memberService.getBulkEntriesSummary(selectedIds);
+      if (res.success) {
+        setBulkDeleteState({
+          open: true,
+          loadingSummary: false,
+          summary: res.data,
+        });
+      } else {
+        setBulkDeleteState((prev) => ({
+          ...prev,
+          loadingSummary: false,
+          summary: { hasEntries: false, entryCount: 0, totalAmount: 0, memberSummary: [] },
+        }));
+      }
+    } catch (err) {
+      setBulkDeleteState((prev) => ({
+        ...prev,
+        loadingSummary: false,
+        summary: { hasEntries: false, entryCount: 0, totalAmount: 0, memberSummary: [] },
+      }));
+    }
+  };
+
+  // Confirm bulk delete members & associated entries
   const handleConfirmBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     try {
       setActionLoading(true);
-      await memberService.bulkDelete(selectedIds);
-      setSnackbar({ open: true, message: `${selectedIds.length} members deleted`, severity: "success" });
-      setIsBulkDeleteConfirmOpen(false);
+      const res = await memberService.bulkDelete(selectedIds);
+      setSnackbar({
+        open: true,
+        message: res.message || `${selectedIds.length} members deleted`,
+        severity: "success",
+      });
+      setBulkDeleteState({ open: false, loadingSummary: false, summary: null });
       setSelectedIds([]);
       fetchMembers();
     } catch (err) {
-      setSnackbar({ open: true, message: "Failed bulk deletion", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Failed bulk deletion",
+        severity: "error",
+      });
     } finally {
       setActionLoading(false);
     }
@@ -339,13 +432,7 @@ const MembersPage = () => {
           {/* Bulk Actions Menu */}
           <Menu anchorEl={bulkAnchorEl} open={Boolean(bulkAnchorEl)} onClose={() => setBulkAnchorEl(null)}>
             <MenuItem onClick={handleBulkSendInvites}>Send Invite Link</MenuItem>
-            <MenuItem
-              onClick={() => {
-                setBulkAnchorEl(null);
-                setIsBulkDeleteConfirmOpen(true);
-              }}
-              sx={{ color: "error.main" }}
-            >
+            <MenuItem onClick={handleOpenBulkDelete} sx={{ color: "error.main" }}>
               Delete Selected
             </MenuItem>
           </Menu>
@@ -520,7 +607,7 @@ const MembersPage = () => {
                         </Tooltip>
 
                         <Tooltip title="Delete Member">
-                          <IconButton size="small" color="error" onClick={() => setDeletingId(row._id)}>
+                          <IconButton size="small" color="error" onClick={() => handleOpenSingleDelete(row)}>
                             <DeleteOutlineIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -613,11 +700,267 @@ const MembersPage = () => {
         }}
       />
 
-      {/* Single Delete Confirm */}
-      <DeleteConfirmModal open={Boolean(deletingId)} onClose={() => setDeletingId(null)} onConfirm={handleConfirmSingleDelete} title="Delete Member" message="Are you sure you want to remove this member? This action cannot be reversed." loading={actionLoading} />
+      {/* Single Member Delete Confirmation Modal with Entries Details */}
+      <Dialog
+        open={singleDeleteState.open}
+        onClose={() => !actionLoading && setSingleDeleteState((prev) => ({ ...prev, open: false }))}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            color: singleDeleteState.summary?.hasEntries ? "error.main" : "text.primary",
+            pb: 1,
+          }}
+        >
+          <DeleteOutlineIcon color={singleDeleteState.summary?.hasEntries ? "error" : "action"} sx={{ fontSize: 28 }} />
+          {singleDeleteState.summary?.hasEntries
+            ? "Delete Member & Associated Entries"
+            : "Confirm Delete Member"}
+        </DialogTitle>
 
-      {/* Bulk Delete Confirm */}
-      <DeleteConfirmModal open={isBulkDeleteConfirmOpen} onClose={() => setIsBulkDeleteConfirmOpen(false)} onConfirm={handleConfirmBulkDelete} title="Bulk Delete Members" message={`Are you sure you want to delete ${selectedIds.length} selected members?`} loading={actionLoading} />
+        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2.5, pb: 2.5 }}>
+          {singleDeleteState.loadingSummary ? (
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 4, gap: 1.5 }}>
+              <CircularProgress size={32} />
+              <Typography variant="body2" color="text.secondary">
+                Checking member's associated entries...
+              </Typography>
+            </Box>
+          ) : singleDeleteState.summary?.hasEntries ? (
+            <>
+              {/* Has entries: Warning & Details */}
+              <Alert severity="warning" sx={{ fontWeight: 500 }}>
+                <strong>Warning:</strong> Deleting <strong>{singleDeleteState.member?.fullName}</strong> will also permanently delete all <strong>{singleDeleteState.summary.entryCount} associated entry/entries</strong> (totaling ₹ {formatAmount(singleDeleteState.summary.totalAmount)}) from the Entries page!
+              </Alert>
+
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                  Associated Entries to be deleted ({singleDeleteState.summary.entryCount}):
+                </Typography>
+                <Box
+                  sx={{
+                    maxHeight: 200,
+                    overflowY: "auto",
+                    border: "1px solid #fee2e2",
+                    borderRadius: 2,
+                    bgcolor: "#fff5f5",
+                    p: 1.5,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1,
+                  }}
+                >
+                  {singleDeleteState.summary.entries.map((entry) => (
+                    <Box
+                      key={entry._id}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        p: 1,
+                        bgcolor: "#ffffff",
+                        borderRadius: 1.5,
+                        border: "1px solid #fecaca",
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {formatDate(entry.date)} • {entry.type || entry.status || "Expense"}
+                        </Typography>
+                        {entry.description && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                            {entry.description}
+                          </Typography>
+                        )}
+                      </Box>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: "error.main" }}>
+                        ₹ {formatAmount(entry.amount)}
+                      </Typography>
+                    </Box>
+                  ))}
+                  {singleDeleteState.summary.entryCount > singleDeleteState.summary.entries.length && (
+                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center", pt: 0.5 }}>
+                      ...and {singleDeleteState.summary.entryCount - singleDeleteState.summary.entries.length} more entry/entries
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+
+              <Typography variant="body2" color="text.secondary">
+                Are you sure you want to permanently delete <strong>{singleDeleteState.member?.fullName}</strong> and all associated entries? This action cannot be reversed.
+              </Typography>
+            </>
+          ) : (
+            <>
+              {/* No entries: Normal confirmation details */}
+              <Typography variant="body1">
+                Are you sure you want to delete member <strong>{singleDeleteState.member?.fullName}</strong>?
+              </Typography>
+              <Box sx={{ p: 1.5, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e2e8f0" }}>
+                <Typography variant="body2" color="text.secondary">
+                  ✓ This member has <strong>no associated entries</strong> in the Entries page.
+                </Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary">
+                This action cannot be undone.
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setSingleDeleteState((prev) => ({ ...prev, open: false }))}
+            disabled={actionLoading}
+            color="inherit"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmSingleDelete}
+            color="error"
+            variant="contained"
+            disabled={actionLoading || singleDeleteState.loadingSummary}
+            startIcon={actionLoading ? <CircularProgress size={18} /> : <DeleteOutlineIcon />}
+          >
+            {actionLoading
+              ? "Deleting..."
+              : singleDeleteState.summary?.hasEntries
+              ? `Delete Member & ${singleDeleteState.summary.entryCount} Entries`
+              : "Delete Member"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Bulk Delete Members Confirmation Modal with Entries Details */}
+      <Dialog
+        open={bulkDeleteState.open}
+        onClose={() => !actionLoading && setBulkDeleteState((prev) => ({ ...prev, open: false }))}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            color: bulkDeleteState.summary?.hasEntries ? "error.main" : "text.primary",
+            pb: 1,
+          }}
+        >
+          <DeleteOutlineIcon color={bulkDeleteState.summary?.hasEntries ? "error" : "action"} sx={{ fontSize: 28 }} />
+          {bulkDeleteState.summary?.hasEntries
+            ? "Bulk Delete Members & Associated Entries"
+            : "Confirm Bulk Delete Members"}
+        </DialogTitle>
+
+        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2.5, pb: 2.5 }}>
+          {bulkDeleteState.loadingSummary ? (
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 4, gap: 1.5 }}>
+              <CircularProgress size={32} />
+              <Typography variant="body2" color="text.secondary">
+                Checking selected members' associated entries...
+              </Typography>
+            </Box>
+          ) : bulkDeleteState.summary?.hasEntries ? (
+            <>
+              {/* Has entries: Warning & Details */}
+              <Alert severity="warning" sx={{ fontWeight: 500 }}>
+                <strong>Warning:</strong> Deleting these <strong>{selectedIds.length} members</strong> will also permanently delete all <strong>{bulkDeleteState.summary.entryCount} associated entry/entries</strong> (totaling ₹ {formatAmount(bulkDeleteState.summary.totalAmount)}) from the Entries page!
+              </Alert>
+
+              <Box>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                  Breakdown by Member:
+                </Typography>
+                <Box
+                  sx={{
+                    maxHeight: 200,
+                    overflowY: "auto",
+                    border: "1px solid #fee2e2",
+                    borderRadius: 2,
+                    bgcolor: "#fff5f5",
+                    p: 1.5,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1,
+                  }}
+                >
+                  {bulkDeleteState.summary.memberSummary.map((m) => (
+                    <Box
+                      key={m._id}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        p: 1,
+                        bgcolor: "#ffffff",
+                        borderRadius: 1.5,
+                        border: "1px solid #fecaca",
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {m.fullName}
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: m.count > 0 ? "error.main" : "text.secondary" }}>
+                        {m.count > 0 ? `${m.count} entries (₹ ${formatAmount(m.totalAmount)})` : "No entries"}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+              </Box>
+
+              <Typography variant="body2" color="text.secondary">
+                Are you sure you want to permanently delete these <strong>{selectedIds.length} members</strong> and their <strong>{bulkDeleteState.summary.entryCount} associated entries</strong>? This action cannot be reversed.
+              </Typography>
+            </>
+          ) : (
+            <>
+              {/* No entries: Normal confirmation details */}
+              <Typography variant="body1">
+                Are you sure you want to delete <strong>{selectedIds.length} selected members</strong>?
+              </Typography>
+              <Box sx={{ p: 1.5, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e2e8f0" }}>
+                <Typography variant="body2" color="text.secondary">
+                  ✓ None of the selected members have associated entries in the Entries page.
+                </Typography>
+              </Box>
+              <Typography variant="caption" color="text.secondary">
+                This action cannot be undone.
+              </Typography>
+            </>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setBulkDeleteState((prev) => ({ ...prev, open: false }))}
+            disabled={actionLoading}
+            color="inherit"
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmBulkDelete}
+            color="error"
+            variant="contained"
+            disabled={actionLoading || bulkDeleteState.loadingSummary}
+            startIcon={actionLoading ? <CircularProgress size={18} /> : <DeleteOutlineIcon />}
+          >
+            {actionLoading
+              ? "Deleting..."
+              : bulkDeleteState.summary?.hasEntries
+              ? `Delete ${selectedIds.length} Members & ${bulkDeleteState.summary.entryCount} Entries`
+              : `Delete ${selectedIds.length} Members`}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Visible Error Popup Dialog for Bulk Invites */}
       <Dialog
