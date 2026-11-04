@@ -266,16 +266,11 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
           {/* Description */}
           <TextField
             label="Description (Optional)"
+            type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="e.g. Dinner with team, office supplies, cab fare..."
             fullWidth
-            multiline
-            sx={{
-              '& .MuiInputBase-inputMultiline': {
-                minHeight: '60px',
-              },
-            }}
           />
 
           {/* 4. Date & 5. Time */}
