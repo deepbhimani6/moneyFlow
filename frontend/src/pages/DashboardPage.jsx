@@ -15,7 +15,6 @@ import RefreshIcon from '@mui/icons-material/Refresh';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
 import GroupIcon from '@mui/icons-material/Group';
@@ -28,7 +27,6 @@ const DashboardPage = () => {
     totalBalance: 0,
     totalExpenses: 0,
     totalLoans: 0,
-    totalReceived: 0,
     totalPending: 0,
     totalSplit: 0,
     totalAddBalance: 0,
@@ -57,8 +55,7 @@ const DashboardPage = () => {
     fetchStats();
   }, []);
 
-  // 1. 2-column grid cards in requested order:
-  // 1. Total Balance, 2. Total Expenses, 3. Total Loans, 4. Total Pending, 5. Total Received (col-span 2)
+  // 2-column grid cards: 1. Total Balance, 2. Total Expenses, 3. Total Loans, 4. Total Pending
   const cards = [
     {
       id: 'balance',
@@ -96,15 +93,6 @@ const DashboardPage = () => {
       icon: <PendingActionsIcon sx={{ fontSize: 32, color: '#ed6c02' }} />,
       subtitle: 'Type: Split (Pending) + Expenses (not Myself (You), Pending)',
       gridProps: { xs: 12, sm: 6, md: 6 },
-    },
-    {
-      id: 'received',
-      title: 'Total Received',
-      amount: stats.totalReceived,
-      color: '#2e7d32',
-      icon: <TrendingUpIcon sx={{ fontSize: 32, color: '#2e7d32' }} />,
-      subtitle: 'Status: Received (Without Expenses, Add Balance) + Expenses (not Myself (You), Received)',
-      gridProps: { xs: 12, sm: 12, md: 12 }, // full column (col-span 2)
     },
   ];
 

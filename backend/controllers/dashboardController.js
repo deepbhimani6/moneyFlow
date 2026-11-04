@@ -89,37 +89,7 @@ const getDashboardStats = async (req, res) => {
     ]);
     const totalPending = pendingRes[0]?.total || 0;
 
-    // 5. Total Received: Status: Received (Without Type: Expenses, Add Balance) + Type: Expenses (not Member: Myself (You) (Status: Received))
-    const receivedRes = await Entry.aggregate([
-      {
-        $match: {
-          $and: [
-            {
-              $or: [
-                { paymentStatus: "Received" },
-                { status: "Received" },
-              ],
-            },
-            {
-              $or: [
-                {
-                  type: { $nin: ["Expense", "Expenses", "expense", "expenses", "Add Balance", "add balance", "Add balance"] },
-                },
-                {
-                  type: { $in: ["Expense", "Expenses"] },
-                  forFromName: { $not: /myself/i },
-                  isMine: { $ne: true },
-                },
-              ],
-            },
-          ],
-        },
-      },
-      { $group: { _id: null, total: { $sum: "$amount" } } },
-    ]);
-    const totalReceived = receivedRes[0]?.total || 0;
-
-    // 6. Split Group stats: count items and distinct groups
+    // 5. Split Group stats: count items and distinct groups
     const splitDocs = await Entry.find({ isSplit: true }).lean();
     const totalSplit = splitDocs.reduce((acc, curr) => acc + (curr.amount || 0), 0);
     const splitItemCount = splitDocs.length;
@@ -137,7 +107,6 @@ const getDashboardStats = async (req, res) => {
         totalBalance: Math.trunc(totalBalance),
         totalExpenses: Math.trunc(totalExpenses),
         totalLoans: Math.trunc(totalLoans),
-        totalReceived: Math.trunc(totalReceived),
         totalPending: Math.trunc(totalPending),
         totalSplit: Math.trunc(totalSplit),
         totalAddBalance: Math.trunc(totalAddBalance),
