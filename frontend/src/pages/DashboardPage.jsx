@@ -21,6 +21,7 @@ import CallSplitIcon from '@mui/icons-material/CallSplit';
 import GroupIcon from '@mui/icons-material/Group';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { dashboardService } from '../services/api';
+import { formatAmount } from '../utils/formatters';
 
 const DashboardPage = () => {
   const [stats, setStats] = useState({
@@ -157,7 +158,7 @@ const DashboardPage = () => {
                       mb: 0.5,
                     }}
                   >
-                    ₹ {Number(card.amount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    ₹ {formatAmount(card.amount)}
                   </Typography>
 
                   <Typography variant="caption" color="text.secondary">
@@ -213,7 +214,7 @@ const DashboardPage = () => {
                         </Typography>
                       </Box>
                       <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                        ₹ {Number(stats.totalSplit || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                        ₹ {formatAmount(stats.totalSplit)}
                       </Typography>
                     </Paper>
                   </Grid>

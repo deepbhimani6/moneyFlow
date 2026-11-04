@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
 import { entryService } from '../services/api';
-import { toInputDateFormat, toInputTimeFormat } from '../utils/formatters';
+import { toInputDateFormat, toInputTimeFormat, formatAmount } from '../utils/formatters';
 
 const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
   const [forFromName, setForFromName] = useState('');
@@ -42,7 +42,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
       setForFromName(entry.forFromName || '');
       setStatus(entry.type || entry.status || 'Expense');
       setPaymentStatus(entry.paymentStatus || 'Pending');
-      setAmount(entry.amount !== undefined ? String(entry.amount) : '');
+      setAmount(entry.amount !== undefined ? String(Math.trunc(entry.amount)) : '');
       setDate(toInputDateFormat(entry.date) || '');
       setTime(toInputTimeFormat(entry.time) || '');
       setDescription(entry.description || '');
@@ -57,7 +57,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
               setSplitGroupMembers(res.data);
               const count = res.data.length || 1;
               const originalTotal = entry.originalTotalAmount || entry.amount * count;
-              setTotalAmount(String(originalTotal));
+              setTotalAmount(String(Math.trunc(originalTotal)));
             }
           })
           .catch(console.error)
@@ -75,7 +75,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
     const numTotal = parseFloat(newTotal);
     const count = splitGroupMembers.length || 1;
     if (!isNaN(numTotal) && numTotal > 0) {
-      setAmount((numTotal / count).toFixed(2));
+      setAmount(String(Math.trunc(numTotal / count)));
     }
   };
 
@@ -85,7 +85,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
     const numPerPerson = parseFloat(newPerPerson);
     const count = splitGroupMembers.length || 1;
     if (!isNaN(numPerPerson) && numPerPerson > 0) {
-      setTotalAmount((numPerPerson * count).toFixed(2));
+      setTotalAmount(String(Math.trunc(numPerPerson * count)));
     }
   };
 
@@ -93,7 +93,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
     e.preventDefault();
     setError('');
 
-    const numericAmount = parseFloat(amount);
+    const numericAmount = Math.trunc(parseFloat(amount));
     if (isNaN(numericAmount) || numericAmount <= 0) {
       setError('Please enter a valid amount');
       return;
@@ -170,7 +170,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
                   {splitGroupMembers.map((m) => (
                     <Chip
                       key={m._id}
-                      label={`${m.forFromName} (₹${m.amount})`}
+                      label={`${m.forFromName} (₹${formatAmount(m.amount)})`}
                       size="small"
                       color={m._id === entry._id ? 'primary' : 'default'}
                       variant={m._id === entry._id ? 'filled' : 'outlined'}

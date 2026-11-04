@@ -11,7 +11,7 @@ import { entryService } from "../services/api";
 import AddEntryModal from "../modals/AddEntryModal";
 import EditEntryModal from "../modals/EditEntryModal";
 import FilterModal from "../modals/FilterModal";
-import { formatDate, formatTime } from "../utils/formatters";
+import { formatDate, formatTime, formatAmount } from "../utils/formatters";
 
 const getTypeChip = (type) => {
   switch (type) {
@@ -519,7 +519,7 @@ const EntriesPage = () => {
                       )}
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700 }}>
-                      ₹ {Number(row.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                      ₹ {formatAmount(row.amount)}
                     </TableCell>
                     <TableCell align="center">
                       <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>

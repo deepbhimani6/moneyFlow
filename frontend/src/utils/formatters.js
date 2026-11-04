@@ -128,3 +128,16 @@ export const toInputTimeFormat = (timeValue) => {
 
   return str;
 };
+
+/**
+ * Formats an amount to display only the value before the decimal point (integer part)
+ * with Indian numbering format and NO decimal places (.00).
+ * Example: 500.00 -> "500", 123456.78 -> "1,23,456", "10000000" -> "1,00,00,000"
+ */
+export const formatAmount = (val) => {
+  if (val === null || val === undefined || val === "") return "0";
+  const num = Number(val);
+  if (isNaN(num)) return "0";
+  const intVal = Math.trunc(num);
+  return intVal.toLocaleString("en-IN", { maximumFractionDigits: 0 });
+};

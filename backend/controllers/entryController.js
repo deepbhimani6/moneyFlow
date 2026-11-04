@@ -139,7 +139,7 @@ const createEntry = async (req, res) => {
       return res.status(400).json({ success: false, message: "For/From Name is required" });
     }
 
-    const parsedAmount = Number(amount);
+    const parsedAmount = Math.trunc(Number(amount));
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
       return res.status(400).json({ success: false, message: "Please enter a valid amount" });
     }
@@ -186,7 +186,7 @@ const createEntry = async (req, res) => {
     // ONLY add a separate "You (Myself)" entry if includeMine was explicitly true AND myself is not already in the list
     const addSeparateMine = Boolean(includeMine) && !alreadyHasMine;
     const totalParticipants = nameList.length + (addSeparateMine ? 1 : 0);
-    const splitAmount = parseFloat((parsedAmount / totalParticipants).toFixed(2));
+    const splitAmount = Math.trunc(parsedAmount / totalParticipants);
     const splitGroupId = `split_${crypto.randomBytes(6).toString("hex")}`;
 
     const createdEntries = [];
@@ -284,10 +284,10 @@ const updateEntry = async (req, res) => {
       let calculatedTotal = entry.originalTotalAmount || (entry.amount * groupCount);
 
       if (totalAmount !== undefined && totalAmount !== null && Number(totalAmount) > 0) {
-        calculatedTotal = Number(totalAmount);
-        perPersonAmount = parseFloat((calculatedTotal / groupCount).toFixed(2));
+        calculatedTotal = Math.trunc(Number(totalAmount));
+        perPersonAmount = Math.trunc(calculatedTotal / groupCount);
       } else if (amount !== undefined && Number(amount) > 0) {
-        perPersonAmount = Number(amount);
+        perPersonAmount = Math.trunc(Number(amount));
         calculatedTotal = perPersonAmount * groupCount;
       }
 
@@ -337,7 +337,7 @@ const updateEntry = async (req, res) => {
     if (entryPaymentStatus) {
       entry.paymentStatus = entryPaymentStatus;
     }
-    if (amount !== undefined) entry.amount = Number(amount);
+    if (amount !== undefined) entry.amount = Math.trunc(Number(amount));
     if (date) entry.date = date;
     if (time) entry.time = time;
     if (description !== undefined) entry.description = description ? description.trim() : '';

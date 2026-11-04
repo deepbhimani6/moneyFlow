@@ -3,6 +3,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, F
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import PersonIcon from "@mui/icons-material/Person";
 import { memberService, entryService } from "../services/api";
+import { formatAmount } from "../utils/formatters";
 
 const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   const [members, setMembers] = useState([]);
@@ -54,9 +55,9 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
     ? selectedNames.length
     : selectedNames.length + (includeMine ? 1 : 0);
 
-  const numericAmount = parseFloat(amount) || 0;
+  const numericAmount = Math.trunc(parseFloat(amount) || 0);
   const isSplitActive = selectedNames.length > 1 || (selectedNames.length >= 1 && !isMyselfAdded && includeMine);
-  const splitPerPerson = isSplitActive && numParticipants > 0 ? (numericAmount / numParticipants).toFixed(2) : 0;
+  const splitPerPerson = isSplitActive && numParticipants > 0 ? Math.trunc(numericAmount / numParticipants) : 0;
 
   const handleToggleMyself = () => {
     if (isMyselfAdded) {
@@ -231,7 +232,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               )}
               {numericAmount > 0 && (
                 <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5, color: "primary.main" }}>
-                  ₹ {splitPerPerson} per person ({numParticipants} participants)
+                  ₹ {formatAmount(splitPerPerson)} per person ({numParticipants} participants)
                 </Typography>
               )}
             </Box>
