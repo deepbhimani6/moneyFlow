@@ -41,6 +41,30 @@ const theme = createTheme({
     borderRadius: 8,
   },
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        '.MuiFormLabel-asterisk, .MuiInputLabel-asterisk': {
+          color: '#d32f2f !important',
+          fontWeight: 700,
+        },
+      },
+    },
+    MuiFormLabel: {
+      styleOverrides: {
+        asterisk: {
+          color: '#d32f2f !important',
+          fontWeight: 700,
+        },
+      },
+    },
+    MuiInputLabel: {
+      styleOverrides: {
+        asterisk: {
+          color: '#d32f2f !important',
+          fontWeight: 700,
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {

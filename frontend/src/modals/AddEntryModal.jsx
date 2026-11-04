@@ -181,6 +181,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               <TextField
                 {...params}
                 label="Member Name"
+                required
                 placeholder="Choose members or type & press enter..."
                 helperText="Select 1 or more members. If multiple are selected, amount will be split."
               />
@@ -227,8 +228,8 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
           )}
 
           {/* 2. Type: Expense, Loan (Split when multiple) */}
-          <FormControl fullWidth disabled={selectedNames.length > 1}>
-            <InputLabel id="type-label">Type</InputLabel>
+          <FormControl fullWidth required disabled={selectedNames.length > 1}>
+            <InputLabel id="type-label" required>Type</InputLabel>
             <Select
               labelId="type-label"
               value={selectedNames.length > 1 ? "Split" : type}
@@ -265,7 +266,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
 
           {/* Description */}
           <TextField
-            label="Description (Optional)"
+            label="Description"
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}

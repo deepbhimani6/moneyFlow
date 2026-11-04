@@ -186,8 +186,8 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
           />
 
           {/* 2. Type */}
-          <FormControl fullWidth disabled={isSplit}>
-            <InputLabel id="edit-type-label">Type</InputLabel>
+          <FormControl fullWidth required disabled={isSplit}>
+            <InputLabel id="edit-type-label" required>Type</InputLabel>
             <Select
               labelId="edit-type-label"
               value={status}
@@ -211,8 +211,8 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
           </FormControl>
 
           {/* Status (Pending / Received) */}
-          <FormControl fullWidth>
-            <InputLabel id="edit-payment-status-label">Status</InputLabel>
+          <FormControl fullWidth required>
+            <InputLabel id="edit-payment-status-label" required>Status</InputLabel>
             <Select
               labelId="edit-payment-status-label"
               value={paymentStatus}
@@ -261,7 +261,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
 
           {/* 4. Description */}
           <TextField
-            label="Description (Optional)"
+            label="Description"
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}

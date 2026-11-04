@@ -122,14 +122,14 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
                 {...params}
                 label="Member Name"
                 placeholder="Search or enter member name..."
-                required={!selectedMember && !inputValue.trim()}
+                required
               />
             )}
           />
 
           {/* 2. Type: Only Expense and Loan */}
-          <FormControl fullWidth>
-            <InputLabel id="type-label">Type</InputLabel>
+          <FormControl fullWidth required>
+            <InputLabel id="type-label" required>Type</InputLabel>
             <Select labelId="type-label" value={type} label="Type" onChange={(e) => setType(e.target.value)}>
               <MenuItem value="Expense">Expense</MenuItem>
               <MenuItem value="Loan">Loan</MenuItem>
@@ -140,7 +140,7 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
           <TextField label="Amount (₹)" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 1500" fullWidth required inputProps={{ min: "0", step: "any" }} />
 
           {/* Description */}
-          <TextField label="Description (Optional)" type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Dinner, cab fare, tickets..." fullWidth />
+          <TextField label="Description" type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Dinner, cab fare, tickets..." fullWidth />
 
           {/* 4. Date & 5. Time */}
           <Box sx={{ display: "flex", gap: 2 }}>

@@ -173,8 +173,8 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
           )}
 
           {/* 1. Type: Add Balance always top */}
-          <FormControl fullWidth disabled={isSplit}>
-            <InputLabel id="edit-for-self-type-label">Type</InputLabel>
+          <FormControl fullWidth required disabled={isSplit}>
+            <InputLabel id="edit-for-self-type-label" required>Type</InputLabel>
             <Select
               labelId="edit-for-self-type-label"
               value={type}
@@ -240,7 +240,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
 
           {/* 3. Description */}
           <TextField
-            label="Description (Optional)"
+            label="Description"
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}

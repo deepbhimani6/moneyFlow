@@ -17,7 +17,7 @@ import {
 import { forSelfService } from "../services/api";
 
 const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
-  const [type, setType] = useState("Add Balance");
+  const [type, setType] = useState("Expense");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -27,7 +27,7 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
 
   useEffect(() => {
     if (open) {
-      setType("Add Balance");
+      setType("Expense");
       setAmount("");
       setDescription("");
       setDate(new Date().toISOString().split("T")[0]);
@@ -77,9 +77,9 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
-          {/* 1. Type: Add Balance always top */}
-          <FormControl fullWidth>
-            <InputLabel id="for-self-type-label">Type</InputLabel>
+          {/* 1. Type: Add Balance always top, default selected is Expense */}
+          <FormControl fullWidth required>
+            <InputLabel id="for-self-type-label" required>Type</InputLabel>
             <Select
               labelId="for-self-type-label"
               value={type}
@@ -110,7 +110,7 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
 
           {/* 3. Description */}
           <TextField
-            label="Description (Optional)"
+            label="Description"
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
