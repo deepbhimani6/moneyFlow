@@ -30,12 +30,21 @@ const getDashboardStats = async (req, res) => {
     const loanRes = await Entry.aggregate([
       {
         $match: {
-          type: "Loan",
           $or: [
-            { paymentStatus: "Pending" },
-            { paymentStatus: { $exists: false } },
-            { paymentStatus: null },
-            { paymentStatus: { $ne: "Received" } },
+            { type: { $regex: /^loans?$/i } },
+            { status: { $regex: /^loans?$/i } },
+          ],
+          $and: [
+            {
+              $or: [
+                { paymentStatus: { $regex: /^pending$/i } },
+                { paymentStatus: { $exists: false } },
+                { paymentStatus: null },
+              ],
+            },
+            {
+              paymentStatus: { $not: /received/i },
+            },
           ],
         },
       },
@@ -112,7 +121,7 @@ const getDashboardStats = async (req, res) => {
     const splitPendingCount = splitDocs.filter((e) => e.paymentStatus !== "Received").length;
     const splitReceivedCount = splitDocs.filter((e) => e.paymentStatus === "Received").length;
 
-    // Formula 1: Total Balance = Added + Received - Expenses - Loans
+    // Formula 1: Total Balance = Added + Received - Expenses - Loans (Status: pending)
     const totalBalance = totalAddBalance + totalReceived - totalExpenses - totalLoans;
 
     res.json({
