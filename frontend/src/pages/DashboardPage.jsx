@@ -8,8 +8,6 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
-  Paper,
-  Divider,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -17,8 +15,6 @@ import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import PriceCheckIcon from '@mui/icons-material/PriceCheck';
-import CallSplitIcon from '@mui/icons-material/CallSplit';
-import GroupIcon from '@mui/icons-material/Group';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { dashboardService } from '../services/api';
 import { formatAmount } from '../utils/formatters';
@@ -34,11 +30,6 @@ const DashboardPage = () => {
     pendingPayExpenses: 0,
     toPayPaid: 0,
     totalAddBalance: 0,
-    totalSplit: 0,
-    splitItemCount: 0,
-    splitGroupCount: 0,
-    splitPendingCount: 0,
-    splitReceivedCount: 0,
   });
   const [loading, setLoading] = useState(true);
 
@@ -201,106 +192,6 @@ const DashboardPage = () => {
               </Card>
             </Grid>
           ))}
-
-          {/* 2. Total Group Split Obligations in full width & separated with count items grid */}
-          <Grid item xs={12}>
-            <Card
-              sx={{
-                p: 1.5,
-                borderRadius: 2,
-                bgcolor: 'rgba(25, 118, 210, 0.03)',
-                border: '1px solid rgba(25, 118, 210, 0.2)',
-              }}
-            >
-              <CardContent sx={{ pb: '16px !important' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
-                  <CallSplitIcon color="primary" sx={{ fontSize: 32 }} />
-                  <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                      Total Group Split Obligations
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Member split allocations across all shared expenses
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <Divider sx={{ mb: 2.5 }} />
-
-                {/* Count Items Grid */}
-                <Grid container spacing={2}>
-                  <Grid item xs={12} sm={4}>
-                    <Paper
-                      variant="outlined"
-                      sx={{
-                        p: 2,
-                        borderRadius: 2,
-                        bgcolor: '#ffffff',
-                        border: '1px solid #e0e0e0',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.8, mb: 0.5 }}>
-                        <CallSplitIcon color="primary" sx={{ fontSize: 18 }} />
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
-                          Total Split Amount
-                        </Typography>
-                      </Box>
-                      <Typography variant="h5" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                        ₹ {formatAmount(stats.totalSplit)}
-                      </Typography>
-                    </Paper>
-                  </Grid>
-
-                  <Grid item xs={12} sm={4}>
-                    <Paper
-                      variant="outlined"
-                      sx={{
-                        p: 2,
-                        borderRadius: 2,
-                        bgcolor: '#ffffff',
-                        border: '1px solid #e0e0e0',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.8, mb: 0.5 }}>
-                        <ReceiptLongIcon color="action" sx={{ fontSize: 18 }} />
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
-                          Split Items Count
-                        </Typography>
-                      </Box>
-                      <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                        {stats.splitItemCount || 0} Items
-                      </Typography>
-                    </Paper>
-                  </Grid>
-
-                  <Grid item xs={12} sm={4}>
-                    <Paper
-                      variant="outlined"
-                      sx={{
-                        p: 2,
-                        borderRadius: 2,
-                        bgcolor: '#ffffff',
-                        border: '1px solid #e0e0e0',
-                        textAlign: 'center',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.8, mb: 0.5 }}>
-                        <GroupIcon color="action" sx={{ fontSize: 18 }} />
-                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700, textTransform: 'uppercase' }}>
-                          Active Split Groups
-                        </Typography>
-                      </Box>
-                      <Typography variant="h5" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                        {stats.splitGroupCount || 0} Groups
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
-          </Grid>
         </Grid>
       )}
     </Box>

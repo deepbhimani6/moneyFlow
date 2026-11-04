@@ -159,15 +159,6 @@ const getDashboardStats = async (req, res) => {
     // Total Balance = For Self (Add balance) - Total Expenses - To Receive (Split, Loan & Expense (Status: Pending)) - To Pay (Loan & Expense (Status: Paid))
     const totalBalance = totalAddBalance - totalExpenses - pendingReceiveTotal - toPayPaid;
 
-    // Split Group stats: count items and distinct groups
-    const splitDocs = await Entry.find({ isSplit: true }).lean();
-    const totalSplit = splitDocs.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-    const splitItemCount = splitDocs.length;
-    const splitGroupIds = new Set(splitDocs.map((e) => e.splitGroupId).filter(Boolean));
-    const splitGroupCount = splitGroupIds.size;
-    const splitPendingCount = splitDocs.filter((e) => e.paymentStatus !== "Received" && e.status !== "Received").length;
-    const splitReceivedCount = splitDocs.filter((e) => e.paymentStatus === "Received" || e.status === "Received").length;
-
     res.json({
       success: true,
       data: {
@@ -180,12 +171,6 @@ const getDashboardStats = async (req, res) => {
         pendingPayExpenses: Math.trunc(pendingPayExpenses),
         toPayPaid: Math.trunc(toPayPaid),
         totalAddBalance: Math.trunc(totalAddBalance),
-        // Split Group stats
-        totalSplit: Math.trunc(totalSplit),
-        splitItemCount,
-        splitGroupCount,
-        splitPendingCount,
-        splitReceivedCount,
       },
     });
   } catch (error) {
