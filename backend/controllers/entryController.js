@@ -1,5 +1,43 @@
 const Entry = require("../models/Entry");
+const Member = require("../models/Member");
 const crypto = require("crypto");
+
+// Helper to resolve or auto-create a Member when a new participant name is used
+const resolveOrCreateMember = async (item) => {
+  if (!item) return null;
+  const memberName = typeof item === "object" ? (item.fullName || item.name || "") : String(item).trim();
+  const existingMemberId = typeof item === "object" ? item.memberId || item._id : null;
+
+  if (!memberName || /myself/i.test(memberName) || /you\s*\(myself\)/i.test(memberName)) {
+    return null;
+  }
+
+  // If already an existing MongoDB ObjectId, check if it exists
+  if (existingMemberId && existingMemberId !== "myself") {
+    const existing = await Member.findById(existingMemberId).catch(() => null);
+    if (existing) return existing._id;
+  }
+
+  // Look for existing member by exact name (case-insensitive)
+  const escaped = memberName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+  let member = await Member.findOne({
+    fullName: { $regex: new RegExp(`^${escaped}$`, "i") },
+  });
+
+  if (!member) {
+    member = await Member.create({
+      fullName: memberName,
+      email: "",
+      phoneNumber: "",
+      username: memberName.toLowerCase().replace(/[^a-z0-9]/g, ""),
+      password: "",
+      joinDate: new Date(),
+      inviteSent: false,
+    });
+  }
+
+  return member._id;
+};
 
 // @desc    Get entries with filtering and pagination
 // @route   GET /api/entries
@@ -114,9 +152,12 @@ const createEntry = async (req, res) => {
 
     // Single person entry (not split)
     if (nameList.length === 1 && !includeMine) {
+      const singleName = typeof nameList[0] === "object" ? (nameList[0].name || nameList[0].fullName) : nameList[0];
+      const resolvedMemberId = await resolveOrCreateMember(nameList[0]);
+
       const singleEntry = new Entry({
-        forFromName: typeof nameList[0] === "object" ? nameList[0].name : nameList[0],
-        memberId: typeof nameList[0] === "object" ? nameList[0].memberId : null,
+        forFromName: singleName,
+        memberId: resolvedMemberId,
         type: entryType,
         status: entryType,
         paymentStatus: entryPaymentStatus,
@@ -138,7 +179,7 @@ const createEntry = async (req, res) => {
     // MULTI-MEMBER SPLIT LOGIC:
     // Check if myself/you is already included in nameList
     const alreadyHasMine = nameList.some((item) => {
-      const name = (typeof item === 'object' ? item.name : item).toLowerCase();
+      const name = (typeof item === 'object' ? (item.name || item.fullName) : item).toLowerCase();
       return name.includes('myself') || name.includes('you (myself)');
     });
 
@@ -152,13 +193,13 @@ const createEntry = async (req, res) => {
 
     // Create entry for each member in the list
     for (const item of nameList) {
-      const memberName = typeof item === "object" ? item.name : item;
-      const memberId = typeof item === "object" ? item.memberId : null;
+      const memberName = typeof item === "object" ? (item.name || item.fullName) : item;
       const isThisMine = memberName.toLowerCase().includes('myself') || memberName.toLowerCase().includes('you (myself)');
+      const resolvedMemberId = isThisMine ? null : await resolveOrCreateMember(item);
 
       const memberEntry = new Entry({
         forFromName: memberName,
-        memberId: memberId || null,
+        memberId: resolvedMemberId,
         type: isThisMine ? "Expense" : "Split", // Mine is Expense, others Split
         status: isThisMine ? "Expense" : "Split",
         paymentStatus: entryPaymentStatus,
@@ -279,7 +320,16 @@ const updateEntry = async (req, res) => {
     }
 
     // NON-SPLIT (SINGLE) ENTRY:
-    if (forFromName) entry.forFromName = forFromName;
+    if (forFromName) {
+      entry.forFromName = forFromName;
+      const isMine = /myself/i.test(forFromName) || /you\s*\(myself\)/i.test(forFromName);
+      if (!isMine) {
+        const resolvedId = await resolveOrCreateMember(forFromName);
+        if (resolvedId) entry.memberId = resolvedId;
+      } else {
+        entry.memberId = null;
+      }
+    }
     if (entryType) {
       entry.type = entryType;
       entry.status = entryType;

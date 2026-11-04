@@ -108,7 +108,10 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
     try {
       setSubmitting(true);
       const res = await entryService.createEntry({
-        names: finalNames.map((item) => (typeof item === "string" ? item : item.fullName)),
+        names: finalNames.map((item) => {
+          if (typeof item === "string") return item;
+          return { name: item.fullName, memberId: item._id };
+        }),
         type: finalNames.length > 1 ? 'Split' : type,
         status: finalNames.length > 1 ? 'Split' : type,
         amount: numericAmount,

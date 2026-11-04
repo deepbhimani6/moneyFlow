@@ -14,9 +14,9 @@ const memberSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
       trim: true,
       lowercase: true,
+      default: '',
     },
     username: {
       type: String,

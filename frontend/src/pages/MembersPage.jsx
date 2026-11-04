@@ -303,6 +303,7 @@ const MembersPage = () => {
                 <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
               </TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Full Name</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>E-mail</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Phone Number</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Join Date</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Invite Status</TableCell>
@@ -320,13 +321,13 @@ const MembersPage = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={32} />
                 </TableCell>
               </TableRow>
             ) : members.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
                   No members registered. Click <strong>Invite Members +</strong> to add one.
                 </TableCell>
               </TableRow>
@@ -347,19 +348,21 @@ const MembersPage = () => {
                     </TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>
                       {row.fullName}
-                      <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                        {row.email}
-                      </Typography>
+                    </TableCell>
+                    <TableCell sx={{ color: row.email ? "text.primary" : "text.secondary" }}>
+                      {row.email || "—"}
                     </TableCell>
                     <TableCell>{row.phoneNumber || "—"}</TableCell>
                     <TableCell>{formattedDate}</TableCell>
                     <TableCell>{row.inviteSent ? <Chip icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />} label="Invite Sent" size="small" color="success" variant="outlined" /> : <Chip label="Pending" size="small" variant="outlined" />}</TableCell>
                     <TableCell align="center">
                       <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
-                        <Tooltip title="Send App Invite Link via Resend">
-                          <IconButton size="small" color="primary" onClick={() => handleSendInvite(row._id, row.email)}>
-                            <SendIcon fontSize="small" />
-                          </IconButton>
+                        <Tooltip title={row.email ? "Send App Invite Link via Resend" : "No email available to send invite"}>
+                          <span>
+                            <IconButton size="small" color="primary" onClick={() => handleSendInvite(row._id, row.email)} disabled={!row.email}>
+                              <SendIcon fontSize="small" />
+                            </IconButton>
+                          </span>
                         </Tooltip>
 
                         <Tooltip title="Edit Member">

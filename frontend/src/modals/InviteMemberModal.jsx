@@ -14,6 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
+import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { memberService } from '../services/api';
 
 const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
@@ -162,9 +163,23 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
             type="submit"
             variant="contained"
             disabled={submitting}
-            startIcon={submitting ? <CircularProgress size={18} /> : <SendIcon />}
+            startIcon={
+              submitting ? (
+                <CircularProgress size={18} />
+              ) : formData.sendLink ? (
+                <SendIcon />
+              ) : (
+                <PersonAddIcon />
+              )
+            }
           >
-            {submitting ? 'Sending...' : 'Invite Member'}
+            {submitting
+              ? formData.sendLink
+                ? 'Sending Invite...'
+                : 'Adding...'
+              : formData.sendLink
+              ? 'Send Invite'
+              : 'Add Member'}
           </Button>
         </DialogActions>
       </form>
