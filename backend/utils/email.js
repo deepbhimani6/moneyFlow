@@ -14,6 +14,9 @@ const getSmtpTransporter = () => {
       user,
       pass,
     },
+    connectionTimeout: 10000, // 10 seconds connection timeout
+    greetingTimeout: 10000,   // 10 seconds greeting timeout
+    socketTimeout: 15000,     // 15 seconds socket timeout
   });
 };
 
@@ -75,6 +78,9 @@ MoneyFlow • Online Expense & Split Tracker`;
     }
 
     // 2. Fallback to Resend if SMTP is not configured
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.warn('[Email Warning]: SMTP_USER or SMTP_PASS not set in environment. Falling back to Resend.');
+    }
     const from = process.env.EMAIL_FROM || 'MoneyFlow <onboarding@resend.dev>';
     const { data, error } = await resend.emails.send({
       from,
@@ -86,6 +92,12 @@ MoneyFlow • Online Expense & Split Tracker`;
 
     if (error) {
       console.error(`[Resend Email Error]: to=${toEmail}, error=`, error.message);
+      if (error.message && error.message.includes('only send testing emails')) {
+        return {
+          success: false,
+          error: 'Gmail SMTP credentials (SMTP_USER / SMTP_PASS) are not set in Render Environment variables. Please add them in your Render dashboard under Environment.',
+        };
+      }
       return { success: false, error: error.message };
     }
 

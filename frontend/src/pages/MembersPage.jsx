@@ -51,6 +51,7 @@ const MembersPage = () => {
     severity: "error",
   });
   const [confirmBulkInvite, setConfirmBulkInvite] = useState({ open: false, members: [] });
+  const [sendingInviteId, setSendingInviteId] = useState(null);
 
   // Pagination
   const [page, setPage] = useState(0);
@@ -304,6 +305,7 @@ const MembersPage = () => {
   // Send single invite link
   const handleSendInvite = async (id, memberEmail) => {
     try {
+      setSendingInviteId(id);
       const res = await memberService.sendInvite(id);
       if (res.success) {
         setSnackbar({ open: true, message: `Invite link sent to ${memberEmail}`, severity: "success" });
@@ -313,6 +315,8 @@ const MembersPage = () => {
       }
     } catch (err) {
       setSnackbar({ open: true, message: err.response?.data?.message || err.message, severity: "error" });
+    } finally {
+      setSendingInviteId(null);
     }
   };
 
@@ -331,7 +335,7 @@ const MembersPage = () => {
         setSnackbar({
           open: true,
           message: res.message || "No invites were sent",
-          severity: "info",
+          severity: res.failedCount > 0 ? "error" : "info",
         });
       }
       setSelectedIds([]);
@@ -344,6 +348,7 @@ const MembersPage = () => {
       });
     } finally {
       setActionLoading(false);
+      setConfirmBulkInvite({ open: false, members: [] });
       setInviteErrorDialog((prev) => ({ ...prev, open: false }));
     }
   };
@@ -598,10 +603,19 @@ const MembersPage = () => {
                     <TableCell>{row.inviteSent ? <Chip icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />} label="Invite Sent" size="small" color="success" variant="outlined" /> : <Chip label="Pending" size="small" variant="outlined" />}</TableCell>
                     <TableCell align="center">
                       <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
-                        <Tooltip title={row.email ? "Send App Invite Link via Resend" : "No email available to send invite"}>
+                        <Tooltip title={row.email ? "Send App Invite Link" : "No email available to send invite"}>
                           <span>
-                            <IconButton size="small" color="primary" onClick={() => handleSendInvite(row._id, row.email)} disabled={!row.email}>
-                              <SendIcon fontSize="small" />
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handleSendInvite(row._id, row.email)}
+                              disabled={!row.email || sendingInviteId === row._id}
+                            >
+                              {sendingInviteId === row._id ? (
+                                <CircularProgress size={16} color="primary" />
+                              ) : (
+                                <SendIcon fontSize="small" />
+                              )}
                             </IconButton>
                           </span>
                         </Tooltip>

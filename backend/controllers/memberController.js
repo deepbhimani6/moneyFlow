@@ -298,33 +298,55 @@ const bulkInviteMembers = async (req, res) => {
 
     const members = await Member.find({ _id: { $in: ids } });
     const appUrl = getAppUrl(req);
+    const missingEmailMembers = members.filter((m) => !m.email || !m.email.trim()).map((m) => m.fullName);
+    const validMembers = members.filter((m) => m.email && m.email.trim());
+
+    if (validMembers.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'None of the selected members have an E-mail address configured.',
+        sentCount: 0,
+        failedCount: 0,
+        missingEmailMembers,
+      });
+    }
+
+    // Send emails in parallel with concurrency control
+    const results = await Promise.allSettled(
+      validMembers.map(async (member) => {
+        const emailResult = await sendInviteEmail({
+          toEmail: member.email,
+          fullName: member.fullName,
+          username: member.username,
+          temporaryPassword: member.password,
+          inviteLink: appUrl,
+        });
+
+        if (emailResult.success) {
+          member.inviteSent = true;
+          member.lastInviteSentAt = new Date();
+          await member.save();
+          return { success: true, email: member.email };
+        } else {
+          throw new Error(emailResult.error || 'Failed to deliver email');
+        }
+      })
+    );
+
     let sentCount = 0;
     let failedCount = 0;
-    const missingEmailMembers = [];
+    const errors = [];
 
-    for (const member of members) {
-      if (!member.email || !member.email.trim()) {
-        missingEmailMembers.push(member.fullName);
-        continue;
-      }
-
-      const emailResult = await sendInviteEmail({
-        toEmail: member.email,
-        fullName: member.fullName,
-        username: member.username,
-        temporaryPassword: member.password,
-        inviteLink: appUrl,
-      });
-
-      if (emailResult.success) {
-        member.inviteSent = true;
-        member.lastInviteSentAt = new Date();
-        await member.save();
+    results.forEach((r) => {
+      if (r.status === 'fulfilled') {
         sentCount++;
       } else {
         failedCount++;
+        if (r.reason && r.reason.message && !errors.includes(r.reason.message)) {
+          errors.push(r.reason.message);
+        }
       }
-    }
+    });
 
     const hasMissing = missingEmailMembers.length > 0;
     let message = `Invites sent: ${sentCount}`;
@@ -333,14 +355,18 @@ const bulkInviteMembers = async (req, res) => {
     }
     if (failedCount > 0) {
       message += `. Failed: ${failedCount}`;
+      if (errors.length > 0) {
+        message += ` — ${errors[0]}`;
+      }
     }
 
     res.json({
-      success: sentCount > 0 || (sentCount === 0 && !hasMissing),
+      success: sentCount > 0,
       message,
       sentCount,
       failedCount,
       missingEmailMembers,
+      errorDetail: errors[0] || null,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
