@@ -31,9 +31,6 @@ const FilterForSelfModal = ({ open, onClose, currentFilters, onApplyFilters, onR
       ...filters,
       type: filters.status || filters.type || "All",
       status: filters.status || filters.type || "All",
-      paymentStatus: filters.paymentStatus || "All",
-      forFromName: (filters.forFromName || "").trim(),
-      name: (filters.forFromName || "").trim(),
       description: (filters.description || "").trim(),
       startDate: filters.startDate || "",
       endDate: filters.endDate || "",
@@ -47,9 +44,6 @@ const FilterForSelfModal = ({ open, onClose, currentFilters, onApplyFilters, onR
     const emptyFilters = {
       type: "All",
       status: "All",
-      paymentStatus: "All",
-      forFromName: "",
-      name: "",
       search: "",
       description: "",
       startDate: "",
@@ -66,7 +60,7 @@ const FilterForSelfModal = ({ open, onClose, currentFilters, onApplyFilters, onR
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Filter For Self</DialogTitle>
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
-        {/* Type Filter */}
+        {/* Type Filter: Add Balance always top, only Add Balance & Expense */}
         <FormControl fullWidth>
           <InputLabel id="filter-for-self-type-label">Type</InputLabel>
           <Select
@@ -79,38 +73,10 @@ const FilterForSelfModal = ({ open, onClose, currentFilters, onApplyFilters, onR
             }}
           >
             <MenuItem value="All">All Types</MenuItem>
-            <MenuItem value="Expense">Expense</MenuItem>
             <MenuItem value="Add Balance">Add Balance</MenuItem>
-            <MenuItem value="Split">Split</MenuItem>
+            <MenuItem value="Expense">Expense</MenuItem>
           </Select>
         </FormControl>
-
-        {/* Status Filter */}
-        <FormControl fullWidth>
-          <InputLabel id="filter-for-self-status-label">Status</InputLabel>
-          <Select
-            labelId="filter-for-self-status-label"
-            value={filters.paymentStatus || "All"}
-            label="Status"
-            onChange={(e) => handleChange("paymentStatus", e.target.value)}
-          >
-            <MenuItem value="All">All Statuses</MenuItem>
-            <MenuItem value="Paid">Paid</MenuItem>
-            <MenuItem value="Pending">Pending</MenuItem>
-          </Select>
-        </FormControl>
-
-        {/* Member Name */}
-        <TextField
-          label="Member Name"
-          value={filters.forFromName || filters.name || ""}
-          onChange={(e) => {
-            handleChange("forFromName", e.target.value);
-            handleChange("name", e.target.value);
-          }}
-          placeholder="Filter by member name (e.g. Myself)..."
-          fullWidth
-        />
 
         {/* Description Filter */}
         <TextField

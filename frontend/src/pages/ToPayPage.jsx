@@ -32,6 +32,7 @@ import { toPayService } from "../services/api";
 import AddToPayModal from "../modals/AddToPayModal";
 import EditToPayModal from "../modals/EditToPayModal";
 import FilterToPayModal from "../modals/FilterToPayModal";
+import DeleteConfirmModal from "../modals/DeleteConfirmModal";
 import { formatDate, formatTime, formatAmount } from "../utils/formatters";
 
 const getTypeChip = (type) => {
@@ -71,6 +72,12 @@ const ToPayPage = () => {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
+
+  // Confirm modals state
+  const [confirmBulkDeleteOpen, setConfirmBulkDeleteOpen] = useState(false);
+  const [confirmBulkStatus, setConfirmBulkStatus] = useState({ open: false, newStatus: "" });
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Filters state
   const [filters, setFilters] = useState({
@@ -218,41 +225,52 @@ const ToPayPage = () => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
-  const handleDeleteSingle = async (id) => {
+  const handleConfirmSingleDelete = async () => {
+    if (!itemToDelete) return;
     try {
-      await toPayService.deleteToPayEntry(id);
-      setSelectedIds((prev) => prev.filter((item) => item !== id));
-      setSnackbar({ open: true, message: "To Pay entry deleted", severity: "success" });
+      setActionLoading(true);
+      await toPayService.deleteToPayEntry(itemToDelete);
+      setSelectedIds((prev) => prev.filter((item) => item !== itemToDelete));
+      setSnackbar({ open: true, message: "To Pay entry deleted successfully", severity: "success" });
+      setItemToDelete(null);
       fetchEntries();
     } catch (err) {
       setSnackbar({ open: true, message: "Failed to delete entry", severity: "error" });
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleBulkDelete = async () => {
-    setBulkAnchorEl(null);
+  const handleConfirmBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     try {
+      setActionLoading(true);
       await toPayService.bulkDelete(selectedIds);
-      setSnackbar({ open: true, message: `${selectedIds.length} To Pay entries deleted`, severity: "success" });
+      setSnackbar({ open: true, message: `${selectedIds.length} To Pay entries deleted successfully`, severity: "success" });
       setSelectedIds([]);
+      setConfirmBulkDeleteOpen(false);
       fetchEntries();
     } catch (err) {
       setSnackbar({ open: true, message: "Failed bulk deletion", severity: "error" });
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleBulkStatusChange = async (newStatus) => {
-    setStatusMenuAnchorEl(null);
-    setBulkAnchorEl(null);
-    if (selectedIds.length === 0) return;
+  const handleConfirmBulkStatusChange = async () => {
+    const newStatus = confirmBulkStatus.newStatus;
+    if (selectedIds.length === 0 || !newStatus) return;
     try {
+      setActionLoading(true);
       await toPayService.bulkUpdateStatus(selectedIds, { paymentStatus: newStatus });
       setSnackbar({ open: true, message: `Updated status for ${selectedIds.length} entries to ${newStatus}`, severity: "success" });
       setSelectedIds([]);
+      setConfirmBulkStatus({ open: false, newStatus: "" });
       fetchEntries();
     } catch (err) {
       setSnackbar({ open: true, message: "Failed bulk status update", severity: "error" });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -309,15 +327,37 @@ const ToPayPage = () => {
           {/* Bulk Actions Menu */}
           <Menu anchorEl={bulkAnchorEl} open={Boolean(bulkAnchorEl)} onClose={() => setBulkAnchorEl(null)}>
             <MenuItem onClick={(e) => setStatusMenuAnchorEl(e.currentTarget)}>Change Status</MenuItem>
-            <MenuItem onClick={handleBulkDelete} sx={{ color: "error.main" }}>
+            <MenuItem
+              onClick={() => {
+                setBulkAnchorEl(null);
+                setConfirmBulkDeleteOpen(true);
+              }}
+              sx={{ color: "error.main" }}
+            >
               Delete Selected
             </MenuItem>
           </Menu>
 
           {/* Submenu for Status */}
           <Menu anchorEl={statusMenuAnchorEl} open={Boolean(statusMenuAnchorEl)} onClose={() => setStatusMenuAnchorEl(null)}>
-            <MenuItem onClick={() => handleBulkStatusChange("Paid")}>Set Paid</MenuItem>
-            <MenuItem onClick={() => handleBulkStatusChange("Pending")}>Set Pending</MenuItem>
+            <MenuItem
+              onClick={() => {
+                setStatusMenuAnchorEl(null);
+                setBulkAnchorEl(null);
+                setConfirmBulkStatus({ open: true, newStatus: "Paid" });
+              }}
+            >
+              Set Paid
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                setStatusMenuAnchorEl(null);
+                setBulkAnchorEl(null);
+                setConfirmBulkStatus({ open: true, newStatus: "Pending" });
+              }}
+            >
+              Set Pending
+            </MenuItem>
           </Menu>
         </Box>
       </Box>
@@ -498,7 +538,7 @@ const ToPayPage = () => {
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Delete entry">
-                          <IconButton size="small" color="error" onClick={() => handleDeleteSingle(row._id)}>
+                          <IconButton size="small" color="error" onClick={() => setItemToDelete(row._id)}>
                             <DeleteOutlineIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -606,6 +646,39 @@ const ToPayPage = () => {
             maxAmount: "",
           })
         }
+      />
+
+      {/* Single Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        open={Boolean(itemToDelete)}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmSingleDelete}
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this entry? This action cannot be undone."
+        loading={actionLoading}
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        open={confirmBulkDeleteOpen}
+        onClose={() => setConfirmBulkDeleteOpen(false)}
+        onConfirm={handleConfirmBulkDelete}
+        title="Confirm Bulk Deletion"
+        message={`Are you sure you want to delete ${selectedIds.length} selected entries? This action cannot be undone.`}
+        loading={actionLoading}
+        confirmText={`Delete (${selectedIds.length})`}
+      />
+
+      {/* Bulk Status Change Confirmation Modal */}
+      <DeleteConfirmModal
+        open={confirmBulkStatus.open}
+        onClose={() => setConfirmBulkStatus({ open: false, newStatus: "" })}
+        onConfirm={handleConfirmBulkStatusChange}
+        title="Confirm Status Change"
+        message={`Are you sure you want to set status to "${confirmBulkStatus.newStatus}" for ${selectedIds.length} selected entries?`}
+        loading={actionLoading}
+        confirmText="Update Status"
+        confirmColor="primary"
       />
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}>

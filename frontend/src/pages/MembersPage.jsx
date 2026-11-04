@@ -50,6 +50,7 @@ const MembersPage = () => {
     validMembers: [],
     severity: "error",
   });
+  const [confirmBulkInvite, setConfirmBulkInvite] = useState({ open: false, members: [] });
 
   // Pagination
   const [page, setPage] = useState(0);
@@ -380,8 +381,11 @@ const MembersPage = () => {
       return;
     }
 
-    // Case 3: ALL selected members have valid emails -> send immediately
-    executeBulkSendInvites(validEmailMembers.map((m) => m._id));
+    // Case 3: ALL selected members have valid emails -> show confirmation dialog
+    setConfirmBulkInvite({
+      open: true,
+      members: validEmailMembers,
+    });
   };
 
   const isAllSelected = members.length > 0 && selectedIds.length === members.length;
@@ -1068,6 +1072,18 @@ const MembersPage = () => {
           )}
         </DialogActions>
       </Dialog>
+
+      {/* Bulk Send Invites Confirmation Modal */}
+      <DeleteConfirmModal
+        open={confirmBulkInvite.open}
+        onClose={() => setConfirmBulkInvite({ open: false, members: [] })}
+        onConfirm={() => executeBulkSendInvites(confirmBulkInvite.members.map((m) => m._id))}
+        title="Confirm Send Invites"
+        message={`Are you sure you want to send invite links to ${confirmBulkInvite.members.length} selected member(s)?`}
+        loading={actionLoading}
+        confirmText="Send Invites"
+        confirmColor="primary"
+      />
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}>
         <Alert severity={snackbar.severity} sx={{ width: "100%" }}>

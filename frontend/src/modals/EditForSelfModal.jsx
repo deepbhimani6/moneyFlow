@@ -21,9 +21,7 @@ import { forSelfService } from "../services/api";
 import { toInputDateFormat, toInputTimeFormat, formatAmount } from "../utils/formatters";
 
 const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
-  const [forFromName, setForFromName] = useState("Myself (You)");
-  const [type, setType] = useState("Expense");
-  const [paymentStatus, setPaymentStatus] = useState("Paid");
+  const [type, setType] = useState("Add Balance");
   const [amount, setAmount] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
   const [date, setDate] = useState("");
@@ -40,9 +38,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
 
   useEffect(() => {
     if (entry && open) {
-      setForFromName(entry.forFromName || "Myself (You)");
-      setType(entry.type || entry.status || "Expense");
-      setPaymentStatus(entry.paymentStatus || "Paid");
+      setType(entry.type || entry.status || "Add Balance");
       setAmount(entry.amount !== undefined ? String(Math.trunc(entry.amount)) : "");
       setDate(toInputDateFormat(entry.date) || "");
       setTime(toInputTimeFormat(entry.time) || "");
@@ -103,10 +99,8 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
     try {
       setSubmitting(true);
       const res = await forSelfService.updateForSelfEntry(entry._id, {
-        forFromName: forFromName.trim() || "Myself (You)",
         type,
         status: type,
-        paymentStatus,
         amount: numericAmount,
         totalAmount: isSplit ? Math.trunc(parseFloat(totalAmount) || 0) : undefined,
         date,
@@ -167,7 +161,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
                   {splitGroupMembers.map((m) => (
                     <Chip
                       key={m._id}
-                      label={`${m.forFromName || "Myself (You)"} (₹${formatAmount(m.amount)})`}
+                      label={`${m.forFromName || "Participant"} (₹${formatAmount(m.amount)})`}
                       size="small"
                       color={m._id === entry._id ? "primary" : "default"}
                       variant={m._id === entry._id ? "filled" : "outlined"}
@@ -178,18 +172,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
             </Box>
           )}
 
-          {/* 1. Member Name */}
-          <TextField
-            label="Member Name"
-            value={forFromName}
-            onChange={(e) => setForFromName(e.target.value)}
-            fullWidth
-            required
-            disabled={isSplit}
-            helperText={isSplit ? "Participant name in this split group" : "This entry belongs to you (For Self)"}
-          />
-
-          {/* 2. Type */}
+          {/* 1. Type: Add Balance always top */}
           <FormControl fullWidth disabled={isSplit}>
             <InputLabel id="edit-for-self-type-label">Type</InputLabel>
             <Select
@@ -202,8 +185,8 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
                 <MenuItem value="Expense">Expense</MenuItem>
               ) : (
                 [
-                  <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
                   <MenuItem key="Add Balance" value="Add Balance">Add Balance</MenuItem>,
+                  <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
                 ]
               )}
             </Select>
@@ -214,21 +197,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
             )}
           </FormControl>
 
-          {/* 3. Status */}
-          <FormControl fullWidth>
-            <InputLabel id="edit-for-self-status-label">Status</InputLabel>
-            <Select
-              labelId="edit-for-self-status-label"
-              value={paymentStatus}
-              label="Status"
-              onChange={(e) => setPaymentStatus(e.target.value)}
-            >
-              <MenuItem value="Paid">Paid</MenuItem>
-              <MenuItem value="Pending">Pending</MenuItem>
-            </Select>
-          </FormControl>
-
-          {/* 4. Amounts */}
+          {/* 2. Amounts */}
           {isSplit ? (
             <Box sx={{ display: "flex", gap: 2 }}>
               <TextField
@@ -269,17 +238,17 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
             />
           )}
 
-          {/* 5. Description */}
+          {/* 3. Description */}
           <TextField
             label="Description (Optional)"
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. Dinner with team, office supplies, cab fare..."
+            placeholder="e.g. Salary deposit, groceries, coffee..."
             fullWidth
           />
 
-          {/* 6. Date & Time */}
+          {/* 4. Date & Time */}
           <Box sx={{ display: "flex", gap: 2 }}>
             <TextField
               label="Date"

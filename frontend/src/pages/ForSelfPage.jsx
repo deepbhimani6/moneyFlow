@@ -31,43 +31,26 @@ import { forSelfService } from "../services/api";
 import AddForSelfModal from "../modals/AddForSelfModal";
 import EditForSelfModal from "../modals/EditForSelfModal";
 import FilterForSelfModal from "../modals/FilterForSelfModal";
+import DeleteConfirmModal from "../modals/DeleteConfirmModal";
 import { formatDate, formatTime, formatAmount } from "../utils/formatters";
 
 const getTypeChip = (type, isSplit) => {
-  if (isSplit || type === "Split") {
+  if (isSplit) {
     return (
-      <Chip
-        icon={<CallSplitIcon sx={{ "&&": { fontSize: 16 } }} />}
-        label="Split"
-        size="small"
-        color="info"
-        variant="outlined"
-      />
+      <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
+        <Chip label={type || "Expense"} size="small" color={type === "Add Balance" ? "primary" : "error"} variant="outlined" />
+        <Chip icon={<CallSplitIcon sx={{ "&&": { fontSize: 14 } }} />} label="Split" size="small" color="info" variant="outlined" />
+      </Box>
     );
   }
   switch (type) {
-    case "Expense":
-      return <Chip label="Expense" size="small" color="error" variant="outlined" />;
     case "Add Balance":
       return <Chip label="Add Balance" size="small" color="primary" variant="outlined" />;
+    case "Expense":
+      return <Chip label="Expense" size="small" color="error" variant="outlined" />;
     default:
-      return <Chip label={type || "Expense"} size="small" variant="outlined" />;
+      return <Chip label={type || "Add Balance"} size="small" variant="outlined" />;
   }
-};
-
-const getStatusChip = (status, onToggle) => {
-  const isPaid = status === "Paid";
-  return (
-    <Chip
-      label={isPaid ? "Paid" : "Pending"}
-      size="small"
-      color={isPaid ? "success" : "warning"}
-      variant="outlined"
-      clickable
-      onClick={onToggle}
-      sx={{ cursor: "pointer", fontWeight: 600 }}
-    />
-  );
 };
 
 const TABLE_RADIUS = 10;
@@ -82,14 +65,16 @@ const ForSelfPage = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
 
+  // Confirm delete modals state
+  const [confirmBulkDeleteOpen, setConfirmBulkDeleteOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
   // Filters state
   const [filters, setFilters] = useState({
     status: "All",
-    paymentStatus: "All",
     search: "",
     description: "",
-    forFromName: "",
-    name: "",
     startDate: "",
     endDate: "",
     minAmount: "",
@@ -104,9 +89,8 @@ const ForSelfPage = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Bulk actions menus
+  // Bulk actions menu
   const [bulkAnchorEl, setBulkAnchorEl] = useState(null);
-  const [statusMenuAnchorEl, setStatusMenuAnchorEl] = useState(null);
 
   // Request sort handler
   const handleRequestSort = (property) => {
@@ -130,15 +114,14 @@ const ForSelfPage = () => {
       } else if (orderBy === "amount") {
         aVal = Number(a.amount || 0);
         bVal = Number(b.amount || 0);
-      } else if (orderBy === "forFromName") {
-        aVal = (a.forFromName || "Myself (You)").toLowerCase();
-        bVal = (b.forFromName || "Myself (You)").toLowerCase();
       } else if (orderBy === "type") {
-        aVal = (a.type || a.status || "").toLowerCase();
-        bVal = (b.type || b.status || "").toLowerCase();
-      } else if (orderBy === "paymentStatus") {
-        aVal = (a.paymentStatus || "").toLowerCase();
-        bVal = (b.paymentStatus || "").toLowerCase();
+        // Ensure "Add Balance" sorts above "Expense" in asc order
+        const aType = (a.type || a.status || "").toLowerCase();
+        const bType = (b.type || b.status || "").toLowerCase();
+        if (aType === "add balance" && bType !== "add balance") return order === "asc" ? -1 : 1;
+        if (bType === "add balance" && aType !== "add balance") return order === "asc" ? 1 : -1;
+        aVal = aType;
+        bVal = bType;
       } else if (typeof aVal === "string") {
         aVal = aVal.toLowerCase();
         bVal = (bVal || "").toLowerCase();
@@ -228,59 +211,37 @@ const ForSelfPage = () => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
-  const handleDeleteSingle = async (id) => {
+  // Single delete execution after confirmation
+  const handleConfirmSingleDelete = async () => {
+    if (!itemToDelete) return;
     try {
-      await forSelfService.deleteForSelfEntry(id);
-      setSelectedIds((prev) => prev.filter((item) => item !== id));
-      setSnackbar({ open: true, message: "Entry deleted", severity: "success" });
+      setActionLoading(true);
+      await forSelfService.deleteForSelfEntry(itemToDelete);
+      setSelectedIds((prev) => prev.filter((item) => item !== itemToDelete));
+      setSnackbar({ open: true, message: "Entry deleted successfully", severity: "success" });
+      setItemToDelete(null);
       fetchEntries();
     } catch (err) {
       setSnackbar({ open: true, message: "Failed to delete entry", severity: "error" });
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleBulkDelete = async () => {
-    setBulkAnchorEl(null);
+  // Bulk delete execution after confirmation
+  const handleConfirmBulkDelete = async () => {
     if (selectedIds.length === 0) return;
     try {
+      setActionLoading(true);
       await forSelfService.bulkDelete(selectedIds);
-      setSnackbar({ open: true, message: `${selectedIds.length} entries deleted`, severity: "success" });
+      setSnackbar({ open: true, message: `${selectedIds.length} entries deleted successfully`, severity: "success" });
       setSelectedIds([]);
+      setConfirmBulkDeleteOpen(false);
       fetchEntries();
     } catch (err) {
       setSnackbar({ open: true, message: "Failed bulk deletion", severity: "error" });
-    }
-  };
-
-  const handleBulkStatusChange = async (newStatus) => {
-    setStatusMenuAnchorEl(null);
-    setBulkAnchorEl(null);
-    if (selectedIds.length === 0) return;
-    try {
-      await forSelfService.bulkUpdateStatus(selectedIds, { paymentStatus: newStatus });
-      setSnackbar({
-        open: true,
-        message: `Updated status for ${selectedIds.length} entries to ${newStatus}`,
-        severity: "success",
-      });
-      setSelectedIds([]);
-      fetchEntries();
-    } catch (err) {
-      setSnackbar({ open: true, message: "Failed bulk status update", severity: "error" });
-    }
-  };
-
-  const handleToggleStatus = async (row) => {
-    const current = row.paymentStatus === "Paid" ? "Paid" : "Pending";
-    const nextStatus = current === "Paid" ? "Pending" : "Paid";
-    try {
-      await forSelfService.updateForSelfEntry(row._id, { paymentStatus: nextStatus });
-      setEntries((prev) =>
-        prev.map((item) => (item._id === row._id ? { ...item, paymentStatus: nextStatus } : item))
-      );
-      setSnackbar({ open: true, message: `Status updated to ${nextStatus}`, severity: "success" });
-    } catch (err) {
-      setSnackbar({ open: true, message: "Failed to update status", severity: "error" });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -326,22 +287,17 @@ const ForSelfPage = () => {
             Bulk Actions ({selectedIds.length})
           </Button>
 
-          {/* Bulk Actions Menu */}
+          {/* Bulk Actions Menu (Only Delete Selected, Change Status removed) */}
           <Menu anchorEl={bulkAnchorEl} open={Boolean(bulkAnchorEl)} onClose={() => setBulkAnchorEl(null)}>
-            <MenuItem onClick={(e) => setStatusMenuAnchorEl(e.currentTarget)}>Change Status</MenuItem>
-            <MenuItem onClick={handleBulkDelete} sx={{ color: "error.main" }}>
+            <MenuItem
+              onClick={() => {
+                setBulkAnchorEl(null);
+                setConfirmBulkDeleteOpen(true);
+              }}
+              sx={{ color: "error.main" }}
+            >
               Delete Selected
             </MenuItem>
-          </Menu>
-
-          {/* Submenu for Status */}
-          <Menu
-            anchorEl={statusMenuAnchorEl}
-            open={Boolean(statusMenuAnchorEl)}
-            onClose={() => setStatusMenuAnchorEl(null)}
-          >
-            <MenuItem onClick={() => handleBulkStatusChange("Paid")}>Set Paid</MenuItem>
-            <MenuItem onClick={() => handleBulkStatusChange("Pending")}>Set Pending</MenuItem>
           </Menu>
         </Box>
       </Box>
@@ -399,17 +355,6 @@ const ForSelfPage = () => {
                 />
               </TableCell>
 
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "forFromName" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "forFromName"}
-                  direction={orderBy === "forFromName" ? order : "asc"}
-                  onClick={() => handleRequestSort("forFromName")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Member
-                </TableSortLabel>
-              </TableCell>
-
               <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "date" ? order : false}>
                 <TableSortLabel
                   active={orderBy === "date"}
@@ -443,16 +388,7 @@ const ForSelfPage = () => {
                 </TableSortLabel>
               </TableCell>
 
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "paymentStatus" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "paymentStatus"}
-                  direction={orderBy === "paymentStatus" ? order : "asc"}
-                  onClick={() => handleRequestSort("paymentStatus")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Status
-                </TableSortLabel>
-              </TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Description</TableCell>
 
               <TableCell sx={{ fontWeight: 600 }} align="right" sortDirection={orderBy === "amount" ? order : false}>
                 <TableSortLabel
@@ -480,13 +416,13 @@ const ForSelfPage = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={32} />
                 </TableCell>
               </TableRow>
             ) : entries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
                   <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
                     No entries found
                   </Typography>
@@ -516,25 +452,21 @@ const ForSelfPage = () => {
                         size="small"
                       />
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 600 }}>
-                      {row.forFromName || "Myself (You)"}
-                      {row.description && (
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ display: "block", mt: 0.25, fontStyle: "italic" }}
-                        >
-                          {row.description}
-                        </Typography>
-                      )}
-                    </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>{formatDate(row.date)}</TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>{formatTime(row.time)}</TableCell>
                     <TableCell>{getTypeChip(rowType, row.isSplit)}</TableCell>
-                    <TableCell>
-                      {getStatusChip(row.paymentStatus, () => handleToggleStatus(row))}
+                    <TableCell sx={{ maxWidth: 360 }}>
+                      <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
+                        {row.description || "-"}
+                      </Typography>
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    <TableCell
+                      align="right"
+                      sx={{
+                        fontWeight: 700,
+                        color: (rowType || "").toLowerCase() === "add balance" ? "primary.main" : "text.primary",
+                      }}
+                    >
                       ₹ {formatAmount(row.amount)}
                     </TableCell>
                     <TableCell align="center">
@@ -545,7 +477,7 @@ const ForSelfPage = () => {
                           </IconButton>
                         </Tooltip>
                         <Tooltip title="Delete entry">
-                          <IconButton size="small" color="error" onClick={() => handleDeleteSingle(row._id)}>
+                          <IconButton size="small" color="error" onClick={() => setItemToDelete(row._id)}>
                             <DeleteOutlineIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
@@ -642,17 +574,35 @@ const ForSelfPage = () => {
         onResetFilters={() =>
           setFilters({
             status: "All",
-            paymentStatus: "All",
             search: "",
             description: "",
-            forFromName: "",
-            name: "",
             startDate: "",
             endDate: "",
             minAmount: "",
             maxAmount: "",
           })
         }
+      />
+
+      {/* Single Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        open={Boolean(itemToDelete)}
+        onClose={() => setItemToDelete(null)}
+        onConfirm={handleConfirmSingleDelete}
+        title="Confirm Deletion"
+        message="Are you sure you want to delete this entry? This action cannot be undone."
+        loading={actionLoading}
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        open={confirmBulkDeleteOpen}
+        onClose={() => setConfirmBulkDeleteOpen(false)}
+        onConfirm={handleConfirmBulkDelete}
+        title="Confirm Bulk Deletion"
+        message={`Are you sure you want to delete ${selectedIds.length} selected entries? This action cannot be undone.`}
+        loading={actionLoading}
+        confirmText={`Delete (${selectedIds.length})`}
       />
 
       {/* Snackbar feedback */}

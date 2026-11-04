@@ -17,9 +17,7 @@ import {
 import { forSelfService } from "../services/api";
 
 const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
-  const [forFromName, setForFromName] = useState("Myself (You)");
-  const [type, setType] = useState("Expense");
-  const [paymentStatus, setPaymentStatus] = useState("Paid");
+  const [type, setType] = useState("Add Balance");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -29,9 +27,7 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
 
   useEffect(() => {
     if (open) {
-      setForFromName("Myself (You)");
-      setType("Expense");
-      setPaymentStatus("Paid");
+      setType("Add Balance");
       setAmount("");
       setDescription("");
       setDate(new Date().toISOString().split("T")[0]);
@@ -53,10 +49,8 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
     try {
       setSubmitting(true);
       const res = await forSelfService.createForSelfEntry({
-        forFromName: forFromName.trim() || "Myself (You)",
         type,
         status: type,
-        paymentStatus,
         amount: numericAmount,
         description,
         date,
@@ -83,18 +77,7 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
-          {/* 1. Member Name */}
-          <TextField
-            label="Member Name"
-            value={forFromName}
-            onChange={(e) => setForFromName(e.target.value)}
-            placeholder="Myself (You)"
-            fullWidth
-            required
-            helperText="This entry belongs to you (For Self)"
-          />
-
-          {/* 2. Type */}
+          {/* 1. Type: Add Balance always top */}
           <FormControl fullWidth>
             <InputLabel id="for-self-type-label">Type</InputLabel>
             <Select
@@ -103,26 +86,12 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
               label="Type"
               onChange={(e) => setType(e.target.value)}
             >
-              <MenuItem value="Expense">Expense</MenuItem>
               <MenuItem value="Add Balance">Add Balance</MenuItem>
+              <MenuItem value="Expense">Expense</MenuItem>
             </Select>
           </FormControl>
 
-          {/* 3. Status */}
-          <FormControl fullWidth>
-            <InputLabel id="for-self-status-label">Status</InputLabel>
-            <Select
-              labelId="for-self-status-label"
-              value={paymentStatus}
-              label="Status"
-              onChange={(e) => setPaymentStatus(e.target.value)}
-            >
-              <MenuItem value="Paid">Paid</MenuItem>
-              <MenuItem value="Pending">Pending</MenuItem>
-            </Select>
-          </FormControl>
-
-          {/* 4. Amount */}
+          {/* 2. Amount */}
           <TextField
             label="Amount (₹)"
             type="number"
@@ -139,17 +108,17 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
             inputProps={{ min: "1", step: "1" }}
           />
 
-          {/* 5. Description */}
+          {/* 3. Description */}
           <TextField
             label="Description (Optional)"
             type="text"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. Dinner with team, office supplies, cab fare..."
+            placeholder="e.g. Salary deposit, groceries, coffee..."
             fullWidth
           />
 
-          {/* 6. Date & Time */}
+          {/* 4. Date & Time */}
           <Box sx={{ display: "flex", gap: 2 }}>
             <TextField
               label="Date"
