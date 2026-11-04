@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, FormControl, InputLabel, Select, MenuItem, Autocomplete, Chip, Box, Typography, Alert, FormControlLabel, Checkbox, CircularProgress } from "@mui/material";
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, FormControl, InputLabel, Select, MenuItem, Autocomplete, Chip, Box, Typography, Alert, CircularProgress } from "@mui/material";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import PersonIcon from "@mui/icons-material/Person";
 import { memberService, entryService } from "../services/api";
@@ -14,7 +14,6 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [time, setTime] = useState(new Date().toTimeString().split(" ")[0].substring(0, 5));
-  const [includeMine, setIncludeMine] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,7 +37,6 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
       setDescription("");
       setDate(new Date().toISOString().split("T")[0]);
       setTime(new Date().toTimeString().split(" ")[0].substring(0, 5));
-      setIncludeMine(false);
       setError("");
     }
   }, [open]);
@@ -74,14 +72,9 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   }, [selectedNames, isOnlyMyself, isOnlyOneOther, type]);
 
   // Split calculation preview:
-  // If myself is already selected in the list, count is simply selectedNames.length
-  // If myself is NOT selected, count depends on includeMine checkbox
-  const numParticipants = isMyselfAdded
-    ? selectedNames.length
-    : selectedNames.length + (includeMine ? 1 : 0);
-
+  const numParticipants = selectedNames.length;
   const numericAmount = Math.trunc(parseFloat(amount) || 0);
-  const isSplitActive = selectedNames.length > 1 || (selectedNames.length >= 1 && !isMyselfAdded && includeMine);
+  const isSplitActive = selectedNames.length > 1;
   const splitPerPerson = isSplitActive && numParticipants > 0 ? Math.trunc(numericAmount / numParticipants) : 0;
 
   const handleToggleMyself = () => {
@@ -144,7 +137,6 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
         description,
         date,
         time,
-        includeMine: hasMyself ? false : (finalNames.length > 1 ? includeMine : false),
       });
 
       if (res.success) {
@@ -237,24 +229,11 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                   Auto Split Activated
                 </Typography>
               </Box>
-              <Typography variant="body2" sx={{ mb: !isMyselfAdded ? 0.5 : 1 }}>
-                {isMyselfAdded || includeMine
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                {isMyselfAdded
                   ? `Splitting equally across ${numParticipants} participants (including your share as an Expense).`
                   : `Splitting amount equally across ${numParticipants} selected members.`}
               </Typography>
-              {!isMyselfAdded && (
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={includeMine}
-                      onChange={(e) => setIncludeMine(e.target.checked)}
-                      size="small"
-                      color="primary"
-                    />
-                  }
-                  label="Include myself in the split"
-                />
-              )}
               {numericAmount > 0 && (
                 <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5, color: "primary.main" }}>
                   ₹ {formatAmount(splitPerPerson)} per person ({numParticipants} participants)
