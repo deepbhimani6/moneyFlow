@@ -50,7 +50,7 @@ moneyFlow/
 - Group Split obligation overview card.
 
 ### 3. Entries View (`Entries Active`)
-- **Entries Data Table**: Multi-select checkboxes, Date, Time, For/From Name, Status, Amount.
+- **Entries Data Table**: Multi-select checkboxes, Member, Date, Time, Type, Status, Amount.
 - **Filter Modal**: Filter by status, date range, amount range, and name search.
 - **Add Entries Modal with Auto-Split**:
   - Multi-select input dynamically loaded from the Members database + custom names.

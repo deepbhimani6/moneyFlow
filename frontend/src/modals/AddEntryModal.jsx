@@ -167,7 +167,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
-          {/* 1. For/From Name (Multi-select from Members tab & add custom) */}
+          {/* 1. Member Name (Multi-select from Members tab & add custom) */}
           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: -1 }}>
             <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
               Select Participants:
@@ -221,8 +221,8 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="For/From Name (Select Members or Type Custom)"
-                placeholder="Choose members or type & press enter..."
+                label="Member Name"
+                placeholder="Search or enter member name..."
                 helperText="Select 1 or more members. If multiple are selected, amount will be split."
               />
             )}

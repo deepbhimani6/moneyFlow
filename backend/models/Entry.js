@@ -4,7 +4,7 @@ const entrySchema = new mongoose.Schema(
   {
     forFromName: {
       type: String,
-      required: [true, "For/From Name is required"],
+      required: [true, "Member name is required"],
       trim: true,
     },
     memberId: {

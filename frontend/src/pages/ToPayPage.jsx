@@ -377,7 +377,7 @@ const ToPayPage = () => {
                   onClick={() => handleRequestSort("forFromName")}
                   sx={{ fontWeight: 600 }}
                 >
-                  For/From Name
+                  Member
                 </TableSortLabel>
               </TableCell>
 

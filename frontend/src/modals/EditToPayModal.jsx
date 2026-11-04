@@ -174,9 +174,9 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
             </Box>
           )}
 
-          {/* 1. For/From Name */}
+          {/* 1. Member Name */}
           <TextField
-            label="For/From Name"
+            label="Member Name"
             value={forFromName}
             onChange={(e) => setForFromName(e.target.value)}
             fullWidth

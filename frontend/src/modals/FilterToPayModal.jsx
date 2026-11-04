@@ -137,8 +137,8 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
           renderInput={(params) => (
             <TextField
               {...params}
-              label="For/From Name (Select Member or Type Name)"
-              placeholder="Choose a member or type name..."
+              label="Member Name"
+              placeholder="Filter by member name..."
             />
           )}
         />

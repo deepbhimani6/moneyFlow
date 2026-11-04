@@ -18,7 +18,7 @@ const getDashboardStats = async (req, res) => {
     ]);
     const totalAddBalance = addedRes[0]?.total || 0;
 
-    // 2. Total Expenses: Type: Expense (For/From Name: Myself (You))
+    // 2. Total Expenses: Type: Expense (Member: Myself (You))
     const expenseRes = await Entry.aggregate([
       {
         $match: {
@@ -59,7 +59,7 @@ const getDashboardStats = async (req, res) => {
     ]);
     const totalLoans = loanRes[0]?.total || 0;
 
-    // 4. Total Pending: Type: Split (Status: Pending) + Type: Expenses (not For/From Name: Myself (You) (Status: Pending))
+    // 4. Total Pending: Type: Split (Status: Pending) + Type: Expenses (not Member: Myself (You) (Status: Pending))
     const pendingRes = await Entry.aggregate([
       {
         $match: {
@@ -89,7 +89,7 @@ const getDashboardStats = async (req, res) => {
     ]);
     const totalPending = pendingRes[0]?.total || 0;
 
-    // 5. Total Received: Status: Received (Without Type: Expenses, Add Balance) + Type: Expenses (not For/From Name: Myself (You) (Status: Received))
+    // 5. Total Received: Status: Received (Without Type: Expenses, Add Balance) + Type: Expenses (not Member: Myself (You) (Status: Received))
     const receivedRes = await Entry.aggregate([
       {
         $match: {

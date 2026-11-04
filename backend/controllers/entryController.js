@@ -136,7 +136,7 @@ const createEntry = async (req, res) => {
     const entryPaymentStatus = paymentStatus || (["Received", "Pending"].includes(status) ? status : "Pending");
 
     if (!names || (Array.isArray(names) && names.length === 0)) {
-      return res.status(400).json({ success: false, message: "For/From Name is required" });
+      return res.status(400).json({ success: false, message: "Member name is required" });
     }
 
     const parsedAmount = Math.trunc(Number(amount));

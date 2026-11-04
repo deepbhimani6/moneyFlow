@@ -117,7 +117,14 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
             onChange={(event, newValue) => {
               setSelectedMember(newValue);
             }}
-            renderInput={(params) => <TextField {...params} label="For/From Name (Select Member or Type Name)" placeholder="Choose member or type name..." required={!selectedMember && !inputValue.trim()} />}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Member Name"
+                placeholder="Search or enter member name..."
+                required={!selectedMember && !inputValue.trim()}
+              />
+            )}
           />
 
           {/* 2. Type: Only Expense and Loan */}

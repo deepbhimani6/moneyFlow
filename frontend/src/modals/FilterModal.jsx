@@ -137,10 +137,10 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
           </Select>
         </FormControl>
 
-        {/* For/From Name (Multi-select from Members & custom, exactly like Add New Entry modal) */}
+        {/* Member Name */}
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: -1 }}>
           <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-            Select Participants:
+            Select Members:
           </Typography>
           <Chip
             icon={<PersonIcon sx={{ "&&": { fontSize: 16 } }} />}
@@ -186,8 +186,8 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
           renderInput={(params) => (
             <TextField
               {...params}
-              label="For/From Name (Select Members or Type Custom)"
-              placeholder="Choose members or type & press enter..."
+              label="Member Name"
+              placeholder="Filter by member name..."
             />
           )}
         />
