@@ -65,8 +65,7 @@ const DashboardPage = () => {
       amount: stats.totalBalance,
       color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f',
       icon: <AccountBalanceWalletIcon sx={{ fontSize: 32, color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f' }} />,
-      subtitle: '((For Self (Add balance) - Total Expenses - To Receive (Split, Loan & Expense (Status: Pending)) - To Pay (Loan & Expense (Status: Paid))))',
-      calculationLine: `(₹${formatAmount(stats.totalAddBalance)} - ₹${formatAmount(stats.totalExpenses)} - ₹${formatAmount(stats.pendingReceiveTotal)} - ₹${formatAmount(stats.toPayPaid)})`,
+      subtitle: 'For Self (Add balance) - Total Expenses - To Receive (Split, Loan & Expense (Status: Pending)) - To Pay (Loan & Expense (Status: Paid))',
       gridProps: { xs: 12, sm: 6, md: 6 },
     },
     {
@@ -173,21 +172,6 @@ const DashboardPage = () => {
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.4 }}>
                     {card.subtitle}
                   </Typography>
-
-                  {card.calculationLine && (
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        display: 'block',
-                        mt: 0.5,
-                        fontWeight: 600,
-                        color: 'text.primary',
-                        lineHeight: 1.4,
-                      }}
-                    >
-                      {card.calculationLine}
-                    </Typography>
-                  )}
                 </CardContent>
               </Card>
             </Grid>
