@@ -1,5 +1,6 @@
 const Entry = require("../models/Entry");
 const ForSelf = require("../models/ForSelf");
+const ToPay = require("../models/ToPay");
 
 // @desc    Get aggregated stats for dashboard
 // @route   GET /api/dashboard/stats
@@ -16,19 +17,22 @@ const getDashboardStats = async (req, res) => {
     ]);
     const totalAddBalance = addedRes[0]?.total || 0;
 
-    // 2. Total Personal Expenses: from ForSelf with Type: "Expense"
+    // 2. Total Personal Expenses: from ForSelf with Type: "Expense", "Split" or isSplit: true
     const expenseRes = await ForSelf.aggregate([
       {
         $match: {
-          type: "Expense",
+          $or: [
+            { type: { $in: ["Expense", "Split"] } },
+            { isSplit: true },
+          ],
         },
       },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
     const totalExpenses = expenseRes[0]?.total || 0;
 
-    // 3. Total Loans: from Entry (To Receive) Type: Loan (Status: Pending)
-    const loanRes = await Entry.aggregate([
+    // 3. Pending Receive Loans: from Entry (To Receive) Type: Loan (Status: Pending)
+    const pendingReceiveLoansRes = await Entry.aggregate([
       {
         $match: {
           type: "Loan",
@@ -43,50 +47,141 @@ const getDashboardStats = async (req, res) => {
             {
               paymentStatus: { $ne: "Received" },
             },
+            {
+              status: { $ne: "Received" },
+            },
           ],
         },
       },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
-    const totalLoans = loanRes[0]?.total || 0;
+    const pendingReceiveLoans = pendingReceiveLoansRes[0]?.total || 0;
 
-    // 4. Total Pending: from Entry (To Receive) Type: Split or Expense (Status: Pending)
-    const pendingRes = await Entry.aggregate([
+    // 4. Pending Receive Expenses: from Entry (To Receive) Type: Split, Expenses (Status: Pending)
+    const pendingReceiveExpensesRes = await Entry.aggregate([
       {
         $match: {
-          type: { $in: ["Expense", "Split"] },
           $or: [
-            { paymentStatus: "Pending" },
-            { paymentStatus: { $exists: false } },
-            { paymentStatus: null },
+            { type: { $in: ["Expense", "Split"] } },
+            { isSplit: true },
+          ],
+          $and: [
+            {
+              $or: [
+                { paymentStatus: "Pending" },
+                { paymentStatus: { $exists: false } },
+                { paymentStatus: null },
+              ],
+            },
+            {
+              paymentStatus: { $ne: "Received" },
+            },
+            {
+              status: { $ne: "Received" },
+            },
           ],
         },
       },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
-    const totalPending = pendingRes[0]?.total || 0;
+    const pendingReceiveExpenses = pendingReceiveExpensesRes[0]?.total || 0;
 
-    // 5. Split Group stats: count items and distinct groups
+    // Combined Pending Receive (Split, Loan & Expense (Status: Pending))
+    const pendingReceiveTotal = pendingReceiveLoans + pendingReceiveExpenses;
+
+    // 5. Pending Pay Loans: from To Pay Type: Loan (Status: Pending)
+    const pendingPayLoansRes = await ToPay.aggregate([
+      {
+        $match: {
+          type: { $regex: /^loan$/i },
+          $and: [
+            {
+              $or: [
+                { paymentStatus: "Pending" },
+                { paymentStatus: { $exists: false } },
+                { paymentStatus: null },
+              ],
+            },
+            {
+              paymentStatus: { $ne: "Paid" },
+            },
+            {
+              status: { $ne: "Paid" },
+            },
+          ],
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    const pendingPayLoans = pendingPayLoansRes[0]?.total || 0;
+
+    // 6. Pending Pay Expenses: from To Pay Type: Expenses (Status: Pending)
+    const pendingPayExpensesRes = await ToPay.aggregate([
+      {
+        $match: {
+          type: { $regex: /^expenses?$/i },
+          $and: [
+            {
+              $or: [
+                { paymentStatus: "Pending" },
+                { paymentStatus: { $exists: false } },
+                { paymentStatus: null },
+              ],
+            },
+            {
+              paymentStatus: { $ne: "Paid" },
+            },
+            {
+              status: { $ne: "Paid" },
+            },
+          ],
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    const pendingPayExpenses = pendingPayExpensesRes[0]?.total || 0;
+
+    // To Pay (Loan & Expense (Status: Paid))
+    const toPayPaidRes = await ToPay.aggregate([
+      {
+        $match: {
+          type: { $in: ["Loan", "Expense", "Expenses", "Paid"] },
+          $or: [
+            { paymentStatus: "Paid" },
+            { status: "Paid" },
+          ],
+        },
+      },
+      { $group: { _id: null, total: { $sum: "$amount" } } },
+    ]);
+    const toPayPaid = toPayPaidRes[0]?.total || 0;
+
+    // Total Balance = For Self (Add balance) - Total Expenses - To Receive (Split, Loan & Expense (Status: Pending)) - To Pay (Loan & Expense (Status: Paid))
+    const totalBalance = totalAddBalance - totalExpenses - pendingReceiveTotal - toPayPaid;
+
+    // Split Group stats: count items and distinct groups
     const splitDocs = await Entry.find({ isSplit: true }).lean();
     const totalSplit = splitDocs.reduce((acc, curr) => acc + (curr.amount || 0), 0);
     const splitItemCount = splitDocs.length;
     const splitGroupIds = new Set(splitDocs.map((e) => e.splitGroupId).filter(Boolean));
     const splitGroupCount = splitGroupIds.size;
-    const splitPendingCount = splitDocs.filter((e) => e.paymentStatus !== "Received").length;
-    const splitReceivedCount = splitDocs.filter((e) => e.paymentStatus === "Received").length;
-
-    // Formula: Total Balance = ((Total Balance - Total Expenses - Total Loans - Total Pending))
-    const totalBalance = totalAddBalance - totalExpenses - totalLoans - totalPending;
+    const splitPendingCount = splitDocs.filter((e) => e.paymentStatus !== "Received" && e.status !== "Received").length;
+    const splitReceivedCount = splitDocs.filter((e) => e.paymentStatus === "Received" || e.status === "Received").length;
 
     res.json({
       success: true,
       data: {
         totalBalance: Math.trunc(totalBalance),
         totalExpenses: Math.trunc(totalExpenses),
-        totalLoans: Math.trunc(totalLoans),
-        totalPending: Math.trunc(totalPending),
-        totalSplit: Math.trunc(totalSplit),
+        pendingReceiveLoans: Math.trunc(pendingReceiveLoans),
+        pendingReceiveExpenses: Math.trunc(pendingReceiveExpenses),
+        pendingReceiveTotal: Math.trunc(pendingReceiveTotal),
+        pendingPayLoans: Math.trunc(pendingPayLoans),
+        pendingPayExpenses: Math.trunc(pendingPayExpenses),
+        toPayPaid: Math.trunc(toPayPaid),
         totalAddBalance: Math.trunc(totalAddBalance),
+        // Split Group stats
+        totalSplit: Math.trunc(totalSplit),
         splitItemCount,
         splitGroupCount,
         splitPendingCount,

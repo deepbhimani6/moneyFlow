@@ -16,6 +16,7 @@ import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
+import PriceCheckIcon from '@mui/icons-material/PriceCheck';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
 import GroupIcon from '@mui/icons-material/Group';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
@@ -26,10 +27,14 @@ const DashboardPage = () => {
   const [stats, setStats] = useState({
     totalBalance: 0,
     totalExpenses: 0,
-    totalLoans: 0,
-    totalPending: 0,
-    totalSplit: 0,
+    pendingReceiveLoans: 0,
+    pendingReceiveExpenses: 0,
+    pendingReceiveTotal: 0,
+    pendingPayLoans: 0,
+    pendingPayExpenses: 0,
+    toPayPaid: 0,
     totalAddBalance: 0,
+    totalSplit: 0,
     splitItemCount: 0,
     splitGroupCount: 0,
     splitPendingCount: 0,
@@ -55,7 +60,13 @@ const DashboardPage = () => {
     fetchStats();
   }, []);
 
-  // 2-column grid cards: 1. Total Balance, 2. Total Expenses, 3. Total Loans, 4. Total Pending
+  // 6 KPI Blocks:
+  // 1. Total Balance: For Self (Add balance) - Total Expenses - To Receive (Split, Loan & Expense (Status: Pending)) - To Pay (Loan & Expense (Status: Paid))
+  // 2. Total Expenses: For Self (Expense, Split)
+  // 3. Pending Receive Loans: To Receive (Type: Loan) (Status: Pending)
+  // 4. Pending Receive Expenses: To Receive (Type: Split, Expenses) (Status: Pending)
+  // 5. Pending Pay Loans: To Pay (Type: Loan) (Status: Pending)
+  // 6. Pending Pay Expenses: To Pay (Type: Expenses) (Status: Pending)
   const cards = [
     {
       id: 'balance',
@@ -63,8 +74,8 @@ const DashboardPage = () => {
       amount: stats.totalBalance,
       color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f',
       icon: <AccountBalanceWalletIcon sx={{ fontSize: 32, color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f' }} />,
-      subtitle: '((Total Balance - Total Expenses - Total Loans - Total Pending))',
-      calculationLine: `(₹${formatAmount(stats.totalAddBalance)} - ₹${formatAmount(stats.totalExpenses)} - ₹${formatAmount(stats.totalLoans)} - ₹${formatAmount(stats.totalPending)})`,
+      subtitle: '((For Self (Add balance) - Total Expenses - To Receive (Split, Loan & Expense (Status: Pending)) - To Pay (Loan & Expense (Status: Paid))))',
+      calculationLine: `(₹${formatAmount(stats.totalAddBalance)} - ₹${formatAmount(stats.totalExpenses)} - ₹${formatAmount(stats.pendingReceiveTotal)} - ₹${formatAmount(stats.toPayPaid)})`,
       gridProps: { xs: 12, sm: 6, md: 6 },
     },
     {
@@ -73,25 +84,43 @@ const DashboardPage = () => {
       amount: stats.totalExpenses,
       color: '#d32f2f',
       icon: <TrendingDownIcon sx={{ fontSize: 32, color: '#d32f2f' }} />,
-      subtitle: 'Personal Expenses (For Self)',
+      subtitle: 'For Self (Expense, Split)',
       gridProps: { xs: 12, sm: 6, md: 6 },
     },
     {
-      id: 'loans',
-      title: 'Total Loans',
-      amount: stats.totalLoans,
+      id: 'pending-receive-loans',
+      title: 'Pending Receive Loans',
+      amount: stats.pendingReceiveLoans,
       color: '#7b1fa2',
       icon: <MonetizationOnIcon sx={{ fontSize: 32, color: '#7b1fa2' }} />,
-      subtitle: 'Type: Loans (Status: Pending)',
+      subtitle: 'To Receive (Type: Loan) (Status: Pending)',
       gridProps: { xs: 12, sm: 6, md: 6 },
     },
     {
-      id: 'pending',
-      title: 'Total Pending',
-      amount: stats.totalPending,
+      id: 'pending-receive-expenses',
+      title: 'Pending Receive Expenses',
+      amount: stats.pendingReceiveExpenses,
       color: '#ed6c02',
       icon: <PendingActionsIcon sx={{ fontSize: 32, color: '#ed6c02' }} />,
-      subtitle: 'Type: Split (Pending) + Expenses (not Myself (You), Pending)',
+      subtitle: 'To Receive (Type: Split, Expenses) (Status: Pending)',
+      gridProps: { xs: 12, sm: 6, md: 6 },
+    },
+    {
+      id: 'pending-pay-loans',
+      title: 'Pending Pay Loans',
+      amount: stats.pendingPayLoans,
+      color: '#c2185b',
+      icon: <ReceiptLongIcon sx={{ fontSize: 32, color: '#c2185b' }} />,
+      subtitle: 'To Pay (Type: Loan) (Status: Pending)',
+      gridProps: { xs: 12, sm: 6, md: 6 },
+    },
+    {
+      id: 'pending-pay-expenses',
+      title: 'Pending Pay Expenses',
+      amount: stats.pendingPayExpenses,
+      color: '#e65100',
+      icon: <PriceCheckIcon sx={{ fontSize: 32, color: '#e65100' }} />,
+      subtitle: 'To Pay (Type: Expenses) (Status: Pending)',
       gridProps: { xs: 12, sm: 6, md: 6 },
     },
   ];
