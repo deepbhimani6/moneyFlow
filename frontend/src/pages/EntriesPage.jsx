@@ -71,7 +71,6 @@ const EntriesPage = () => {
 
   // Bulk action menu
   const [bulkAnchorEl, setBulkAnchorEl] = useState(null);
-  const [typeMenuAnchorEl, setTypeMenuAnchorEl] = useState(null);
   const [statusMenuAnchorEl, setStatusMenuAnchorEl] = useState(null);
 
   // Pagination
@@ -239,19 +238,6 @@ const EntriesPage = () => {
     }
   };
 
-  const handleBulkTypeChange = async (newType) => {
-    setTypeMenuAnchorEl(null);
-    setBulkAnchorEl(null);
-    if (selectedIds.length === 0) return;
-    try {
-      await entryService.bulkUpdateStatus(selectedIds, { type: newType, isTypeUpdate: true });
-      setSnackbar({ open: true, message: `Updated type for ${selectedIds.length} entries`, severity: "success" });
-      setSelectedIds([]);
-      fetchEntries();
-    } catch (err) {
-      setSnackbar({ open: true, message: "Failed bulk type update", severity: "error" });
-    }
-  };
 
   const handleBulkStatusChange = async (newStatus) => {
     setStatusMenuAnchorEl(null);
@@ -319,18 +305,10 @@ const EntriesPage = () => {
 
           {/* Bulk Actions Menu */}
           <Menu anchorEl={bulkAnchorEl} open={Boolean(bulkAnchorEl)} onClose={() => setBulkAnchorEl(null)}>
-            <MenuItem onClick={(e) => setTypeMenuAnchorEl(e.currentTarget)}>Change Type</MenuItem>
             <MenuItem onClick={(e) => setStatusMenuAnchorEl(e.currentTarget)}>Change Status</MenuItem>
             <MenuItem onClick={handleBulkDelete} sx={{ color: "error.main" }}>
               Delete Selected
             </MenuItem>
-          </Menu>
-
-          {/* Submenu for Type */}
-          <Menu anchorEl={typeMenuAnchorEl} open={Boolean(typeMenuAnchorEl)} onClose={() => setTypeMenuAnchorEl(null)}>
-            <MenuItem onClick={() => handleBulkTypeChange("Add Balance")}>Set Add Balance</MenuItem>
-            <MenuItem onClick={() => handleBulkTypeChange("Expense")}>Set Expense</MenuItem>
-            <MenuItem onClick={() => handleBulkTypeChange("Loan")}>Set Loan</MenuItem>
           </Menu>
 
           {/* Submenu for Status */}
