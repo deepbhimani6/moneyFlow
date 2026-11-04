@@ -19,6 +19,7 @@ import Sidebar from './components/Sidebar';
 import OnlineDetector from './components/OnlineDetector';
 import DashboardPage from './pages/DashboardPage';
 import EntriesPage from './pages/EntriesPage';
+import BorrowedPage from './pages/BorrowedPage';
 import MembersPage from './pages/MembersPage';
 
 const drawerWidth = 240;
@@ -31,6 +32,7 @@ function App() {
   // Dynamically determine current active page title from URL
   const getPageTitle = () => {
     if (location.pathname.startsWith('/entries')) return 'Entries';
+    if (location.pathname.startsWith('/borrowed')) return 'Borrowed';
     if (location.pathname.startsWith('/members')) return 'Members';
     return 'Dashboard';
   };
@@ -141,6 +143,7 @@ function App() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/entries" element={<EntriesPage />} />
+              <Route path="/borrowed" element={<BorrowedPage />} />
               <Route path="/members" element={<MembersPage />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>

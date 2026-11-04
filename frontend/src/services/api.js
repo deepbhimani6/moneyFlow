@@ -87,4 +87,32 @@ export const memberService = {
   },
 };
 
+export const borrowedService = {
+  getBorrowed: async (params = {}) => {
+    const res = await api.get('/borrowed', { params });
+    return res.data;
+  },
+  createBorrowed: async (borrowedData) => {
+    const res = await api.post('/borrowed', borrowedData);
+    return res.data;
+  },
+  updateBorrowed: async (id, borrowedData) => {
+    const res = await api.put(`/borrowed/${id}`, borrowedData);
+    return res.data;
+  },
+  deleteBorrowed: async (id) => {
+    const res = await api.delete(`/borrowed/${id}`);
+    return res.data;
+  },
+  bulkUpdateStatus: async (ids, status) => {
+    const res = await api.post('/borrowed/bulk-status', { ids, status });
+    return res.data;
+  },
+  bulkDelete: async (ids) => {
+    const res = await api.post('/borrowed/bulk-delete', { ids });
+    return res.data;
+  },
+};
+
+
 export default api;
