@@ -1,12 +1,32 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, Menu, MenuItem, IconButton, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TableSortLabel } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Button,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  Paper,
+  Checkbox,
+  Chip,
+  Menu,
+  MenuItem,
+  IconButton,
+  CircularProgress,
+  TablePagination,
+  Tooltip,
+  Snackbar,
+  Alert,
+  TableSortLabel,
+} from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
-import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import { entryService } from "../services/api";
 import AddEntryModal from "../modals/AddEntryModal";
 import EditEntryModal from "../modals/EditEntryModal";
@@ -21,10 +41,8 @@ const getTypeChip = (type) => {
       return <Chip label="Loan" size="small" color="warning" variant="outlined" />;
     case "Split":
       return <Chip icon={<CallSplitIcon sx={{ "&&": { fontSize: 16 } }} />} label="Split" size="small" color="info" variant="outlined" />;
-    case "Add Balance":
-      return <Chip icon={<AccountBalanceWalletIcon sx={{ "&&": { fontSize: 16 } }} />} label="Add Balance" size="small" color="primary" variant="outlined" />;
     default:
-      return <Chip label={type || "Expense"} size="small" />;
+      return <Chip label={type || "Expense"} size="small" variant="outlined" />;
   }
 };
 
@@ -45,7 +63,7 @@ const getStatusChip = (status, onToggle) => {
 
 const TABLE_RADIUS = 10;
 
-const EntriesPage = () => {
+const ToReceivePage = () => {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]);
@@ -69,24 +87,26 @@ const EntriesPage = () => {
     maxAmount: "",
   });
 
-  // Bulk action menu
-  const [bulkAnchorEl, setBulkAnchorEl] = useState(null);
-  const [statusMenuAnchorEl, setStatusMenuAnchorEl] = useState(null);
+  // Table Sorting state
+  const [order, setOrder] = useState("desc");
+  const [orderBy, setOrderBy] = useState("date");
 
-  // Pagination
+  // Pagination state
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Sorting
-  const [orderBy, setOrderBy] = useState("date");
-  const [order, setOrder] = useState("desc");
+  // Bulk actions menus
+  const [bulkAnchorEl, setBulkAnchorEl] = useState(null);
+  const [statusMenuAnchorEl, setStatusMenuAnchorEl] = useState(null);
 
+  // Request sort handler
   const handleRequestSort = (property) => {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
   };
 
+  // Sort entries comparator
   const sortedEntries = useMemo(() => {
     return [...entries].sort((a, b) => {
       let aVal = a[orderBy];
@@ -139,27 +159,14 @@ const EntriesPage = () => {
       const winHeight = window.innerHeight;
 
       if (tableContainerRef.current) {
-        const tableRect = tableContainerRef.current.getBoundingClientRect();
+        const rect = tableContainerRef.current.getBoundingClientRect();
+        setTableBounds({ left: rect.left, width: rect.width });
+        setIsHeaderStuck(rect.top <= navHeight + 1 && rect.bottom > navHeight + 80);
+      }
 
-        setTableBounds({
-          left: Math.round(tableRect.left),
-          width: Math.round(tableRect.width),
-        });
-
-        // 1. Table Head: sticky when the table top has scrolled past the app bar,
-        // and table rows are still in the viewport.
-        const headerStuck = tableRect.top <= navHeight && tableRect.bottom > navHeight + 80;
-        setIsHeaderStuck(headerStuck);
-
-        // 2. Table Footer: sticky when table is in view,
-        // BUT the natural bottom of the table (footer) is NOT seen in the viewport!
-        if (footerWrapperRef.current) {
-          const footerRect = footerWrapperRef.current.getBoundingClientRect();
-          const isTableInView = tableRect.top < winHeight - 60 && tableRect.bottom > 100;
-          const isFooterOutOfView = footerRect.top > winHeight - 52;
-
-          setIsFooterSticky(isTableInView && isFooterOutOfView);
-        }
+      if (footerWrapperRef.current) {
+        const fRect = footerWrapperRef.current.getBoundingClientRect();
+        setIsFooterSticky(fRect.top > winHeight - 52);
       }
       ticking = false;
     };
@@ -171,17 +178,15 @@ const EntriesPage = () => {
       }
     };
 
-    // Initial check
-    checkStickyStates();
-
     window.addEventListener("scroll", onScrollOrResize, { passive: true });
     window.addEventListener("resize", onScrollOrResize, { passive: true });
+    checkStickyStates();
 
     return () => {
       window.removeEventListener("scroll", onScrollOrResize);
       window.removeEventListener("resize", onScrollOrResize);
     };
-  }, [entries, rowsPerPage, page, loading]);
+  }, [entries, loading]);
 
   const fetchEntries = async () => {
     try {
@@ -191,8 +196,8 @@ const EntriesPage = () => {
         setEntries(res.data);
       }
     } catch (err) {
-      console.error("Failed to fetch entries:", err);
-      setSnackbar({ open: true, message: "Failed to load entries from MongoDB", severity: "error" });
+      console.error(err);
+      setSnackbar({ open: true, message: "Failed to load entries", severity: "error" });
     } finally {
       setLoading(false);
     }
@@ -238,7 +243,6 @@ const EntriesPage = () => {
     }
   };
 
-
   const handleBulkStatusChange = async (newStatus) => {
     setStatusMenuAnchorEl(null);
     setBulkAnchorEl(null);
@@ -254,16 +258,16 @@ const EntriesPage = () => {
   };
 
   const handleToggleStatus = async (row) => {
-    const current = row.paymentStatus === 'Received' ? 'Received' : 'Pending';
-    const nextStatus = current === 'Received' ? 'Pending' : 'Received';
+    const current = row.paymentStatus === "Received" ? "Received" : "Pending";
+    const nextStatus = current === "Received" ? "Pending" : "Received";
     try {
       await entryService.updateEntry(row._id, { paymentStatus: nextStatus });
       setEntries((prev) =>
         prev.map((item) => (item._id === row._id ? { ...item, paymentStatus: nextStatus } : item))
       );
-      setSnackbar({ open: true, message: `Status updated to ${nextStatus}`, severity: 'success' });
+      setSnackbar({ open: true, message: `Status updated to ${nextStatus}`, severity: "success" });
     } catch (err) {
-      setSnackbar({ open: true, message: 'Failed to update status', severity: 'error' });
+      setSnackbar({ open: true, message: "Failed to update status", severity: "error" });
     }
   };
 
@@ -284,7 +288,7 @@ const EntriesPage = () => {
         }}
       >
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          Entries
+          To Receive
         </Typography>
 
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
@@ -293,9 +297,9 @@ const EntriesPage = () => {
             Filter
           </Button>
 
-          {/* Add Entries Button */}
+          {/* Add To Receive Button */}
           <Button variant="contained" startIcon={<AddIcon />} onClick={() => setIsAddOpen(true)} size="small">
-            Add Entries
+            Add To Receive
           </Button>
 
           {/* Bulk Actions Button */}
@@ -319,7 +323,7 @@ const EntriesPage = () => {
         </Box>
       </Box>
 
-      {/* Entries Data Table */}
+      {/* To Receive Data Table */}
       <TableContainer
         ref={tableContainerRef}
         component={Paper}
@@ -454,19 +458,13 @@ const EntriesPage = () => {
             ) : entries.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
-                  No entries found. Click <strong>Add Entries</strong> to create one.
+                  No entries found. Click <strong>Add To Receive</strong> to create one.
                 </TableCell>
               </TableRow>
             ) : (
               sortedEntries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                 const isSelected = selectedIds.includes(row._id);
-                const rowType = row.type || (["Add Balance", "Expense", "Loan", "Split"].includes(row.status) ? row.status : "Expense");
-                const isMyself = Boolean(
-                  (row.forFromName && row.forFromName.toLowerCase().includes("myself")) ||
-                  row.isMine
-                );
-                const isAddBalance = rowType === "Add Balance";
-                const shouldHideStatus = isMyself || isAddBalance;
+                const rowType = row.type || (["Expense", "Loan", "Split"].includes(row.status) ? row.status : "Expense");
 
                 return (
                   <TableRow key={row._id} hover selected={isSelected} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
@@ -488,13 +486,7 @@ const EntriesPage = () => {
                     <TableCell sx={{ whiteSpace: "nowrap" }}>{formatTime(row.time)}</TableCell>
                     <TableCell>{getTypeChip(rowType)}</TableCell>
                     <TableCell>
-                      {shouldHideStatus ? (
-                        <Typography variant="body2" color="text.disabled" sx={{ fontStyle: "italic", pl: 1 }}>
-                          —
-                        </Typography>
-                      ) : (
-                        getStatusChip(row.paymentStatus, () => handleToggleStatus(row))
-                      )}
+                      {getStatusChip(row.paymentStatus, () => handleToggleStatus(row))}
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700 }}>
                       ₹ {formatAmount(row.amount)}
@@ -520,7 +512,7 @@ const EntriesPage = () => {
           </TableBody>
         </Table>
 
-        {/* Pagination Footer: Sticky when not seen in viewport, docked when seen */}
+        {/* Pagination Footer */}
         <Box
           ref={footerWrapperRef}
           sx={{
@@ -582,7 +574,7 @@ const EntriesPage = () => {
         onClose={() => setIsAddOpen(false)}
         onEntryCreated={() => {
           fetchEntries();
-          setSnackbar({ open: true, message: "Entry created successfully in MongoDB", severity: "success" });
+          setSnackbar({ open: true, message: "Entry created successfully", severity: "success" });
         }}
       />
 
@@ -626,4 +618,4 @@ const EntriesPage = () => {
   );
 };
 
-export default EntriesPage;
+export default ToReceivePage;

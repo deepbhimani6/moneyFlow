@@ -1,7 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, FormControl, InputLabel, Select, MenuItem, Autocomplete, Chip, Box, Typography, Alert, CircularProgress } from "@mui/material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Autocomplete,
+  Chip,
+  Box,
+  Typography,
+  Alert,
+  FormControlLabel,
+  Checkbox,
+  CircularProgress,
+} from "@mui/material";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
-import PersonIcon from "@mui/icons-material/Person";
 import { memberService, entryService } from "../services/api";
 import { formatAmount } from "../utils/formatters";
 
@@ -14,6 +32,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [time, setTime] = useState(new Date().toTimeString().split(" ")[0].substring(0, 5));
+  const [includeMine, setIncludeMine] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -37,64 +56,25 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
       setDescription("");
       setDate(new Date().toISOString().split("T")[0]);
       setTime(new Date().toTimeString().split(" ")[0].substring(0, 5));
+      setIncludeMine(false);
       setError("");
     }
   }, [open]);
 
-  const isMyselfAdded = selectedNames.some((item) => {
-    const name = typeof item === 'string' ? item : item.fullName;
-    return name.toLowerCase().includes('myself');
-  });
-
-  const isOnlyMyself = selectedNames.length === 1 && isMyselfAdded;
-  const isOnlyOneOther = selectedNames.length === 1 && !isMyselfAdded;
-
-  // Automatically enforce valid type according to selected participants:
-  // - Only myself: no "Loan" (cannot loan to oneself) -> default to Expense if Loan
-  // - Only 1 other person: no "Add Balance" (cannot add balance to another person) -> default to Expense if Add Balance
-  // - Multiple members: automatically "Split"
+  // If multiple members selected, auto-set to Split; else default to Expense if currently Split
   useEffect(() => {
     if (selectedNames.length > 1) {
-      setType('Split');
-    } else if (isOnlyMyself) {
-      if (type === 'Loan' || type === 'Split') {
-        setType('Expense');
-      }
-    } else if (isOnlyOneOther) {
-      if (type === 'Add Balance' || type === 'Split') {
-        setType('Expense');
-      }
-    } else if (selectedNames.length === 0) {
-      if (type === 'Split') {
-        setType('Expense');
-      }
+      setType("Split");
+    } else if (type === "Split") {
+      setType("Expense");
     }
-  }, [selectedNames, isOnlyMyself, isOnlyOneOther, type]);
+  }, [selectedNames, type]);
 
   // Split calculation preview:
-  const numParticipants = selectedNames.length;
-  const numericAmount = Math.trunc(parseFloat(amount) || 0);
   const isSplitActive = selectedNames.length > 1;
+  const numParticipants = isSplitActive ? selectedNames.length + (includeMine ? 1 : 0) : selectedNames.length;
+  const numericAmount = Math.trunc(parseFloat(amount) || 0);
   const splitPerPerson = isSplitActive && numParticipants > 0 ? Math.trunc(numericAmount / numParticipants) : 0;
-
-  const handleToggleMyself = () => {
-    if (isMyselfAdded) {
-      const filtered = selectedNames.filter((item) => {
-        const name = typeof item === 'string' ? item : item.fullName;
-        return !name.toLowerCase().includes('myself');
-      });
-      setSelectedNames(filtered);
-      if (filtered.length <= 1) {
-        setType('Expense');
-      }
-    } else {
-      const updated = [{ _id: 'myself', fullName: 'Myself (You)' }, ...selectedNames];
-      setSelectedNames(updated);
-      if (updated.length > 1) {
-        setType('Split');
-      }
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -103,14 +83,16 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
     let finalNames = [...selectedNames];
     if (inputValue && inputValue.trim()) {
       const trimmed = inputValue.trim();
-      const alreadyIn = finalNames.some((item) => (typeof item === 'string' ? item : item.fullName).toLowerCase() === trimmed.toLowerCase());
+      const alreadyIn = finalNames.some(
+        (item) => (typeof item === "string" ? item : item.fullName).toLowerCase() === trimmed.toLowerCase()
+      );
       if (!alreadyIn) {
         finalNames.push(trimmed);
       }
     }
 
     if (finalNames.length === 0) {
-      setError("Please select or enter at least one member/name");
+      setError("Please select or enter at least one member name");
       return;
     }
 
@@ -119,24 +101,21 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
       return;
     }
 
-    const hasMyself = finalNames.some((item) => {
-      const name = typeof item === 'string' ? item : item.fullName;
-      return name.toLowerCase().includes('myself');
-    });
-
     try {
       setSubmitting(true);
+      const isSplit = finalNames.length > 1;
       const res = await entryService.createEntry({
         names: finalNames.map((item) => {
           if (typeof item === "string") return item;
           return { name: item.fullName, memberId: item._id };
         }),
-        type: finalNames.length > 1 ? 'Split' : type,
-        status: finalNames.length > 1 ? 'Split' : type,
+        type: isSplit ? "Split" : type,
+        status: isSplit ? "Split" : type,
         amount: numericAmount,
         description,
         date,
         time,
+        includeMine: isSplit && includeMine,
       });
 
       if (res.success) {
@@ -155,31 +134,20 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit}>
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Add New Entry</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Add To Receive</DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
-          {/* 1. Member Name (Multi-select from Members tab & add custom) */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: -1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.secondary' }}>
-              Select Participants:
-            </Typography>
-            <Chip
-              icon={<PersonIcon sx={{ '&&': { fontSize: 16 } }} />}
-              label={isMyselfAdded ? "Myself Added ✓" : "+ Add Myself"}
-              size="small"
-              clickable
-              color={isMyselfAdded ? "primary" : "default"}
-              variant={isMyselfAdded ? "filled" : "outlined"}
-              onClick={handleToggleMyself}
-            />
-          </Box>
-
+          {/* 1. Member Name (Multi-select from Members & add custom) */}
           <Autocomplete
             multiple
             freeSolo
-            options={[{ _id: 'myself', fullName: 'Myself (You)' }, ...members]}
-            getOptionLabel={(option) => (typeof option === "string" ? option : option.fullName)}
+            options={members}
+            getOptionLabel={(option) => (typeof option === "string" ? option : option.fullName || "")}
+            isOptionEqualToValue={(option, value) => {
+              if (typeof value === "string") return option.fullName === value;
+              return option._id === value?._id;
+            }}
             value={selectedNames}
             inputValue={inputValue}
             onInputChange={(event, newInputValue) => {
@@ -189,19 +157,18 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               setSelectedNames(newValue);
               setInputValue("");
               if (newValue.length > 1) {
-                setType('Split');
-              } else if (type === 'Split' && newValue.length <= 1) {
-                setType('Expense');
+                setType("Split");
+              } else if (type === "Split" && newValue.length <= 1) {
+                setType("Expense");
               }
             }}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => {
                 const label = typeof option === "string" ? option : option.fullName;
-                const isMine = label.toLowerCase().includes('myself');
                 return (
                   <Chip
                     variant="outlined"
-                    color={isMine ? "secondary" : "primary"}
+                    color="primary"
                     size="small"
                     label={label}
                     {...getTagProps({ index })}
@@ -214,13 +181,13 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               <TextField
                 {...params}
                 label="Member Name"
-                placeholder="Search or enter member name..."
+                placeholder="Choose members or type & press enter..."
                 helperText="Select 1 or more members. If multiple are selected, amount will be split."
               />
             )}
           />
 
-          {/* Multi-member Split notification / logic */}
+          {/* Multi-member Split notification & include my share checkbox */}
           {selectedNames.length > 1 && (
             <Box sx={{ p: 2, bgcolor: "#e3f2fd", borderRadius: 2, border: "1px solid #90caf9" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
@@ -229,43 +196,49 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                   Auto Split Activated
                 </Typography>
               </Box>
+
               <Typography variant="body2" sx={{ mb: 1 }}>
-                {isMyselfAdded
-                  ? `Splitting equally across ${numParticipants} participants (including your share as an Expense).`
+                {includeMine
+                  ? `Splitting equally across ${numParticipants} participants (${selectedNames.length} members in To Receive + your share in For Self).`
                   : `Splitting amount equally across ${numParticipants} selected members.`}
               </Typography>
+
+              {/* Checkbox: Include myself in the split */}
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={includeMine}
+                    onChange={(e) => setIncludeMine(e.target.checked)}
+                    size="small"
+                    color="primary"
+                  />
+                }
+                label="Include my share in this split (adds expense to For Self)"
+                sx={{ mb: 0.5 }}
+              />
+
               {numericAmount > 0 && (
                 <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5, color: "primary.main" }}>
-                  ₹ {formatAmount(splitPerPerson)} per person ({numParticipants} participants)
+                  ₹ {formatAmount(splitPerPerson)} per person ({numParticipants} participants
+                  {includeMine ? ", your share added to For Self" : ""})
                 </Typography>
               )}
             </Box>
           )}
 
-          {/* 2. Type */}
+          {/* 2. Type: Expense, Loan (Split when multiple) */}
           <FormControl fullWidth disabled={selectedNames.length > 1}>
             <InputLabel id="type-label">Type</InputLabel>
             <Select
               labelId="type-label"
-              value={selectedNames.length > 1 ? 'Split' : type}
+              value={selectedNames.length > 1 ? "Split" : type}
               label="Type"
               onChange={(e) => setType(e.target.value)}
             >
               {selectedNames.length > 1 ? (
                 <MenuItem value="Split">Split</MenuItem>
-              ) : isOnlyMyself ? (
-                [
-                  <MenuItem key="Add Balance" value="Add Balance">Add Balance</MenuItem>,
-                  <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
-                ]
-              ) : isOnlyOneOther ? (
-                [
-                  <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
-                  <MenuItem key="Loan" value="Loan">Loan</MenuItem>,
-                ]
               ) : (
                 [
-                  <MenuItem key="Add Balance" value="Add Balance">Add Balance</MenuItem>,
                   <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
                   <MenuItem key="Loan" value="Loan">Loan</MenuItem>,
                 ]
@@ -279,7 +252,16 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
           </FormControl>
 
           {/* 3. Amount */}
-          <TextField label="Amount (₹)" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 1500" fullWidth required inputProps={{ min: "0", step: "any" }} />
+          <TextField
+            label="Amount (₹)"
+            type="number"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            placeholder="e.g. 1500"
+            fullWidth
+            required
+            inputProps={{ min: "0", step: "any" }}
+          />
 
           {/* Description */}
           <TextField
@@ -317,8 +299,13 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
           <Button onClick={onClose} disabled={submitting}>
             Cancel
           </Button>
-          <Button type="submit" variant="contained" disabled={submitting} startIcon={submitting && <CircularProgress size={18} />}>
-            {submitting ? "Saving..." : "Add Entry"}
+          <Button
+            type="submit"
+            variant="contained"
+            disabled={submitting}
+            startIcon={submitting && <CircularProgress size={18} />}
+          >
+            {submitting ? "Saving..." : "Add To Receive"}
           </Button>
         </DialogActions>
       </form>

@@ -18,7 +18,8 @@ import theme from './theme';
 import Sidebar from './components/Sidebar';
 import OnlineDetector from './components/OnlineDetector';
 import DashboardPage from './pages/DashboardPage';
-import EntriesPage from './pages/EntriesPage';
+import ForSelfPage from './pages/ForSelfPage';
+import ToReceivePage from './pages/ToReceivePage';
 import ToPayPage from './pages/ToPayPage';
 import MembersPage from './pages/MembersPage';
 
@@ -31,7 +32,8 @@ function App() {
 
   // Dynamically determine current active page title from URL
   const getPageTitle = () => {
-    if (location.pathname.startsWith('/entries')) return 'Entries';
+    if (location.pathname.startsWith('/for-self')) return 'For Self';
+    if (location.pathname.startsWith('/to-receive') || location.pathname.startsWith('/entries')) return 'To Receive';
     if (location.pathname.startsWith('/to-pay') || location.pathname.startsWith('/topay')) return 'To Pay';
     if (location.pathname.startsWith('/members')) return 'Members';
     return 'Dashboard';
@@ -142,7 +144,9 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/entries" element={<EntriesPage />} />
+              <Route path="/for-self" element={<ForSelfPage />} />
+              <Route path="/to-receive" element={<ToReceivePage />} />
+              <Route path="/entries" element={<Navigate to="/to-receive" replace />} />
               <Route path="/to-pay" element={<ToPayPage />} />
               <Route path="/borrowed" element={<Navigate to="/to-pay" replace />} />
               <Route path="/members" element={<MembersPage />} />

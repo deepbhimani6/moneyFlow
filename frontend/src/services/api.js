@@ -119,5 +119,27 @@ export const toPayService = {
   },
 };
 
+export const forSelfService = {
+  getForSelfEntries: async (params = {}) => {
+    const res = await api.get('/for-self', { params });
+    return res.data;
+  },
+  createForSelfEntry: async (entryData) => {
+    const res = await api.post('/for-self', entryData);
+    return res.data;
+  },
+  updateForSelfEntry: async (id, entryData) => {
+    const res = await api.put(`/for-self/${id}`, entryData);
+    return res.data;
+  },
+  deleteForSelfEntry: async (id) => {
+    const res = await api.delete(`/for-self/${id}`);
+    return res.data;
+  },
+  bulkDelete: async (ids) => {
+    const res = await api.post('/for-self/bulk-delete', { ids });
+    return res.data;
+  },
+};
 
 export default api;

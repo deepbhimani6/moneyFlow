@@ -8,6 +8,7 @@ const memberRoutes = require('./routes/memberRoutes');
 const entryRoutes = require('./routes/entryRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const toPayRoutes = require('./routes/toPayRoutes');
+const forSelfRoutes = require('./routes/forSelfRoutes');
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/members', memberRoutes);
 app.use('/api/entries', entryRoutes);
 app.use('/api/to-pay', toPayRoutes);
+app.use('/api/for-self', forSelfRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 // Error Handling Middleware

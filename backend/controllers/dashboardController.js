@@ -1,56 +1,47 @@
 const Entry = require("../models/Entry");
+const ForSelf = require("../models/ForSelf");
 
 // @desc    Get aggregated stats for dashboard
 // @route   GET /api/dashboard/stats
 const getDashboardStats = async (req, res) => {
   try {
-    // 1. Added Balance: entries with Type: "Add Balance"
-    const addedRes = await Entry.aggregate([
+    // 1. Added Balance: from ForSelf with Type: "Add Balance"
+    const addedRes = await ForSelf.aggregate([
       {
         $match: {
-          $or: [
-            { type: { $regex: /^add balance$/i } },
-            { status: { $regex: /^add balance$/i } },
-          ],
+          type: "Add Balance",
         },
       },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
     const totalAddBalance = addedRes[0]?.total || 0;
 
-    // 2. Total Expenses: Type: Expense (Member: Myself (You))
-    const expenseRes = await Entry.aggregate([
+    // 2. Total Personal Expenses: from ForSelf with Type: "Expense"
+    const expenseRes = await ForSelf.aggregate([
       {
         $match: {
           type: "Expense",
-          $or: [
-            { forFromName: { $regex: /myself/i } },
-            { isMine: true },
-          ],
         },
       },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
     const totalExpenses = expenseRes[0]?.total || 0;
 
-    // 3. Total Loans: Type: Loan (Status: Pending)
+    // 3. Total Loans: from Entry (To Receive) Type: Loan (Status: Pending)
     const loanRes = await Entry.aggregate([
       {
         $match: {
-          $or: [
-            { type: { $regex: /^loans?$/i } },
-            { status: { $regex: /^loans?$/i } },
-          ],
+          type: "Loan",
           $and: [
             {
               $or: [
-                { paymentStatus: { $regex: /^pending$/i } },
+                { paymentStatus: "Pending" },
                 { paymentStatus: { $exists: false } },
                 { paymentStatus: null },
               ],
             },
             {
-              paymentStatus: { $not: /received/i },
+              paymentStatus: { $ne: "Received" },
             },
           ],
         },
@@ -59,29 +50,15 @@ const getDashboardStats = async (req, res) => {
     ]);
     const totalLoans = loanRes[0]?.total || 0;
 
-    // 4. Total Pending: Type: Split (Status: Pending) + Type: Expenses (not Member: Myself (You) (Status: Pending))
+    // 4. Total Pending: from Entry (To Receive) Type: Split or Expense (Status: Pending)
     const pendingRes = await Entry.aggregate([
       {
         $match: {
-          $and: [
-            {
-              $or: [
-                { paymentStatus: "Pending" },
-                { paymentStatus: { $exists: false } },
-                { paymentStatus: null },
-                { paymentStatus: { $ne: "Received" } },
-              ],
-            },
-            {
-              $or: [
-                { type: "Split" },
-                {
-                  type: { $in: ["Expense", "Expenses"] },
-                  forFromName: { $not: /myself/i },
-                  isMine: { $ne: true },
-                },
-              ],
-            },
+          type: { $in: ["Expense", "Split"] },
+          $or: [
+            { paymentStatus: "Pending" },
+            { paymentStatus: { $exists: false } },
+            { paymentStatus: null },
           ],
         },
       },

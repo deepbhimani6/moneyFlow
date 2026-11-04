@@ -15,7 +15,6 @@ import {
   Alert,
   CircularProgress,
   Chip,
-  Divider,
 } from '@mui/material';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
 import { entryService } from '../services/api';
@@ -132,31 +131,12 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
   if (!entry) return null;
 
   const isSplit = Boolean(entry.isSplit);
-  const isMyself = Boolean(
-    (forFromName && forFromName.toLowerCase().includes("myself")) ||
-    (entry && (entry.isMine || (entry.forFromName && entry.forFromName.toLowerCase().includes("myself"))))
-  );
-  const isAddBalance = status === "Add Balance";
-  const shouldHideStatus = isMyself || isAddBalance;
-
-  // Enforce valid type when editing single entry:
-  // - If myself: no Loan allowed
-  // - If other member: no Add Balance allowed
-  useEffect(() => {
-    if (!isSplit) {
-      if (isMyself && status === 'Loan') {
-        setStatus('Expense');
-      } else if (!isMyself && status === 'Add Balance') {
-        setStatus('Expense');
-      }
-    }
-  }, [isMyself, isSplit, status]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-          {isSplit ? 'Edit Split Group Entry' : 'Edit Entry'}
+          {isSplit ? 'Edit Split Group To Receive' : 'Edit To Receive'}
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
@@ -216,11 +196,6 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
             >
               {isSplit ? (
                 <MenuItem value={status}>{status}</MenuItem>
-              ) : isMyself ? (
-                [
-                  <MenuItem key="Add Balance" value="Add Balance">Add Balance</MenuItem>,
-                  <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
-                ]
               ) : (
                 [
                   <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
@@ -235,21 +210,19 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
             )}
           </FormControl>
 
-          {/* Status (Pending / Received) - hidden for Myself or Add Balance */}
-          {!shouldHideStatus && (
-            <FormControl fullWidth>
-              <InputLabel id="edit-payment-status-label">Status</InputLabel>
-              <Select
-                labelId="edit-payment-status-label"
-                value={paymentStatus}
-                label="Status"
-                onChange={(e) => setPaymentStatus(e.target.value)}
-              >
-                <MenuItem value="Pending">Pending</MenuItem>
-                <MenuItem value="Received">Received</MenuItem>
-              </Select>
-            </FormControl>
-          )}
+          {/* Status (Pending / Received) */}
+          <FormControl fullWidth>
+            <InputLabel id="edit-payment-status-label">Status</InputLabel>
+            <Select
+              labelId="edit-payment-status-label"
+              value={paymentStatus}
+              label="Status"
+              onChange={(e) => setPaymentStatus(e.target.value)}
+            >
+              <MenuItem value="Pending">Pending</MenuItem>
+              <MenuItem value="Received">Received</MenuItem>
+            </Select>
+          </FormControl>
 
           {/* 3. Amounts */}
           {isSplit ? (

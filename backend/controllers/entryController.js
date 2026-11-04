@@ -1,5 +1,6 @@
 const Entry = require("../models/Entry");
 const Member = require("../models/Member");
+const ForSelf = require("../models/ForSelf");
 const crypto = require("crypto");
 
 // Helper to resolve or auto-create a Member when a new participant name is used
@@ -177,14 +178,7 @@ const createEntry = async (req, res) => {
     }
 
     // MULTI-MEMBER SPLIT LOGIC:
-    // Check if myself/you is already included in nameList
-    const alreadyHasMine = nameList.some((item) => {
-      const name = (typeof item === 'object' ? (item.name || item.fullName) : item).toLowerCase();
-      return name.includes('myself') || name.includes('you (myself)');
-    });
-
-    // ONLY add a separate "You (Myself)" entry if includeMine was explicitly true AND myself is not already in the list
-    const addSeparateMine = Boolean(includeMine) && !alreadyHasMine;
+    const addSeparateMine = Boolean(includeMine);
     const totalParticipants = nameList.length + (addSeparateMine ? 1 : 0);
     const splitAmount = Math.trunc(parsedAmount / totalParticipants);
     const splitGroupId = `split_${crypto.randomBytes(6).toString("hex")}`;
@@ -194,14 +188,13 @@ const createEntry = async (req, res) => {
     // Create entry for each member in the list
     for (const item of nameList) {
       const memberName = typeof item === "object" ? (item.name || item.fullName) : item;
-      const isThisMine = memberName.toLowerCase().includes('myself') || memberName.toLowerCase().includes('you (myself)');
-      const resolvedMemberId = isThisMine ? null : await resolveOrCreateMember(item);
+      const resolvedMemberId = await resolveOrCreateMember(item);
 
       const memberEntry = new Entry({
         forFromName: memberName,
         memberId: resolvedMemberId,
-        type: isThisMine ? "Expense" : "Split", // Mine is Expense, others Split
-        status: isThisMine ? "Expense" : "Split",
+        type: "Split",
+        status: "Split",
         paymentStatus: entryPaymentStatus,
         amount: splitAmount,
         date: entryDate,
@@ -210,33 +203,25 @@ const createEntry = async (req, res) => {
         isSplit: true,
         splitGroupId,
         originalTotalAmount: parsedAmount,
-        isMine: isThisMine,
+        isMine: false,
       });
 
       await memberEntry.save();
       createdEntries.push(memberEntry);
     }
 
-    // Add mine if not already selected
+    // If "Include myself in the split" was checked, automatically create an Expense in ForSelf
     if (addSeparateMine) {
-      const myEntry = new Entry({
-        forFromName: "You (Myself)",
-        memberId: null,
+      await ForSelf.create({
         type: "Expense",
-        status: "Expense",
-        paymentStatus: entryPaymentStatus,
         amount: splitAmount,
         date: entryDate,
         time: entryTime,
-        description: description ? description.trim() : '',
+        description: description ? `${description.trim()} (Split share)` : "Split share",
         isSplit: true,
         splitGroupId,
         originalTotalAmount: parsedAmount,
-        isMine: true,
       });
-
-      await myEntry.save();
-      createdEntries.push(myEntry);
     }
 
     res.status(201).json({
@@ -300,8 +285,9 @@ const updateEntry = async (req, res) => {
       if (time) updateData.time = time;
       if (description !== undefined) updateData.description = description ? description.trim() : '';
 
-      // Update group fields across all split members
+      // Update group fields across all split members (and personal share in ForSelf if present)
       await Entry.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
+      await ForSelf.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
 
       // Only update paymentStatus for this specific entry (not all split members)
       if (entryPaymentStatus) {

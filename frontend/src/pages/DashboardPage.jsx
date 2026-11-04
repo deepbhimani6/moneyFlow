@@ -73,7 +73,7 @@ const DashboardPage = () => {
       amount: stats.totalExpenses,
       color: '#d32f2f',
       icon: <TrendingDownIcon sx={{ fontSize: 32, color: '#d32f2f' }} />,
-      subtitle: 'Type: Expenses (Myself (You))',
+      subtitle: 'Personal Expenses (For Self)',
       gridProps: { xs: 12, sm: 6, md: 6 },
     },
     {

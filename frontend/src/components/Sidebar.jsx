@@ -12,7 +12,8 @@ import {
   Divider,
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import CallReceivedIcon from '@mui/icons-material/CallReceived';
 import PaymentIcon from '@mui/icons-material/Payment';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -21,7 +22,8 @@ const drawerWidth = 240;
 
 const menuItems = [
   { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
-  { id: 'entries', path: '/entries', label: 'Entries', icon: <ReceiptLongIcon /> },
+  { id: 'for-self', path: '/for-self', label: 'For Self', icon: <AccountCircleIcon /> },
+  { id: 'to-receive', path: '/to-receive', label: 'To Receive', icon: <CallReceivedIcon /> },
   { id: 'to-pay', path: '/to-pay', label: 'To Pay', icon: <PaymentIcon /> },
   { id: 'members', path: '/members', label: 'Members', icon: <PeopleAltIcon /> },
 ];
@@ -50,7 +52,10 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
 
       <List sx={{ px: 1.5, py: 2 }}>
         {menuItems.map((item) => {
-          const isActive = currentPath === item.path || (item.path === '/dashboard' && currentPath === '/');
+          const isActive =
+            currentPath === item.path ||
+            (item.path === '/dashboard' && currentPath === '/') ||
+            (item.path === '/to-receive' && currentPath === '/entries');
           return (
             <ListItem key={item.id} disablePadding sx={{ mb: 1 }}>
               <ListItemButton

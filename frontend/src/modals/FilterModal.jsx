@@ -13,9 +13,7 @@ import {
   Autocomplete,
   Chip,
   Box,
-  Typography,
 } from "@mui/material";
-import PersonIcon from "@mui/icons-material/Person";
 import { memberService } from "../services/api";
 
 const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFilters }) => {
@@ -40,24 +38,6 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
       setInputValue("");
     }
   }, [open, currentFilters]);
-
-  const isMyselfAdded = selectedNames.some((item) => {
-    const name = typeof item === "string" ? item : item.fullName;
-    return name && name.toLowerCase().includes("myself");
-  });
-
-  const handleToggleMyself = () => {
-    if (isMyselfAdded) {
-      const filtered = selectedNames.filter((item) => {
-        const name = typeof item === "string" ? item : item.fullName;
-        return !name || !name.toLowerCase().includes("myself");
-      });
-      setSelectedNames(filtered);
-    } else {
-      const updated = [{ _id: "myself", fullName: "Myself (You)" }, ...selectedNames];
-      setSelectedNames(updated);
-    }
-  };
 
   const handleChange = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -108,14 +88,13 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Filter Entries</DialogTitle>
+      <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Filter To Receive</DialogTitle>
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
         {/* Type Filter */}
         <FormControl fullWidth>
           <InputLabel id="filter-type-label">Type</InputLabel>
           <Select labelId="filter-type-label" value={filters.status || "All"} label="Type" onChange={(e) => handleChange("status", e.target.value)}>
             <MenuItem value="All">All Types</MenuItem>
-            <MenuItem value="Add Balance">Add Balance</MenuItem>
             <MenuItem value="Expense">Expense</MenuItem>
             <MenuItem value="Loan">Loan</MenuItem>
             <MenuItem value="Split">Split</MenuItem>
@@ -138,26 +117,15 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
         </FormControl>
 
         {/* Member Name */}
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: -1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-            Select Members:
-          </Typography>
-          <Chip
-            icon={<PersonIcon sx={{ "&&": { fontSize: 16 } }} />}
-            label={isMyselfAdded ? "Myself Added ✓" : "+ Add Myself"}
-            size="small"
-            clickable
-            color={isMyselfAdded ? "primary" : "default"}
-            variant={isMyselfAdded ? "filled" : "outlined"}
-            onClick={handleToggleMyself}
-          />
-        </Box>
-
         <Autocomplete
           multiple
           freeSolo
-          options={[{ _id: "myself", fullName: "Myself (You)" }, ...members]}
-          getOptionLabel={(option) => (typeof option === "string" ? option : option.fullName)}
+          options={members}
+          getOptionLabel={(option) => (typeof option === "string" ? option : option.fullName || "")}
+          isOptionEqualToValue={(option, value) => {
+            if (typeof value === "string") return option.fullName === value;
+            return option._id === value?._id;
+          }}
           value={selectedNames}
           inputValue={inputValue}
           onInputChange={(event, newInputValue) => {
@@ -170,11 +138,10 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
           renderTags={(value, getTagProps) =>
             value.map((option, index) => {
               const label = typeof option === "string" ? option : option.fullName;
-              const isMine = label && label.toLowerCase().includes("myself");
               return (
                 <Chip
                   variant="outlined"
-                  color={isMine ? "secondary" : "primary"}
+                  color="primary"
                   size="small"
                   label={label}
                   {...getTagProps({ index })}
