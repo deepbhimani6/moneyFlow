@@ -101,7 +101,7 @@ const DashboardPage = () => {
       amount: stats.totalReceived,
       color: '#2e7d32',
       icon: <TrendingUpIcon sx={{ fontSize: 32, color: '#2e7d32' }} />,
-      subtitle: 'Status: Received (Without Type: Expenses, Add Balance)',
+      subtitle: 'Status: Received (Without Expenses, Add Balance) + Expenses (not Myself (You), Received)',
       gridProps: { xs: 12, sm: 12, md: 12 }, // full column (col-span 2)
     },
   ];
