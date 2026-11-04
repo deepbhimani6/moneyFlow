@@ -121,8 +121,8 @@ const getDashboardStats = async (req, res) => {
     const splitPendingCount = splitDocs.filter((e) => e.paymentStatus !== "Received").length;
     const splitReceivedCount = splitDocs.filter((e) => e.paymentStatus === "Received").length;
 
-    // Formula 1: Total Balance = Added + Received - Expenses - Loans (Status: pending)
-    const totalBalance = totalAddBalance + totalReceived - totalExpenses - totalLoans;
+    // Formula 1: Total Balance = Added - Expenses - Loans (Status: pending) + Received
+    const totalBalance = totalAddBalance - totalExpenses - totalLoans + totalReceived;
 
     res.json({
       success: true,
