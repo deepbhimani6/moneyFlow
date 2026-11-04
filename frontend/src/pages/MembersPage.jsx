@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, IconButton, Menu, MenuItem, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TextField, InputAdornment } from "@mui/material";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import EditIcon from "@mui/icons-material/Edit";
@@ -11,6 +11,8 @@ import InviteMemberModal from "../modals/InviteMemberModal";
 import EditMemberModal from "../modals/EditMemberModal";
 import DeleteConfirmModal from "../modals/DeleteConfirmModal";
 import { formatDate } from "../utils/formatters";
+
+const TABLE_RADIUS = 10;
 
 const MembersPage = () => {
   const [members, setMembers] = useState([]);
@@ -34,6 +36,65 @@ const MembersPage = () => {
 
   // Snackbar
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
+  // Viewport-visibility-based sticky header and footer
+  const tableContainerRef = useRef(null);
+  const footerWrapperRef = useRef(null);
+  const [isHeaderStuck, setIsHeaderStuck] = useState(false);
+  const [isFooterSticky, setIsFooterSticky] = useState(false);
+  const [tableBounds, setTableBounds] = useState({ left: 0, width: "100%" });
+
+  useEffect(() => {
+    let ticking = false;
+
+    const checkStickyStates = () => {
+      const navHeight = window.innerWidth < 600 ? 56 : 64;
+      const winHeight = window.innerHeight;
+
+      if (tableContainerRef.current) {
+        const tableRect = tableContainerRef.current.getBoundingClientRect();
+
+        setTableBounds({
+          left: Math.round(tableRect.left),
+          width: Math.round(tableRect.width),
+        });
+
+        // 1. Table Head: sticky when the table top has scrolled past the app bar,
+        // and table rows are still in the viewport.
+        const headerStuck = tableRect.top <= navHeight && tableRect.bottom > navHeight + 80;
+        setIsHeaderStuck(headerStuck);
+
+        // 2. Table Footer: sticky when table is in view,
+        // BUT the natural bottom of the table (footer) is NOT seen in the viewport!
+        if (footerWrapperRef.current) {
+          const footerRect = footerWrapperRef.current.getBoundingClientRect();
+          const isTableInView = tableRect.top < winHeight - 60 && tableRect.bottom > 100;
+          const isFooterOutOfView = footerRect.top > winHeight - 52;
+
+          setIsFooterSticky(isTableInView && isFooterOutOfView);
+        }
+      }
+      ticking = false;
+    };
+
+    const onScrollOrResize = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(checkStickyStates);
+        ticking = true;
+      }
+    };
+
+    // Initial check
+    checkStickyStates();
+
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [members, rowsPerPage, page, loading]);
 
   const fetchMembers = async () => {
     try {
@@ -195,18 +256,63 @@ const MembersPage = () => {
       </Box>
 
       {/* Members Table */}
-      <TableContainer component={Paper} sx={{ borderRadius: 2, border: "1px solid #e2e8f0", boxShadow: "none" }}>
+      <TableContainer
+        ref={tableContainerRef}
+        component={Paper}
+        sx={{
+          borderRadius: `${TABLE_RADIUS}px`,
+          border: "1px solid #e2e8f0",
+          boxShadow: "none",
+          overflow: "visible",
+        }}
+      >
         <Table sx={{ minWidth: 650 }}>
-          <TableHead sx={{ bgcolor: "#f8fafc" }}>
+          <TableHead
+            sx={{
+              bgcolor: "transparent",
+              position: "sticky",
+              top: { xs: 56, sm: 64 },
+              zIndex: 5,
+              "& tr": {
+                bgcolor: "transparent",
+              },
+              "& th": {
+                bgcolor: "#f8fafc",
+                position: "sticky",
+                top: { xs: 56, sm: 64 },
+                zIndex: 5,
+                borderBottom: "1px solid #e2e8f0",
+                boxShadow: isHeaderStuck ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
+                transition: "box-shadow 0.2s",
+              },
+              "& th:first-of-type": {
+                borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
+              },
+              "& th:last-of-type": {
+                borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
+              },
+            }}
+          >
             <TableRow>
-              <TableCell padding="checkbox">
+              <TableCell
+                padding="checkbox"
+                sx={{
+                  borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
+                }}
+              >
                 <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
               </TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Full Name</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Phone Number</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Join Date</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Invite Status</TableCell>
-              <TableCell sx={{ fontWeight: 600 }} align="center">
+              <TableCell
+                sx={{
+                  fontWeight: 600,
+                  borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
+                }}
+                align="center"
+              >
                 Actions
               </TableCell>
             </TableRow>
@@ -230,7 +336,12 @@ const MembersPage = () => {
                 const formattedDate = formatDate(row.joinDate);
 
                 return (
-                  <TableRow key={row._id} hover selected={isSelected}>
+                  <TableRow
+                    key={row._id}
+                    hover
+                    selected={isSelected}
+                    sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                  >
                     <TableCell padding="checkbox">
                       <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
                     </TableCell>
@@ -271,18 +382,60 @@ const MembersPage = () => {
           </TableBody>
         </Table>
 
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={members.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={(e, newPage) => setPage(newPage)}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(parseInt(e.target.value, 10));
-            setPage(0);
+        {/* Pagination Footer: Sticky when not seen in viewport, docked when seen */}
+        <Box
+          ref={footerWrapperRef}
+          sx={{
+            minHeight: 52,
+            position: "relative",
+            borderBottomLeftRadius: `${TABLE_RADIUS - 1}px`,
+            borderBottomRightRadius: `${TABLE_RADIUS - 1}px`,
+            overflow: isFooterSticky ? "visible" : "hidden",
           }}
-        />
+        >
+          <Box
+            sx={{
+              position: isFooterSticky ? "fixed" : "static",
+              bottom: 0,
+              left: isFooterSticky && tableBounds.left !== undefined ? `${tableBounds.left}px` : "auto",
+              width: isFooterSticky && tableBounds.width ? `${tableBounds.width}px` : "100%",
+              maxWidth: isFooterSticky && tableBounds.width ? `${tableBounds.width}px` : "none",
+              boxSizing: "border-box",
+              zIndex: 10,
+              bgcolor: "background.paper",
+              borderTop: "1px solid #e2e8f0",
+              borderLeft: isFooterSticky ? "1px solid #e2e8f0" : "none",
+              borderRight: isFooterSticky ? "1px solid #e2e8f0" : "none",
+              borderTopLeftRadius: isFooterSticky ? `${TABLE_RADIUS}px` : 0,
+              borderTopRightRadius: isFooterSticky ? `${TABLE_RADIUS}px` : 0,
+              borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+              borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+              boxShadow: isFooterSticky ? "0 -4px 16px rgba(0,0,0,0.10)" : "none",
+              transition: "box-shadow 0.2s, background-color 0.2s",
+            }}
+          >
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 20, 50, 100]}
+              component="div"
+              count={members.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={(e, newPage) => setPage(newPage)}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+              sx={{
+                borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+                borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+                "& .MuiTablePagination-toolbar": {
+                  borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+                  borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+                },
+              }}
+            />
+          </Box>
+        </Box>
       </TableContainer>
 
       {/* Modals */}
