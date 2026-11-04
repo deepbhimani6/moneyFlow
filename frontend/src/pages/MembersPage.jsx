@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, IconButton, Menu, MenuItem, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TextField, InputAdornment } from "@mui/material";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, IconButton, Menu, MenuItem, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TextField, InputAdornment, TableSortLabel } from "@mui/material";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -33,6 +33,38 @@ const MembersPage = () => {
   // Pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Sorting
+  const [orderBy, setOrderBy] = useState("createdAt");
+  const [order, setOrder] = useState("desc");
+
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+
+  const sortedMembers = useMemo(() => {
+    return [...members].sort((a, b) => {
+      let aVal = a[orderBy];
+      let bVal = b[orderBy];
+
+      if (orderBy === "joinDate" || orderBy === "createdAt") {
+        aVal = new Date(a[orderBy] || 0).getTime();
+        bVal = new Date(b[orderBy] || 0).getTime();
+      } else if (orderBy === "inviteSent") {
+        aVal = a.inviteSent ? 1 : 0;
+        bVal = b.inviteSent ? 1 : 0;
+      } else if (typeof aVal === "string") {
+        aVal = (aVal || "").toLowerCase();
+        bVal = (bVal || "").toLowerCase();
+      }
+
+      if (aVal < bVal) return order === "asc" ? -1 : 1;
+      if (aVal > bVal) return order === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [members, order, orderBy]);
 
   // Snackbar
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
@@ -302,11 +334,62 @@ const MembersPage = () => {
               >
                 <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
               </TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Full Name</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>E-mail</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Phone Number</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Join Date</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Invite Status</TableCell>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "fullName" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "fullName"}
+                  direction={orderBy === "fullName" ? order : "asc"}
+                  onClick={() => handleRequestSort("fullName")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  Full Name
+                </TableSortLabel>
+              </TableCell>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "phoneNumber" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "phoneNumber"}
+                  direction={orderBy === "phoneNumber" ? order : "asc"}
+                  onClick={() => handleRequestSort("phoneNumber")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  Phone Number
+                </TableSortLabel>
+              </TableCell>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "email" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "email"}
+                  direction={orderBy === "email" ? order : "asc"}
+                  onClick={() => handleRequestSort("email")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  E-mail
+                </TableSortLabel>
+              </TableCell>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "joinDate" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "joinDate"}
+                  direction={orderBy === "joinDate" ? order : "asc"}
+                  onClick={() => handleRequestSort("joinDate")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  Join Date
+                </TableSortLabel>
+              </TableCell>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "inviteSent" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "inviteSent"}
+                  direction={orderBy === "inviteSent" ? order : "asc"}
+                  onClick={() => handleRequestSort("inviteSent")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  Invite Status
+                </TableSortLabel>
+              </TableCell>
+
               <TableCell
                 sx={{
                   fontWeight: 600,
@@ -332,7 +415,7 @@ const MembersPage = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              members.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+              sortedMembers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                 const isSelected = selectedIds.includes(row._id);
                 const formattedDate = formatDate(row.joinDate);
 
@@ -349,10 +432,10 @@ const MembersPage = () => {
                     <TableCell sx={{ fontWeight: 500 }}>
                       {row.fullName}
                     </TableCell>
+                    <TableCell>{row.phoneNumber || "—"}</TableCell>
                     <TableCell sx={{ color: row.email ? "text.primary" : "text.secondary" }}>
                       {row.email || "—"}
                     </TableCell>
-                    <TableCell>{row.phoneNumber || "—"}</TableCell>
                     <TableCell>{formattedDate}</TableCell>
                     <TableCell>{row.inviteSent ? <Chip icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />} label="Invite Sent" size="small" color="success" variant="outlined" /> : <Chip label="Pending" size="small" variant="outlined" />}</TableCell>
                     <TableCell align="center">

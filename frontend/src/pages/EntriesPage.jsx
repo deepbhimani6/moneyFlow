@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, Menu, MenuItem, IconButton, CircularProgress, TablePagination, Tooltip, Snackbar, Alert } from "@mui/material";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, Menu, MenuItem, IconButton, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TableSortLabel } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -77,6 +77,50 @@ const EntriesPage = () => {
   // Pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Sorting
+  const [orderBy, setOrderBy] = useState("date");
+  const [order, setOrder] = useState("desc");
+
+  const handleRequestSort = (property) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+
+  const sortedEntries = useMemo(() => {
+    return [...entries].sort((a, b) => {
+      let aVal = a[orderBy];
+      let bVal = b[orderBy];
+
+      if (orderBy === "date") {
+        aVal = `${a.date || ""} ${a.time || ""}`;
+        bVal = `${b.date || ""} ${b.time || ""}`;
+      } else if (orderBy === "time") {
+        aVal = a.time || "";
+        bVal = b.time || "";
+      } else if (orderBy === "amount") {
+        aVal = Number(a.amount || 0);
+        bVal = Number(b.amount || 0);
+      } else if (orderBy === "forFromName") {
+        aVal = (a.forFromName || "").toLowerCase();
+        bVal = (b.forFromName || "").toLowerCase();
+      } else if (orderBy === "type") {
+        aVal = (a.type || a.status || "").toLowerCase();
+        bVal = (b.type || b.status || "").toLowerCase();
+      } else if (orderBy === "paymentStatus") {
+        aVal = (a.paymentStatus || "").toLowerCase();
+        bVal = (b.paymentStatus || "").toLowerCase();
+      } else if (typeof aVal === "string") {
+        aVal = aVal.toLowerCase();
+        bVal = (bVal || "").toLowerCase();
+      }
+
+      if (aVal < bVal) return order === "asc" ? -1 : 1;
+      if (aVal > bVal) return order === "asc" ? 1 : -1;
+      return 0;
+    });
+  }, [entries, order, orderBy]);
 
   // Notification
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
@@ -344,14 +388,73 @@ const EntriesPage = () => {
               >
                 <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
               </TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Time</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>For/From Name</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-              <TableCell sx={{ fontWeight: 600 }} align="right">
-                Amount
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "forFromName" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "forFromName"}
+                  direction={orderBy === "forFromName" ? order : "asc"}
+                  onClick={() => handleRequestSort("forFromName")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  For/From Name
+                </TableSortLabel>
               </TableCell>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "date" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "date"}
+                  direction={orderBy === "date" ? order : "asc"}
+                  onClick={() => handleRequestSort("date")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  Date
+                </TableSortLabel>
+              </TableCell>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "time" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "time"}
+                  direction={orderBy === "time" ? order : "asc"}
+                  onClick={() => handleRequestSort("time")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  Time
+                </TableSortLabel>
+              </TableCell>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "type" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "type"}
+                  direction={orderBy === "type" ? order : "asc"}
+                  onClick={() => handleRequestSort("type")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  Type
+                </TableSortLabel>
+              </TableCell>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "paymentStatus" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "paymentStatus"}
+                  direction={orderBy === "paymentStatus" ? order : "asc"}
+                  onClick={() => handleRequestSort("paymentStatus")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  Status
+                </TableSortLabel>
+              </TableCell>
+
+              <TableCell sx={{ fontWeight: 600 }} align="right" sortDirection={orderBy === "amount" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "amount"}
+                  direction={orderBy === "amount" ? order : "asc"}
+                  onClick={() => handleRequestSort("amount")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  Amount
+                </TableSortLabel>
+              </TableCell>
+
               <TableCell
                 sx={{
                   fontWeight: 600,
@@ -377,7 +480,7 @@ const EntriesPage = () => {
                 </TableCell>
               </TableRow>
             ) : (
-              entries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+              sortedEntries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                 const isSelected = selectedIds.includes(row._id);
                 const rowType = row.type || (["Add Balance", "Expense", "Loan", "Split"].includes(row.status) ? row.status : "Expense");
                 const isMyself = Boolean(
@@ -392,8 +495,6 @@ const EntriesPage = () => {
                     <TableCell padding="checkbox">
                       <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
                     </TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>{formatDate(row.date)}</TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>{formatTime(row.time)}</TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>
                       <Box sx={{ display: "flex", alignItems: "center" }}>
                         {row.forFromName}
@@ -405,6 +506,8 @@ const EntriesPage = () => {
                         </Typography>
                       )}
                     </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>{formatDate(row.date)}</TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>{formatTime(row.time)}</TableCell>
                     <TableCell>{getTypeChip(rowType)}</TableCell>
                     <TableCell>
                       {shouldHideStatus ? (
