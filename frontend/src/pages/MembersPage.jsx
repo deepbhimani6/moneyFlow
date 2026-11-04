@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, IconButton, Menu, MenuItem, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TextField, InputAdornment, TableSortLabel } from "@mui/material";
+import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, IconButton, Menu, MenuItem, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TextField, InputAdornment, TableSortLabel, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SendIcon from "@mui/icons-material/Send";
 import SearchIcon from "@mui/icons-material/Search";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { memberService } from "../services/api";
 import InviteMemberModal from "../modals/InviteMemberModal";
 import EditMemberModal from "../modals/EditMemberModal";
@@ -29,6 +31,16 @@ const MembersPage = () => {
 
   // Bulk actions menu
   const [bulkAnchorEl, setBulkAnchorEl] = useState(null);
+
+  // Visible error/warning popup for bulk invite
+  const [inviteErrorDialog, setInviteErrorDialog] = useState({
+    open: false,
+    title: "",
+    message: "",
+    missingMembers: [],
+    validMembers: [],
+    severity: "error",
+  });
 
   // Pagination
   const [page, setPage] = useState(0);
@@ -208,22 +220,75 @@ const MembersPage = () => {
     }
   };
 
-  // Bulk send invite links
-  const handleBulkSendInvites = async () => {
-    setBulkAnchorEl(null);
-    if (selectedIds.length === 0) return;
+  // Execute actual bulk invite API call
+  const executeBulkSendInvites = async (idsToSend) => {
     try {
-      const res = await memberService.bulkInvite(selectedIds);
-      setSnackbar({
-        open: true,
-        message: res.message || `Sent invites to selected members`,
-        severity: res.sentCount > 0 ? "success" : "info",
-      });
+      setActionLoading(true);
+      const res = await memberService.bulkInvite(idsToSend);
+      if (res.sentCount > 0) {
+        setSnackbar({
+          open: true,
+          message: `Successfully sent invite links to ${res.sentCount} member(s)`,
+          severity: "success",
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: res.message || "No invites were sent",
+          severity: "info",
+        });
+      }
       setSelectedIds([]);
       fetchMembers();
     } catch (err) {
-      setSnackbar({ open: true, message: "Failed to send invites", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Failed to send invites",
+        severity: "error",
+      });
+    } finally {
+      setActionLoading(false);
+      setInviteErrorDialog((prev) => ({ ...prev, open: false }));
     }
+  };
+
+  // Bulk send invite links
+  const handleBulkSendInvites = () => {
+    setBulkAnchorEl(null);
+    if (selectedIds.length === 0) return;
+
+    const selectedMembers = members.filter((m) => selectedIds.includes(m._id));
+    const missingEmailMembers = selectedMembers.filter((m) => !m.email || !m.email.trim());
+    const validEmailMembers = selectedMembers.filter((m) => m.email && m.email.trim());
+
+    // Case 1: ALL selected members have no email set -> show prominent error popup
+    if (missingEmailMembers.length > 0 && validEmailMembers.length === 0) {
+      setInviteErrorDialog({
+        open: true,
+        title: "Cannot Send Invite Links",
+        message: `Invite links could not be sent because none of the ${selectedMembers.length} selected member(s) have an E-mail address set.`,
+        missingMembers: missingEmailMembers,
+        validMembers: [],
+        severity: "error",
+      });
+      return;
+    }
+
+    // Case 2: SOME members have no email set -> show warning popup with options
+    if (missingEmailMembers.length > 0 && validEmailMembers.length > 0) {
+      setInviteErrorDialog({
+        open: true,
+        title: "Missing E-mail Warning",
+        message: `${missingEmailMembers.length} of the ${selectedMembers.length} selected member(s) do not have an E-mail address set and will be skipped.`,
+        missingMembers: missingEmailMembers,
+        validMembers: validEmailMembers,
+        severity: "warning",
+      });
+      return;
+    }
+
+    // Case 3: ALL selected members have valid emails -> send immediately
+    executeBulkSendInvites(validEmailMembers.map((m) => m._id));
   };
 
   const isAllSelected = members.length > 0 && selectedIds.length === members.length;
@@ -553,6 +618,119 @@ const MembersPage = () => {
 
       {/* Bulk Delete Confirm */}
       <DeleteConfirmModal open={isBulkDeleteConfirmOpen} onClose={() => setIsBulkDeleteConfirmOpen(false)} onConfirm={handleConfirmBulkDelete} title="Bulk Delete Members" message={`Are you sure you want to delete ${selectedIds.length} selected members?`} loading={actionLoading} />
+
+      {/* Visible Error Popup Dialog for Bulk Invites */}
+      <Dialog
+        open={inviteErrorDialog.open}
+        onClose={() => setInviteErrorDialog((prev) => ({ ...prev, open: false }))}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            color: inviteErrorDialog.severity === "error" ? "error.main" : "warning.dark",
+            pb: 1,
+          }}
+        >
+          {inviteErrorDialog.severity === "error" ? (
+            <ErrorOutlineIcon color="error" sx={{ fontSize: 28 }} />
+          ) : (
+            <WarningAmberIcon color="warning" sx={{ fontSize: 28 }} />
+          )}
+          {inviteErrorDialog.title}
+        </DialogTitle>
+        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
+          <Alert severity={inviteErrorDialog.severity || "error"}>
+            {inviteErrorDialog.message}
+          </Alert>
+
+          {inviteErrorDialog.missingMembers.length > 0 && (
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: "text.primary" }}>
+                Members without E-mail ({inviteErrorDialog.missingMembers.length}):
+              </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 1,
+                  p: 1.5,
+                  bgcolor: "#fef2f2",
+                  borderRadius: 2,
+                  border: "1px solid #fecaca",
+                }}
+              >
+                {inviteErrorDialog.missingMembers.map((m) => (
+                  <Chip
+                    key={m._id}
+                    label={m.fullName}
+                    size="small"
+                    color="error"
+                    variant="outlined"
+                    sx={{ bgcolor: "#ffffff", fontWeight: 500 }}
+                  />
+                ))}
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+                * Invite links require a valid email address. Click the Edit icon on each member to add their email before sending invites.
+              </Typography>
+            </Box>
+          )}
+
+          {inviteErrorDialog.validMembers.length > 0 && (
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: "text.primary" }}>
+                Members ready to receive invites ({inviteErrorDialog.validMembers.length}):
+              </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexWrap: "wrap",
+                  gap: 1,
+                  p: 1.5,
+                  bgcolor: "#f0fdf4",
+                  borderRadius: 2,
+                  border: "1px solid #bbf7d0",
+                }}
+              >
+                {inviteErrorDialog.validMembers.map((m) => (
+                  <Chip
+                    key={m._id}
+                    label={`${m.fullName} (${m.email})`}
+                    size="small"
+                    color="success"
+                    variant="outlined"
+                    sx={{ bgcolor: "#ffffff", fontWeight: 500 }}
+                  />
+                ))}
+              </Box>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={() => setInviteErrorDialog((prev) => ({ ...prev, open: false }))}
+            disabled={actionLoading}
+          >
+            {inviteErrorDialog.validMembers.length > 0 ? "Cancel" : "Close"}
+          </Button>
+          {inviteErrorDialog.validMembers.length > 0 && (
+            <Button
+              variant="contained"
+              color="primary"
+              disabled={actionLoading}
+              onClick={() => executeBulkSendInvites(inviteErrorDialog.validMembers.map((m) => m._id))}
+              startIcon={actionLoading ? <CircularProgress size={18} /> : <SendIcon />}
+            >
+              Send to {inviteErrorDialog.validMembers.length} Member{inviteErrorDialog.validMembers.length > 1 ? "s" : ""} With E-mail
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}>
         <Alert severity={snackbar.severity} sx={{ width: "100%" }}>

@@ -138,6 +138,13 @@ const sendInviteToMember = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Member not found' });
     }
 
+    if (!member.email || !member.email.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot send invite: ${member.fullName} does not have an E-mail address configured.`,
+      });
+    }
+
     const appUrl = process.env.APP_URL || 'http://localhost:3000';
     const emailResult = await sendInviteEmail({
       toEmail: member.email,
@@ -174,8 +181,14 @@ const bulkInviteMembers = async (req, res) => {
     const appUrl = process.env.APP_URL || 'http://localhost:3000';
     let sentCount = 0;
     let failedCount = 0;
+    const missingEmailMembers = [];
 
     for (const member of members) {
+      if (!member.email || !member.email.trim()) {
+        missingEmailMembers.push(member.fullName);
+        continue;
+      }
+
       const emailResult = await sendInviteEmail({
         toEmail: member.email,
         fullName: member.fullName,
@@ -194,11 +207,21 @@ const bulkInviteMembers = async (req, res) => {
       }
     }
 
+    const hasMissing = missingEmailMembers.length > 0;
+    let message = `Invites sent: ${sentCount}`;
+    if (hasMissing) {
+      message += `. ${missingEmailMembers.length} member(s) skipped (no email: ${missingEmailMembers.join(', ')})`;
+    }
+    if (failedCount > 0) {
+      message += `. Failed: ${failedCount}`;
+    }
+
     res.json({
-      success: true,
-      message: `Invites sent: ${sentCount}, failed: ${failedCount}`,
+      success: sentCount > 0 || (sentCount === 0 && !hasMissing),
+      message,
       sentCount,
       failedCount,
+      missingEmailMembers,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
