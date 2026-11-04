@@ -18,7 +18,6 @@ import {
   FormControlLabel,
   Checkbox,
   CircularProgress,
-  FormHelperText,
 } from "@mui/material";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { memberService, entryService } from "../services/api";

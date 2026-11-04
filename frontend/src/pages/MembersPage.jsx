@@ -206,6 +206,7 @@ const MembersPage = () => {
         }));
       }
     } catch (err) {
+      console.error(err);
       setSingleDeleteState((prev) => ({
         ...prev,
         loadingSummary: false,
@@ -266,6 +267,7 @@ const MembersPage = () => {
         }));
       }
     } catch (err) {
+      console.error(err);
       setBulkDeleteState((prev) => ({
         ...prev,
         loadingSummary: false,

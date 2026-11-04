@@ -222,6 +222,7 @@ const ForSelfPage = () => {
       setItemToDelete(null);
       fetchEntries();
     } catch (err) {
+      console.error(err);
       setSnackbar({ open: true, message: "Failed to delete entry", severity: "error" });
     } finally {
       setActionLoading(false);
@@ -239,6 +240,7 @@ const ForSelfPage = () => {
       setConfirmBulkDeleteOpen(false);
       fetchEntries();
     } catch (err) {
+      console.error(err);
       setSnackbar({ open: true, message: "Failed bulk deletion", severity: "error" });
     } finally {
       setActionLoading(false);

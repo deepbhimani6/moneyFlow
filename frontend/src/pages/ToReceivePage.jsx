@@ -236,6 +236,7 @@ const ToReceivePage = () => {
       setItemToDelete(null);
       fetchEntries();
     } catch (err) {
+      console.error(err);
       setSnackbar({ open: true, message: "Failed to delete entry", severity: "error" });
     } finally {
       setActionLoading(false);
@@ -252,6 +253,7 @@ const ToReceivePage = () => {
       setConfirmBulkDeleteOpen(false);
       fetchEntries();
     } catch (err) {
+      console.error(err);
       setSnackbar({ open: true, message: "Failed bulk deletion", severity: "error" });
     } finally {
       setActionLoading(false);
@@ -269,6 +271,7 @@ const ToReceivePage = () => {
       setConfirmBulkStatus({ open: false, newStatus: "" });
       fetchEntries();
     } catch (err) {
+      console.error(err);
       setSnackbar({ open: true, message: "Failed bulk status update", severity: "error" });
     } finally {
       setActionLoading(false);
@@ -285,6 +288,7 @@ const ToReceivePage = () => {
       );
       setSnackbar({ open: true, message: `Status updated to ${nextStatus}`, severity: "success" });
     } catch (err) {
+      console.error(err);
       setSnackbar({ open: true, message: "Failed to update status", severity: "error" });
     }
   };

@@ -26,8 +26,6 @@ import AddIcon from "@mui/icons-material/Add";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
-import CallSplitIcon from "@mui/icons-material/CallSplit";
-import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import { toPayService } from "../services/api";
 import AddToPayModal from "../modals/AddToPayModal";
 import EditToPayModal from "../modals/EditToPayModal";
@@ -235,6 +233,7 @@ const ToPayPage = () => {
       setItemToDelete(null);
       fetchEntries();
     } catch (err) {
+      console.error(err);
       setSnackbar({ open: true, message: "Failed to delete entry", severity: "error" });
     } finally {
       setActionLoading(false);
@@ -251,6 +250,7 @@ const ToPayPage = () => {
       setConfirmBulkDeleteOpen(false);
       fetchEntries();
     } catch (err) {
+      console.error(err);
       setSnackbar({ open: true, message: "Failed bulk deletion", severity: "error" });
     } finally {
       setActionLoading(false);
@@ -268,6 +268,7 @@ const ToPayPage = () => {
       setConfirmBulkStatus({ open: false, newStatus: "" });
       fetchEntries();
     } catch (err) {
+      console.error(err);
       setSnackbar({ open: true, message: "Failed bulk status update", severity: "error" });
     } finally {
       setActionLoading(false);
@@ -284,6 +285,7 @@ const ToPayPage = () => {
       );
       setSnackbar({ open: true, message: `Status updated to ${nextStatus}`, severity: "success" });
     } catch (err) {
+      console.error(err);
       setSnackbar({ open: true, message: "Failed to update status", severity: "error" });
     }
   };
