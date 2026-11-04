@@ -43,14 +43,31 @@ const sendInviteEmail = async ({ toEmail, fullName, inviteLink, username, tempor
       </div>
     `;
 
+    const text = `Hello ${fullName || 'there'},
+
+You have been invited to collaborate and track expenses/loans on MoneyFlow.
+
+Login Details:
+Username: ${username || toEmail}
+${temporaryPassword ? `Temporary Password: ${temporaryPassword}` : ''}
+
+Open MoneyFlow App:
+${inviteLink}
+
+---
+MoneyFlow • Online Expense & Split Tracker`;
+
     // 1. Try Gmail SMTP if configured
     const transporter = getSmtpTransporter();
     if (transporter) {
-      const from = process.env.EMAIL_FROM || `"MoneyFlow" <${process.env.SMTP_USER}>`;
+      // Must use the authenticated Gmail address to pass Google's SPF/DKIM verification and prevent Spam
+      const from = `"MoneyFlow" <${process.env.SMTP_USER}>`;
       const info = await transporter.sendMail({
         from,
+        replyTo: process.env.SMTP_USER,
         to: toEmail,
         subject,
+        text,
         html,
       });
       console.log(`[Gmail SMTP Email Sent]: to=${toEmail}, messageId=${info.messageId}`);
@@ -63,6 +80,7 @@ const sendInviteEmail = async ({ toEmail, fullName, inviteLink, username, tempor
       from,
       to: [toEmail],
       subject,
+      text,
       html,
     });
 
