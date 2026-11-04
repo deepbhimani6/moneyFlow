@@ -43,6 +43,8 @@ const getStatusChip = (status, onToggle) => {
   );
 };
 
+const TABLE_RADIUS = 10;
+
 const EntriesPage = () => {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -297,7 +299,7 @@ const EntriesPage = () => {
         ref={tableContainerRef}
         component={Paper}
         sx={{
-          borderRadius: 2,
+          borderRadius: `${TABLE_RADIUS}px`,
           border: "1px solid #e2e8f0",
           boxShadow: "none",
           overflow: "visible",
@@ -306,22 +308,37 @@ const EntriesPage = () => {
         <Table sx={{ minWidth: 650 }}>
           <TableHead
             sx={{
-              bgcolor: "#f8fafc",
+              bgcolor: "transparent",
               position: "sticky",
               top: { xs: 56, sm: 64 },
               zIndex: 5,
+              "& tr": {
+                bgcolor: "transparent",
+              },
               "& th": {
                 bgcolor: "#f8fafc",
                 position: "sticky",
                 top: { xs: 56, sm: 64 },
                 zIndex: 5,
+                borderBottom: "1px solid #e2e8f0",
                 boxShadow: isHeaderStuck ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
                 transition: "box-shadow 0.2s",
+              },
+              "& th:first-of-type": {
+                borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
+              },
+              "& th:last-of-type": {
+                borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
               },
             }}
           >
             <TableRow>
-              <TableCell padding="checkbox">
+              <TableCell
+                padding="checkbox"
+                sx={{
+                  borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
+                }}
+              >
                 <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
               </TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Date</TableCell>
@@ -332,7 +349,13 @@ const EntriesPage = () => {
               <TableCell sx={{ fontWeight: 600 }} align="right">
                 Amount
               </TableCell>
-              <TableCell sx={{ fontWeight: 600 }} align="center">
+              <TableCell
+                sx={{
+                  fontWeight: 600,
+                  borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
+                }}
+                align="center"
+              >
                 Actions
               </TableCell>
             </TableRow>
@@ -419,6 +442,9 @@ const EntriesPage = () => {
           sx={{
             minHeight: 52,
             position: "relative",
+            borderBottomLeftRadius: `${TABLE_RADIUS - 1}px`,
+            borderBottomRightRadius: `${TABLE_RADIUS - 1}px`,
+            overflow: isFooterSticky ? "visible" : "hidden",
           }}
         >
           <Box
@@ -434,8 +460,10 @@ const EntriesPage = () => {
               borderTop: "1px solid #e2e8f0",
               borderLeft: isFooterSticky ? "1px solid #e2e8f0" : "none",
               borderRight: isFooterSticky ? "1px solid #e2e8f0" : "none",
-              borderBottomLeftRadius: isFooterSticky ? 0 : 8,
-              borderBottomRightRadius: isFooterSticky ? 0 : 8,
+              borderTopLeftRadius: isFooterSticky ? `${TABLE_RADIUS}px` : 0,
+              borderTopRightRadius: isFooterSticky ? `${TABLE_RADIUS}px` : 0,
+              borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+              borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
               boxShadow: isFooterSticky ? "0 -4px 16px rgba(0,0,0,0.10)" : "none",
               transition: "box-shadow 0.2s, background-color 0.2s",
             }}
@@ -450,6 +478,14 @@ const EntriesPage = () => {
               onRowsPerPageChange={(e) => {
                 setRowsPerPage(parseInt(e.target.value, 10));
                 setPage(0);
+              }}
+              sx={{
+                borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+                borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+                "& .MuiTablePagination-toolbar": {
+                  borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+                  borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+                },
               }}
             />
           </Box>
