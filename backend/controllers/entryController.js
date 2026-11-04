@@ -5,7 +5,7 @@ const crypto = require("crypto");
 // @route   GET /api/entries
 const getEntries = async (req, res) => {
   try {
-    const { status, type, paymentStatus, search, startDate, endDate, minAmount, maxAmount } = req.query;
+    const { status, type, paymentStatus, search, names, selectedNames, startDate, endDate, minAmount, maxAmount } = req.query;
     let query = {};
     const andConditions = [];
 
@@ -21,11 +21,35 @@ const getEntries = async (req, res) => {
       andConditions.push({ paymentStatus: filterStatus });
     }
 
-    if (search) {
+    // Filter by multiple participant names from Autocomplete
+    const rawNames = names || selectedNames || req.query['names[]'];
+    let participantList = [];
+    if (Array.isArray(rawNames)) {
+      participantList = rawNames.filter(Boolean);
+    } else if (typeof rawNames === 'string' && rawNames.trim()) {
+      participantList = rawNames.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+
+    if (participantList.length > 0) {
+      const nameOrConditions = participantList.map((name) => {
+        if (/myself/i.test(name)) {
+          return {
+            $or: [
+              { forFromName: { $regex: /myself/i } },
+              { isMine: true },
+            ],
+          };
+        }
+        return { forFromName: { $regex: name, $options: 'i' } };
+      });
+      andConditions.push({ $or: nameOrConditions });
+    }
+
+    if (search && search.trim()) {
       andConditions.push({
         $or: [
-          { forFromName: { $regex: search, $options: 'i' } },
-          { description: { $regex: search, $options: 'i' } },
+          { forFromName: { $regex: search.trim(), $options: 'i' } },
+          { description: { $regex: search.trim(), $options: 'i' } },
         ]
       });
     }
