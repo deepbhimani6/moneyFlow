@@ -74,7 +74,7 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit}>
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Invite New Member</DialogTitle>
-        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
           {/* 1. Full Name */}

@@ -66,8 +66,8 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit}>
-        <DialogTitle sx={{ fontWeight: 700 }}>Edit Member</DialogTitle>
-        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Edit Member</DialogTitle>
+        <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
           <TextField
