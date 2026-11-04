@@ -1,35 +1,73 @@
 const ForSelf = require("../models/ForSelf");
+const Entry = require("../models/Entry");
 
 // @desc    Get all For Self entries with filtering, search, and summary stats
 // @route   GET /api/for-self
 const getForSelfEntries = async (req, res) => {
   try {
-    const { type, search, description, startDate, endDate, minAmount, maxAmount } = req.query;
+    const {
+      type,
+      status,
+      paymentStatus,
+      forFromName,
+      name,
+      search,
+      description,
+      startDate,
+      endDate,
+      minAmount,
+      maxAmount,
+    } = req.query;
+
     const andConditions = [];
 
-    // 1. Type filter (Add Balance / Expense)
-    if (type && type !== "All") {
-      andConditions.push({ type: { $regex: new RegExp(`^${type}$`, "i") } });
-    }
-
-    // 2. Global search
-    if (search && search.trim()) {
-      const s = search.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+    // 1. Type / Status filter (Add Balance / Expense / Split)
+    const effectiveType = type || status;
+    if (effectiveType && effectiveType !== "All") {
       andConditions.push({
         $or: [
-          { description: { $regex: s, $options: "i" } },
-          { type: { $regex: s, $options: "i" } },
+          { type: { $regex: new RegExp(`^${effectiveType}$`, "i") } },
+          { status: { $regex: new RegExp(`^${effectiveType}$`, "i") } },
         ],
       });
     }
 
-    // 3. Dedicated description filter
+    // 2. Payment Status (Paid / Pending)
+    if (paymentStatus && paymentStatus !== "All") {
+      andConditions.push({
+        paymentStatus: { $regex: new RegExp(`^${paymentStatus}$`, "i") },
+      });
+    }
+
+    // 3. Member / ForFrom Name
+    const targetName = forFromName || name;
+    if (targetName && targetName.trim()) {
+      const cleanName = targetName.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+      andConditions.push({
+        forFromName: { $regex: cleanName, $options: "i" },
+      });
+    }
+
+    // 4. Global search
+    if (search && search.trim()) {
+      const s = search.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+      andConditions.push({
+        $or: [
+          { forFromName: { $regex: s, $options: "i" } },
+          { description: { $regex: s, $options: "i" } },
+          { type: { $regex: s, $options: "i" } },
+          { paymentStatus: { $regex: s, $options: "i" } },
+        ],
+      });
+    }
+
+    // 5. Dedicated description filter
     if (description && description.trim()) {
       const desc = description.trim().replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
       andConditions.push({ description: { $regex: desc, $options: "i" } });
     }
 
-    // 4. Date range
+    // 6. Date range
     if (startDate || endDate) {
       const dateCond = {};
       if (startDate) dateCond.$gte = startDate;
@@ -37,7 +75,7 @@ const getForSelfEntries = async (req, res) => {
       andConditions.push({ date: dateCond });
     }
 
-    // 5. Amount range
+    // 7. Amount range
     if (minAmount || maxAmount) {
       const amountCond = {};
       if (minAmount) amountCond.$gte = Number(minAmount);
@@ -74,13 +112,13 @@ const getForSelfEntries = async (req, res) => {
   }
 };
 
-// @desc    Create new For Self entry (Add Balance or Expense)
+// @desc    Create new For Self entry
 // @route   POST /api/for-self
 const createForSelfEntry = async (req, res) => {
   try {
-    const { type, amount, date, time, description } = req.body;
+    const { forFromName, type, status, paymentStatus, amount, date, time, description } = req.body;
 
-    const entryType = type === "Add Balance" ? "Add Balance" : "Expense";
+    const entryType = type || status || "Expense";
     const parsedAmount = Math.trunc(Number(amount));
 
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
@@ -91,12 +129,16 @@ const createForSelfEntry = async (req, res) => {
     const entryTime = time || new Date().toTimeString().split(" ")[0].substring(0, 5);
 
     const newEntry = await ForSelf.create({
+      forFromName: (forFromName && forFromName.trim()) || "Myself (You)",
       type: entryType,
+      status: entryType,
+      paymentStatus: paymentStatus || "Paid",
       amount: parsedAmount,
       date: entryDate,
       time: entryTime,
       description: description ? description.trim() : "",
       isSplit: false,
+      isMine: true,
     });
 
     res.status(201).json({
@@ -109,18 +151,54 @@ const createForSelfEntry = async (req, res) => {
   }
 };
 
-// @desc    Update a For Self entry
+// @desc    Update a For Self entry (supports split sync if splitGroupId present)
 // @route   PUT /api/for-self/:id
 const updateForSelfEntry = async (req, res) => {
   try {
-    const { type, amount, date, time, description } = req.body;
+    const { forFromName, type, status, paymentStatus, amount, totalAmount, date, time, description } = req.body;
 
     const entry = await ForSelf.findById(req.params.id);
     if (!entry) {
       return res.status(404).json({ success: false, message: "Entry not found" });
     }
 
-    if (type) entry.type = type === "Add Balance" ? "Add Balance" : "Expense";
+    if (entry.isSplit && entry.splitGroupId) {
+      // Split group sync
+      const updateData = {};
+      if (date) updateData.date = date;
+      if (time) updateData.time = time;
+      if (description !== undefined) updateData.description = description ? description.trim() : "";
+
+      if (amount !== undefined) {
+        updateData.amount = Math.trunc(Number(amount));
+      }
+      if (totalAmount !== undefined) {
+        updateData.originalTotalAmount = Math.trunc(Number(totalAmount));
+      }
+
+      await ForSelf.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
+      await Entry.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
+
+      if (paymentStatus) {
+        entry.paymentStatus = paymentStatus;
+        await entry.save();
+      }
+
+      const updated = await ForSelf.findById(req.params.id);
+      return res.json({
+        success: true,
+        message: "Split entry synchronized successfully",
+        data: updated,
+      });
+    }
+
+    // Normal non-split entry update
+    if (forFromName !== undefined) entry.forFromName = forFromName.trim() || "Myself (You)";
+    if (type || status) {
+      entry.type = type || status;
+      entry.status = type || status;
+    }
+    if (paymentStatus) entry.paymentStatus = paymentStatus;
     if (amount !== undefined) entry.amount = Math.trunc(Number(amount));
     if (date) entry.date = date;
     if (time) entry.time = time;
@@ -178,10 +256,37 @@ const bulkDeleteForSelf = async (req, res) => {
   }
 };
 
+// @desc    Bulk update payment status for For Self entries
+// @route   POST /api/for-self/bulk-status
+const bulkUpdateStatusForSelf = async (req, res) => {
+  try {
+    const { ids, paymentStatus } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: "No entry IDs provided" });
+    }
+    if (!paymentStatus) {
+      return res.status(400).json({ success: false, message: "Payment status is required" });
+    }
+
+    const result = await ForSelf.updateMany(
+      { _id: { $in: ids } },
+      { $set: { paymentStatus } }
+    );
+
+    res.json({
+      success: true,
+      message: `Updated status for ${result.modifiedCount} entries to ${paymentStatus}`,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getForSelfEntries,
   createForSelfEntry,
   updateForSelfEntry,
   deleteForSelfEntry,
   bulkDeleteForSelf,
+  bulkUpdateStatusForSelf,
 };

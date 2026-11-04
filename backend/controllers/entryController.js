@@ -238,8 +238,10 @@ const createEntry = async (req, res) => {
 // @route   GET /api/entries/split-group/:splitGroupId
 const getSplitGroupEntries = async (req, res) => {
   try {
-    const entries = await Entry.find({ splitGroupId: req.params.splitGroupId });
-    res.json({ success: true, count: entries.length, data: entries });
+    const entryMembers = await Entry.find({ splitGroupId: req.params.splitGroupId });
+    const forSelfMembers = await ForSelf.find({ splitGroupId: req.params.splitGroupId });
+    const allMembers = [...entryMembers, ...forSelfMembers];
+    res.json({ success: true, count: allMembers.length, data: allMembers });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

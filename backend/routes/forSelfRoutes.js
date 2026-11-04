@@ -6,6 +6,7 @@ const {
   updateForSelfEntry,
   deleteForSelfEntry,
   bulkDeleteForSelf,
+  bulkUpdateStatusForSelf,
 } = require("../controllers/forSelfController");
 
 router
@@ -14,6 +15,7 @@ router
   .post(createForSelfEntry);
 
 router.post("/bulk-delete", bulkDeleteForSelf);
+router.post("/bulk-status", bulkUpdateStatusForSelf);
 
 router
   .route("/:id")

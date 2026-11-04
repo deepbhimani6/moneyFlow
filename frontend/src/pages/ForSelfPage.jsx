@@ -3,9 +3,6 @@ import {
   Box,
   Typography,
   Button,
-  Grid,
-  Card,
-  CardContent,
   Table,
   TableHead,
   TableBody,
@@ -24,17 +21,12 @@ import {
   Snackbar,
   Alert,
   TableSortLabel,
-  Badge,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
-import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
-import TrendingDownIcon from "@mui/icons-material/TrendingDown";
-import SavingsIcon from "@mui/icons-material/Savings";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
-
 import { forSelfService } from "../services/api";
 import AddForSelfModal from "../modals/AddForSelfModal";
 import EditForSelfModal from "../modals/EditForSelfModal";
@@ -42,27 +34,39 @@ import FilterForSelfModal from "../modals/FilterForSelfModal";
 import { formatDate, formatTime, formatAmount } from "../utils/formatters";
 
 const getTypeChip = (type, isSplit) => {
-  const isAddBalance = (type || "").toLowerCase() === "add balance";
-  return (
-    <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+  if (isSplit || type === "Split") {
+    return (
       <Chip
-        label={type || "Expense"}
+        icon={<CallSplitIcon sx={{ "&&": { fontSize: 16 } }} />}
+        label="Split"
         size="small"
-        color={isAddBalance ? "primary" : "error"}
+        color="info"
         variant="outlined"
       />
-      {isSplit && (
-        <Tooltip title="Created from split expense">
-          <Chip
-            icon={<CallSplitIcon sx={{ "&&": { fontSize: 14 } }} />}
-            label="Split"
-            size="small"
-            color="info"
-            variant="outlined"
-          />
-        </Tooltip>
-      )}
-    </Box>
+    );
+  }
+  switch (type) {
+    case "Expense":
+      return <Chip label="Expense" size="small" color="error" variant="outlined" />;
+    case "Add Balance":
+      return <Chip label="Add Balance" size="small" color="primary" variant="outlined" />;
+    default:
+      return <Chip label={type || "Expense"} size="small" variant="outlined" />;
+  }
+};
+
+const getStatusChip = (status, onToggle) => {
+  const isPaid = status === "Paid";
+  return (
+    <Chip
+      label={isPaid ? "Paid" : "Pending"}
+      size="small"
+      color={isPaid ? "success" : "warning"}
+      variant="outlined"
+      clickable
+      onClick={onToggle}
+      sx={{ cursor: "pointer", fontWeight: 600 }}
+    />
   );
 };
 
@@ -70,11 +74,6 @@ const TABLE_RADIUS = 10;
 
 const ForSelfPage = () => {
   const [entries, setEntries] = useState([]);
-  const [stats, setStats] = useState({
-    totalBalanceAdded: 0,
-    totalPersonalExpenses: 0,
-    netBalance: 0,
-  });
   const [loading, setLoading] = useState(true);
   const [selectedIds, setSelectedIds] = useState([]);
 
@@ -85,9 +84,12 @@ const ForSelfPage = () => {
 
   // Filters state
   const [filters, setFilters] = useState({
-    type: "All",
+    status: "All",
+    paymentStatus: "All",
     search: "",
     description: "",
+    forFromName: "",
+    name: "",
     startDate: "",
     endDate: "",
     minAmount: "",
@@ -102,18 +104,9 @@ const ForSelfPage = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Bulk actions menu
+  // Bulk actions menus
   const [bulkAnchorEl, setBulkAnchorEl] = useState(null);
-
-  // Notification
-  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-
-  // Viewport-visibility-based sticky header and footer
-  const tableContainerRef = useRef(null);
-  const footerWrapperRef = useRef(null);
-  const [isHeaderStuck, setIsHeaderStuck] = useState(false);
-  const [isFooterSticky, setIsFooterSticky] = useState(false);
-  const [tableBounds, setTableBounds] = useState({ left: 0, width: "100%" });
+  const [statusMenuAnchorEl, setStatusMenuAnchorEl] = useState(null);
 
   // Request sort handler
   const handleRequestSort = (property) => {
@@ -137,9 +130,15 @@ const ForSelfPage = () => {
       } else if (orderBy === "amount") {
         aVal = Number(a.amount || 0);
         bVal = Number(b.amount || 0);
+      } else if (orderBy === "forFromName") {
+        aVal = (a.forFromName || "Myself (You)").toLowerCase();
+        bVal = (b.forFromName || "Myself (You)").toLowerCase();
       } else if (orderBy === "type") {
-        aVal = (a.type || "").toLowerCase();
-        bVal = (b.type || "").toLowerCase();
+        aVal = (a.type || a.status || "").toLowerCase();
+        bVal = (b.type || b.status || "").toLowerCase();
+      } else if (orderBy === "paymentStatus") {
+        aVal = (a.paymentStatus || "").toLowerCase();
+        bVal = (b.paymentStatus || "").toLowerCase();
       } else if (typeof aVal === "string") {
         aVal = aVal.toLowerCase();
         bVal = (bVal || "").toLowerCase();
@@ -150,6 +149,16 @@ const ForSelfPage = () => {
       return 0;
     });
   }, [entries, order, orderBy]);
+
+  // Notification
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
+  // Viewport-visibility-based sticky header and footer
+  const tableContainerRef = useRef(null);
+  const footerWrapperRef = useRef(null);
+  const [isHeaderStuck, setIsHeaderStuck] = useState(false);
+  const [isFooterSticky, setIsFooterSticky] = useState(false);
+  const [tableBounds, setTableBounds] = useState({ left: 0, width: "100%" });
 
   useEffect(() => {
     let ticking = false;
@@ -194,13 +203,10 @@ const ForSelfPage = () => {
       const res = await forSelfService.getForSelfEntries(filters);
       if (res.success) {
         setEntries(res.data);
-        if (res.stats) {
-          setStats(res.stats);
-        }
       }
     } catch (err) {
       console.error(err);
-      setSnackbar({ open: true, message: "Failed to load For Self entries", severity: "error" });
+      setSnackbar({ open: true, message: "Failed to load entries", severity: "error" });
     } finally {
       setLoading(false);
     }
@@ -226,7 +232,7 @@ const ForSelfPage = () => {
     try {
       await forSelfService.deleteForSelfEntry(id);
       setSelectedIds((prev) => prev.filter((item) => item !== id));
-      setSnackbar({ open: true, message: "Entry deleted successfully", severity: "success" });
+      setSnackbar({ open: true, message: "Entry deleted", severity: "success" });
       fetchEntries();
     } catch (err) {
       setSnackbar({ open: true, message: "Failed to delete entry", severity: "error" });
@@ -238,7 +244,7 @@ const ForSelfPage = () => {
     if (selectedIds.length === 0) return;
     try {
       await forSelfService.bulkDelete(selectedIds);
-      setSnackbar({ open: true, message: `${selectedIds.length} entries deleted successfully`, severity: "success" });
+      setSnackbar({ open: true, message: `${selectedIds.length} entries deleted`, severity: "success" });
       setSelectedIds([]);
       fetchEntries();
     } catch (err) {
@@ -246,20 +252,40 @@ const ForSelfPage = () => {
     }
   };
 
+  const handleBulkStatusChange = async (newStatus) => {
+    setStatusMenuAnchorEl(null);
+    setBulkAnchorEl(null);
+    if (selectedIds.length === 0) return;
+    try {
+      await forSelfService.bulkUpdateStatus(selectedIds, { paymentStatus: newStatus });
+      setSnackbar({
+        open: true,
+        message: `Updated status for ${selectedIds.length} entries to ${newStatus}`,
+        severity: "success",
+      });
+      setSelectedIds([]);
+      fetchEntries();
+    } catch (err) {
+      setSnackbar({ open: true, message: "Failed bulk status update", severity: "error" });
+    }
+  };
+
+  const handleToggleStatus = async (row) => {
+    const current = row.paymentStatus === "Paid" ? "Paid" : "Pending";
+    const nextStatus = current === "Paid" ? "Pending" : "Paid";
+    try {
+      await forSelfService.updateForSelfEntry(row._id, { paymentStatus: nextStatus });
+      setEntries((prev) =>
+        prev.map((item) => (item._id === row._id ? { ...item, paymentStatus: nextStatus } : item))
+      );
+      setSnackbar({ open: true, message: `Status updated to ${nextStatus}`, severity: "success" });
+    } catch (err) {
+      setSnackbar({ open: true, message: "Failed to update status", severity: "error" });
+    }
+  };
+
   const isAllSelected = entries.length > 0 && selectedIds.length === entries.length;
   const isIndeterminate = selectedIds.length > 0 && selectedIds.length < entries.length;
-
-  // Count active filters
-  const activeFiltersCount = useMemo(() => {
-    let count = 0;
-    if (filters.type && filters.type !== "All") count++;
-    if (filters.startDate) count++;
-    if (filters.endDate) count++;
-    if (filters.minAmount) count++;
-    if (filters.maxAmount) count++;
-    if (filters.description) count++;
-    return count;
-  }, [filters]);
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3 } }}>
@@ -274,35 +300,18 @@ const ForSelfPage = () => {
           mb: 3,
         }}
       >
-        <Box>
-          <Typography variant="h5" sx={{ fontWeight: 700 }}>
-            For Self
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Personal balance deposits and individual expenses
-          </Typography>
-        </Box>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          For Self
+        </Typography>
 
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
           {/* Filter Button */}
-          <Badge badgeContent={activeFiltersCount} color="primary">
-            <Button
-              variant="outlined"
-              startIcon={<FilterListIcon />}
-              onClick={() => setIsFilterOpen(true)}
-              size="small"
-            >
-              Filter
-            </Button>
-          </Badge>
+          <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => setIsFilterOpen(true)} size="small">
+            Filter
+          </Button>
 
           {/* Add For Self Button */}
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => setIsAddOpen(true)}
-            size="small"
-          >
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setIsAddOpen(true)} size="small">
             Add For Self
           </Button>
 
@@ -319,141 +328,23 @@ const ForSelfPage = () => {
 
           {/* Bulk Actions Menu */}
           <Menu anchorEl={bulkAnchorEl} open={Boolean(bulkAnchorEl)} onClose={() => setBulkAnchorEl(null)}>
+            <MenuItem onClick={(e) => setStatusMenuAnchorEl(e.currentTarget)}>Change Status</MenuItem>
             <MenuItem onClick={handleBulkDelete} sx={{ color: "error.main" }}>
               Delete Selected
             </MenuItem>
           </Menu>
+
+          {/* Submenu for Status */}
+          <Menu
+            anchorEl={statusMenuAnchorEl}
+            open={Boolean(statusMenuAnchorEl)}
+            onClose={() => setStatusMenuAnchorEl(null)}
+          >
+            <MenuItem onClick={() => handleBulkStatusChange("Paid")}>Set Paid</MenuItem>
+            <MenuItem onClick={() => handleBulkStatusChange("Pending")}>Set Pending</MenuItem>
+          </Menu>
         </Box>
       </Box>
-
-      {/* KPI Summary Cards */}
-      <Grid container spacing={2.5} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={4}>
-          <Card
-            elevation={0}
-            sx={{
-              p: 2,
-              borderRadius: 3,
-              border: "1px solid #e2e8f0",
-              bgcolor: "#ffffff",
-              transition: "transform 0.2s, box-shadow 0.2s",
-              "&:hover": {
-                transform: "translateY(-2px)",
-                boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
-              },
-            }}
-          >
-            <CardContent sx={{ p: "0 !important" }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5 }}>
-                    Total Balance Added
-                  </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: "primary.main" }}>
-                    ₹ {formatAmount(stats.totalBalanceAdded)}
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    p: 1.25,
-                    borderRadius: 2,
-                    bgcolor: "rgba(25, 118, 210, 0.08)",
-                    color: "primary.main",
-                  }}
-                >
-                  <AccountBalanceWalletIcon />
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={4}>
-          <Card
-            elevation={0}
-            sx={{
-              p: 2,
-              borderRadius: 3,
-              border: "1px solid #e2e8f0",
-              bgcolor: "#ffffff",
-              transition: "transform 0.2s, box-shadow 0.2s",
-              "&:hover": {
-                transform: "translateY(-2px)",
-                boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
-              },
-            }}
-          >
-            <CardContent sx={{ p: "0 !important" }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5 }}>
-                    Personal Expenses
-                  </Typography>
-                  <Typography variant="h5" sx={{ fontWeight: 700, color: "error.main" }}>
-                    ₹ {formatAmount(stats.totalPersonalExpenses)}
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    p: 1.25,
-                    borderRadius: 2,
-                    bgcolor: "rgba(211, 47, 47, 0.08)",
-                    color: "error.main",
-                  }}
-                >
-                  <TrendingDownIcon />
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} sm={4}>
-          <Card
-            elevation={0}
-            sx={{
-              p: 2,
-              borderRadius: 3,
-              border: "1px solid #e2e8f0",
-              bgcolor: "#ffffff",
-              transition: "transform 0.2s, box-shadow 0.2s",
-              "&:hover": {
-                transform: "translateY(-2px)",
-                boxShadow: "0 6px 20px rgba(0,0,0,0.06)",
-              },
-            }}
-          >
-            <CardContent sx={{ p: "0 !important" }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <Box>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5 }}>
-                    Net Personal Balance
-                  </Typography>
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      fontWeight: 700,
-                      color: stats.netBalance >= 0 ? "success.main" : "error.main",
-                    }}
-                  >
-                    ₹ {formatAmount(stats.netBalance)}
-                  </Typography>
-                </Box>
-                <Box
-                  sx={{
-                    p: 1.25,
-                    borderRadius: 2,
-                    bgcolor: stats.netBalance >= 0 ? "rgba(46, 125, 50, 0.08)" : "rgba(211, 47, 47, 0.08)",
-                    color: stats.netBalance >= 0 ? "success.main" : "error.main",
-                  }}
-                >
-                  <SavingsIcon />
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
 
       {/* For Self Data Table */}
       <TableContainer
@@ -481,108 +372,133 @@ const ForSelfPage = () => {
                 position: "sticky",
                 top: { xs: 56, sm: 64 },
                 zIndex: 5,
-                fontWeight: 700,
-                color: "text.primary",
-                boxShadow: isHeaderStuck ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
-                transition: "box-shadow 0.2s, background-color 0.2s",
                 borderBottom: "1px solid #e2e8f0",
+                boxShadow: isHeaderStuck ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
+                transition: "box-shadow 0.2s",
               },
               "& th:first-of-type": {
-                borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS}px`,
+                borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
               },
               "& th:last-of-type": {
-                borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS}px`,
+                borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
               },
             }}
           >
             <TableRow>
-              <TableCell padding="checkbox">
+              <TableCell
+                padding="checkbox"
+                sx={{
+                  borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
+                }}
+              >
                 <Checkbox
                   indeterminate={isIndeterminate}
                   checked={isAllSelected}
                   onChange={handleSelectAll}
-                  disabled={entries.length === 0}
+                  size="small"
                 />
               </TableCell>
-              <TableCell sortDirection={orderBy === "date" ? order : false}>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "forFromName" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "forFromName"}
+                  direction={orderBy === "forFromName" ? order : "asc"}
+                  onClick={() => handleRequestSort("forFromName")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  Member
+                </TableSortLabel>
+              </TableCell>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "date" ? order : false}>
                 <TableSortLabel
                   active={orderBy === "date"}
                   direction={orderBy === "date" ? order : "asc"}
                   onClick={() => handleRequestSort("date")}
+                  sx={{ fontWeight: 600 }}
                 >
                   Date
                 </TableSortLabel>
               </TableCell>
-              <TableCell sortDirection={orderBy === "time" ? order : false}>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "time" ? order : false}>
                 <TableSortLabel
                   active={orderBy === "time"}
                   direction={orderBy === "time" ? order : "asc"}
                   onClick={() => handleRequestSort("time")}
+                  sx={{ fontWeight: 600 }}
                 >
                   Time
                 </TableSortLabel>
               </TableCell>
-              <TableCell sortDirection={orderBy === "type" ? order : false}>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "type" ? order : false}>
                 <TableSortLabel
                   active={orderBy === "type"}
                   direction={orderBy === "type" ? order : "asc"}
                   onClick={() => handleRequestSort("type")}
+                  sx={{ fontWeight: 600 }}
                 >
                   Type
                 </TableSortLabel>
               </TableCell>
-              <TableCell>Description</TableCell>
-              <TableCell align="right" sortDirection={orderBy === "amount" ? order : false}>
+
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "paymentStatus" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "paymentStatus"}
+                  direction={orderBy === "paymentStatus" ? order : "asc"}
+                  onClick={() => handleRequestSort("paymentStatus")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  Status
+                </TableSortLabel>
+              </TableCell>
+
+              <TableCell sx={{ fontWeight: 600 }} align="right" sortDirection={orderBy === "amount" ? order : false}>
                 <TableSortLabel
                   active={orderBy === "amount"}
                   direction={orderBy === "amount" ? order : "asc"}
                   onClick={() => handleRequestSort("amount")}
+                  sx={{ fontWeight: 600 }}
                 >
                   Amount
                 </TableSortLabel>
               </TableCell>
-              <TableCell align="center">Actions</TableCell>
+
+              <TableCell
+                sx={{
+                  fontWeight: 600,
+                  borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
+                }}
+                align="center"
+              >
+                Actions
+              </TableCell>
             </TableRow>
           </TableHead>
 
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={32} />
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Loading For Self entries...
-                  </Typography>
                 </TableCell>
               </TableRow>
             ) : entries.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
                   <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
                     No entries found
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    {activeFiltersCount > 0
-                      ? "Try adjusting your filter settings"
-                      : "Add your first personal expense or balance deposit using the button above"}
+                    Try adjusting your filters or create a new entry
                   </Typography>
-                  {activeFiltersCount === 0 && (
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<AddIcon />}
-                      onClick={() => setIsAddOpen(true)}
-                      sx={{ mt: 2 }}
-                    >
-                      Add For Self
-                    </Button>
-                  )}
                 </TableCell>
               </TableRow>
             ) : (
               sortedEntries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                 const isSelected = selectedIds.includes(row._id);
-                const isAddBalance = (row.type || "").toLowerCase() === "add balance";
+                const rowType = row.type || row.status;
 
                 return (
                   <TableRow
@@ -597,28 +513,33 @@ const ForSelfPage = () => {
                       <Checkbox
                         checked={isSelected}
                         onChange={() => handleSelectOne(row._id)}
+                        size="small"
                       />
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>
+                      {row.forFromName || "Myself (You)"}
+                      {row.description && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "block", mt: 0.25, fontStyle: "italic" }}
+                        >
+                          {row.description}
+                        </Typography>
+                      )}
                     </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>{formatDate(row.date)}</TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>{formatTime(row.time)}</TableCell>
-                    <TableCell>{getTypeChip(row.type, row.isSplit)}</TableCell>
-                    <TableCell sx={{ maxWidth: 300 }}>
-                      <Typography variant="body2" sx={{ wordBreak: "break-word" }}>
-                        {row.description || "-"}
-                      </Typography>
+                    <TableCell>{getTypeChip(rowType, row.isSplit)}</TableCell>
+                    <TableCell>
+                      {getStatusChip(row.paymentStatus, () => handleToggleStatus(row))}
                     </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{
-                        fontWeight: 700,
-                        color: isAddBalance ? "primary.main" : "text.primary",
-                      }}
-                    >
-                      {isAddBalance ? "+ " : "- "}₹ {formatAmount(row.amount)}
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>
+                      ₹ {formatAmount(row.amount)}
                     </TableCell>
                     <TableCell align="center">
                       <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
-                        <Tooltip title="Edit entry">
+                        <Tooltip title={row.isSplit ? "Edit split group entry" : "Edit entry"}>
                           <IconButton size="small" color="primary" onClick={() => setEditingEntry(row)}>
                             <EditIcon fontSize="small" />
                           </IconButton>
@@ -699,7 +620,7 @@ const ForSelfPage = () => {
         onClose={() => setIsAddOpen(false)}
         onEntryCreated={() => {
           fetchEntries();
-          setSnackbar({ open: true, message: "For Self entry created successfully", severity: "success" });
+          setSnackbar({ open: true, message: "Entry created successfully", severity: "success" });
         }}
       />
 
@@ -707,9 +628,9 @@ const ForSelfPage = () => {
         open={Boolean(editingEntry)}
         entry={editingEntry}
         onClose={() => setEditingEntry(null)}
-        onEntryUpdated={() => {
+        onEntryUpdated={(msg) => {
           fetchEntries();
-          setSnackbar({ open: true, message: "Entry updated successfully", severity: "success" });
+          setSnackbar({ open: true, message: msg || "Entry updated successfully", severity: "success" });
         }}
       />
 
@@ -720,9 +641,12 @@ const ForSelfPage = () => {
         onApplyFilters={(applied) => setFilters(applied)}
         onResetFilters={() =>
           setFilters({
-            type: "All",
+            status: "All",
+            paymentStatus: "All",
             search: "",
             description: "",
+            forFromName: "",
+            name: "",
             startDate: "",
             endDate: "",
             minAmount: "",

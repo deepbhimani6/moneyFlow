@@ -2,11 +2,30 @@ const mongoose = require("mongoose");
 
 const forSelfSchema = new mongoose.Schema(
   {
+    forFromName: {
+      type: String,
+      trim: true,
+      default: "Myself (You)",
+    },
+    memberId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Member",
+      default: null,
+    },
     type: {
       type: String,
-      enum: ["Add Balance", "Expense"],
+      enum: ["Add Balance", "Expense", "Split"],
       required: [true, "Type is required"],
       default: "Expense",
+    },
+    status: {
+      type: String,
+      default: "Expense",
+    },
+    paymentStatus: {
+      type: String,
+      enum: ["Paid", "Pending"],
+      default: "Paid",
     },
     amount: {
       type: Number,
@@ -38,6 +57,10 @@ const forSelfSchema = new mongoose.Schema(
     originalTotalAmount: {
       type: Number,
       default: null,
+    },
+    isMine: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true }

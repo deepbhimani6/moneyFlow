@@ -140,6 +140,14 @@ export const forSelfService = {
     const res = await api.post('/for-self/bulk-delete', { ids });
     return res.data;
   },
+  bulkUpdateStatus: async (ids, statusData) => {
+    const res = await api.post('/for-self/bulk-status', { ids, ...statusData });
+    return res.data;
+  },
+  getSplitGroupEntries: async (splitGroupId) => {
+    const res = await api.get(`/entries/split-group/${splitGroupId}`);
+    return res.data;
+  },
 };
 
 export default api;

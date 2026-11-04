@@ -17,7 +17,9 @@ import {
 import { forSelfService } from "../services/api";
 
 const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
+  const [forFromName, setForFromName] = useState("Myself (You)");
   const [type, setType] = useState("Expense");
+  const [paymentStatus, setPaymentStatus] = useState("Paid");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -27,7 +29,9 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
 
   useEffect(() => {
     if (open) {
+      setForFromName("Myself (You)");
       setType("Expense");
+      setPaymentStatus("Paid");
       setAmount("");
       setDescription("");
       setDate(new Date().toISOString().split("T")[0]);
@@ -49,7 +53,10 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
     try {
       setSubmitting(true);
       const res = await forSelfService.createForSelfEntry({
+        forFromName: forFromName.trim() || "Myself (You)",
         type,
+        status: type,
+        paymentStatus,
         amount: numericAmount,
         description,
         date,
@@ -76,11 +83,22 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
-          {/* Type Selection */}
-          <FormControl fullWidth size="small">
-            <InputLabel id="type-label">Type</InputLabel>
+          {/* 1. Member Name */}
+          <TextField
+            label="Member Name"
+            value={forFromName}
+            onChange={(e) => setForFromName(e.target.value)}
+            placeholder="Myself (You)"
+            fullWidth
+            required
+            helperText="This entry belongs to you (For Self)"
+          />
+
+          {/* 2. Type */}
+          <FormControl fullWidth>
+            <InputLabel id="for-self-type-label">Type</InputLabel>
             <Select
-              labelId="type-label"
+              labelId="for-self-type-label"
               value={type}
               label="Type"
               onChange={(e) => setType(e.target.value)}
@@ -90,13 +108,24 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
             </Select>
           </FormControl>
 
-          {/* Amount */}
+          {/* 3. Status */}
+          <FormControl fullWidth>
+            <InputLabel id="for-self-status-label">Status</InputLabel>
+            <Select
+              labelId="for-self-status-label"
+              value={paymentStatus}
+              label="Status"
+              onChange={(e) => setPaymentStatus(e.target.value)}
+            >
+              <MenuItem value="Paid">Paid</MenuItem>
+              <MenuItem value="Pending">Pending</MenuItem>
+            </Select>
+          </FormControl>
+
+          {/* 4. Amount */}
           <TextField
             label="Amount (₹)"
             type="number"
-            size="small"
-            fullWidth
-            required
             value={amount}
             onChange={(e) => {
               const val = e.target.value;
@@ -104,45 +133,43 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
                 setAmount(val);
               }
             }}
-            placeholder="0"
+            placeholder="e.g. 1500"
+            fullWidth
+            required
             inputProps={{ min: "1", step: "1" }}
           />
 
-          {/* Date and Time */}
+          {/* 5. Description */}
+          <TextField
+            label="Description (Optional)"
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. Dinner with team, office supplies, cab fare..."
+            fullWidth
+          />
+
+          {/* 6. Date & Time */}
           <Box sx={{ display: "flex", gap: 2 }}>
             <TextField
               label="Date"
               type="date"
-              size="small"
-              fullWidth
-              required
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              fullWidth
               InputLabelProps={{ shrink: true }}
+              required
             />
             <TextField
               label="Time"
               type="time"
-              size="small"
-              fullWidth
-              required
               value={time}
               onChange={(e) => setTime(e.target.value)}
+              fullWidth
               InputLabelProps={{ shrink: true }}
+              required
             />
           </Box>
-
-          {/* Description */}
-          <TextField
-            label="Description"
-            multiline
-            rows={2}
-            size="small"
-            fullWidth
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="e.g. Groceries, Coffee, Salary deposit..."
-          />
         </DialogContent>
 
         <DialogActions sx={{ p: 2 }}>
@@ -153,9 +180,9 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
             type="submit"
             variant="contained"
             disabled={submitting}
-            startIcon={submitting && <CircularProgress size={16} />}
+            startIcon={submitting && <CircularProgress size={18} />}
           >
-            {submitting ? "Saving..." : "Save Entry"}
+            {submitting ? "Saving..." : "Add For Self"}
           </Button>
         </DialogActions>
       </form>
