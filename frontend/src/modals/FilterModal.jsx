@@ -81,6 +81,7 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
       ...filters,
       selectedNames: finalNames,
       names: stringNames.join(","),
+      description: (filters.description || "").trim(),
     });
     onClose();
   };
@@ -90,6 +91,7 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
       status: "All",
       paymentStatus: "All",
       search: "",
+      description: "",
       selectedNames: [],
       names: "",
       startDate: "",
@@ -190,12 +192,12 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
           )}
         />
 
-        {/* Description / Keyword Search */}
+        {/* Description Filter */}
         <TextField
-          label="Description Keyword (Optional)"
-          value={filters.search || ""}
-          onChange={(e) => handleChange("search", e.target.value)}
-          placeholder="Filter by description notes..."
+          label="Description"
+          value={filters.description || ""}
+          onChange={(e) => handleChange("description", e.target.value)}
+          placeholder="Filter by description notes (e.g. pizza, dinner, groceries)..."
           fullWidth
         />
 

@@ -5,7 +5,7 @@ const crypto = require("crypto");
 // @route   GET /api/entries
 const getEntries = async (req, res) => {
   try {
-    const { status, type, paymentStatus, search, names, selectedNames, startDate, endDate, minAmount, maxAmount } = req.query;
+    const { status, type, paymentStatus, search, description, names, selectedNames, startDate, endDate, minAmount, maxAmount } = req.query;
     let query = {};
     const andConditions = [];
 
@@ -40,9 +40,21 @@ const getEntries = async (req, res) => {
             ],
           };
         }
-        return { forFromName: { $regex: name, $options: 'i' } };
+        return {
+          $or: [
+            { forFromName: { $regex: name, $options: 'i' } },
+            { description: { $regex: name, $options: 'i' } },
+          ],
+        };
       });
       andConditions.push({ $or: nameOrConditions });
+    }
+
+    // Filter by description
+    if (description && description.trim()) {
+      andConditions.push({
+        description: { $regex: description.trim(), $options: 'i' },
+      });
     }
 
     if (search && search.trim()) {
