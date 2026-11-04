@@ -713,14 +713,12 @@ const MembersPage = () => {
             display: "flex",
             alignItems: "center",
             gap: 1.5,
-            color: singleDeleteState.summary?.hasEntries ? "error.main" : "text.primary",
+            color: "text.primary",
             pb: 1,
           }}
         >
-          <DeleteOutlineIcon color={singleDeleteState.summary?.hasEntries ? "error" : "action"} sx={{ fontSize: 28 }} />
-          {singleDeleteState.summary?.hasEntries
-            ? "Delete Member & Associated Entries"
-            : "Confirm Delete Member"}
+          <DeleteOutlineIcon color="action" sx={{ fontSize: 28 }} />
+          Confirm Delete Member
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2.5, pb: 2.5 }}>
@@ -733,22 +731,25 @@ const MembersPage = () => {
             </Box>
           ) : singleDeleteState.summary?.hasEntries ? (
             <>
-              {/* Has entries: Warning & Details */}
-              <Alert severity="warning" sx={{ fontWeight: 500 }}>
-                <strong>Warning:</strong> Deleting <strong>{singleDeleteState.member?.fullName}</strong> will also permanently delete all <strong>{singleDeleteState.summary.entryCount} associated entry/entries</strong> (totaling ₹ {formatAmount(singleDeleteState.summary.totalAmount)}) from the Entries page!
+              {/* Has entries: Notice & Details (Entries are kept intact) */}
+              <Alert severity="info" sx={{ fontWeight: 500 }}>
+                <strong>Notice:</strong> <strong>{singleDeleteState.member?.fullName}</strong> has <strong>{singleDeleteState.summary.entryCount} associated entry/entries</strong> (totaling ₹ {formatAmount(singleDeleteState.summary.totalAmount)}) in the Entries page.
+                <Typography variant="caption" sx={{ display: "block", mt: 0.5, fontStyle: "italic" }}>
+                  Note: Only the member will be deleted. Their entries will remain in the Entries page.
+                </Typography>
               </Alert>
 
               <Box>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                  Associated Entries to be deleted ({singleDeleteState.summary.entryCount}):
+                  Associated Entries ({singleDeleteState.summary.entryCount}):
                 </Typography>
                 <Box
                   sx={{
                     maxHeight: 200,
                     overflowY: "auto",
-                    border: "1px solid #fee2e2",
+                    border: "1px solid #e2e8f0",
                     borderRadius: 2,
-                    bgcolor: "#fff5f5",
+                    bgcolor: "#f8fafc",
                     p: 1.5,
                     display: "flex",
                     flexDirection: "column",
@@ -765,7 +766,7 @@ const MembersPage = () => {
                         p: 1,
                         bgcolor: "#ffffff",
                         borderRadius: 1.5,
-                        border: "1px solid #fecaca",
+                        border: "1px solid #e2e8f0",
                       }}
                     >
                       <Box>
@@ -778,7 +779,7 @@ const MembersPage = () => {
                           </Typography>
                         )}
                       </Box>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: "error.main" }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
                         ₹ {formatAmount(entry.amount)}
                       </Typography>
                     </Box>
@@ -792,7 +793,7 @@ const MembersPage = () => {
               </Box>
 
               <Typography variant="body2" color="text.secondary">
-                Are you sure you want to permanently delete <strong>{singleDeleteState.member?.fullName}</strong> and all associated entries? This action cannot be reversed.
+                Are you sure you want to delete member <strong>{singleDeleteState.member?.fullName}</strong>? This action cannot be reversed.
               </Typography>
             </>
           ) : (
@@ -828,11 +829,7 @@ const MembersPage = () => {
             disabled={actionLoading || singleDeleteState.loadingSummary}
             startIcon={actionLoading ? <CircularProgress size={18} /> : <DeleteOutlineIcon />}
           >
-            {actionLoading
-              ? "Deleting..."
-              : singleDeleteState.summary?.hasEntries
-              ? `Delete Member & ${singleDeleteState.summary.entryCount} Entries`
-              : "Delete Member"}
+            {actionLoading ? "Deleting..." : "Delete Member"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -850,14 +847,12 @@ const MembersPage = () => {
             display: "flex",
             alignItems: "center",
             gap: 1.5,
-            color: bulkDeleteState.summary?.hasEntries ? "error.main" : "text.primary",
+            color: "text.primary",
             pb: 1,
           }}
         >
-          <DeleteOutlineIcon color={bulkDeleteState.summary?.hasEntries ? "error" : "action"} sx={{ fontSize: 28 }} />
-          {bulkDeleteState.summary?.hasEntries
-            ? "Bulk Delete Members & Associated Entries"
-            : "Confirm Bulk Delete Members"}
+          <DeleteOutlineIcon color="action" sx={{ fontSize: 28 }} />
+          Confirm Bulk Delete Members
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2.5, pb: 2.5 }}>
@@ -870,9 +865,12 @@ const MembersPage = () => {
             </Box>
           ) : bulkDeleteState.summary?.hasEntries ? (
             <>
-              {/* Has entries: Warning & Details */}
-              <Alert severity="warning" sx={{ fontWeight: 500 }}>
-                <strong>Warning:</strong> Deleting these <strong>{selectedIds.length} members</strong> will also permanently delete all <strong>{bulkDeleteState.summary.entryCount} associated entry/entries</strong> (totaling ₹ {formatAmount(bulkDeleteState.summary.totalAmount)}) from the Entries page!
+              {/* Has entries: Notice & Details (Entries are kept intact) */}
+              <Alert severity="info" sx={{ fontWeight: 500 }}>
+                <strong>Notice:</strong> The selected members have <strong>{bulkDeleteState.summary.entryCount} associated entry/entries</strong> (totaling ₹ {formatAmount(bulkDeleteState.summary.totalAmount)}) in the Entries page.
+                <Typography variant="caption" sx={{ display: "block", mt: 0.5, fontStyle: "italic" }}>
+                  Note: Only the selected members will be deleted. All entries will remain in the Entries page.
+                </Typography>
               </Alert>
 
               <Box>
@@ -883,9 +881,9 @@ const MembersPage = () => {
                   sx={{
                     maxHeight: 200,
                     overflowY: "auto",
-                    border: "1px solid #fee2e2",
+                    border: "1px solid #e2e8f0",
                     borderRadius: 2,
-                    bgcolor: "#fff5f5",
+                    bgcolor: "#f8fafc",
                     p: 1.5,
                     display: "flex",
                     flexDirection: "column",
@@ -902,13 +900,13 @@ const MembersPage = () => {
                         p: 1,
                         bgcolor: "#ffffff",
                         borderRadius: 1.5,
-                        border: "1px solid #fecaca",
+                        border: "1px solid #e2e8f0",
                       }}
                     >
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>
                         {m.fullName}
                       </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: m.count > 0 ? "error.main" : "text.secondary" }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: m.count > 0 ? "primary.main" : "text.secondary" }}>
                         {m.count > 0 ? `${m.count} entries (₹ ${formatAmount(m.totalAmount)})` : "No entries"}
                       </Typography>
                     </Box>
@@ -917,7 +915,7 @@ const MembersPage = () => {
               </Box>
 
               <Typography variant="body2" color="text.secondary">
-                Are you sure you want to permanently delete these <strong>{selectedIds.length} members</strong> and their <strong>{bulkDeleteState.summary.entryCount} associated entries</strong>? This action cannot be reversed.
+                Are you sure you want to delete these <strong>{selectedIds.length} selected members</strong>? This action cannot be reversed.
               </Typography>
             </>
           ) : (
@@ -953,11 +951,7 @@ const MembersPage = () => {
             disabled={actionLoading || bulkDeleteState.loadingSummary}
             startIcon={actionLoading ? <CircularProgress size={18} /> : <DeleteOutlineIcon />}
           >
-            {actionLoading
-              ? "Deleting..."
-              : bulkDeleteState.summary?.hasEntries
-              ? `Delete ${selectedIds.length} Members & ${bulkDeleteState.summary.entryCount} Entries`
-              : `Delete ${selectedIds.length} Members`}
+            {actionLoading ? "Deleting..." : `Delete ${selectedIds.length} Members`}
           </Button>
         </DialogActions>
       </Dialog>
