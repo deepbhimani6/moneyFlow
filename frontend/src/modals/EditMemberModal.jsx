@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -19,8 +19,12 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
     username: '',
     password: '',
   });
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const fullNameRef = useRef(null);
+  const emailRef = useRef(null);
 
   useEffect(() => {
     if (member) {
@@ -31,6 +35,7 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
         username: member.username || '',
         password: '',
       });
+      setErrors({});
       setError('');
     }
   }, [member]);
@@ -38,12 +43,23 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: false }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.fullName || !formData.email) {
-      setError('Full Name and Email are required');
+    setError('');
+
+    const newErrors = {};
+    if (!formData.fullName || !formData.fullName.trim()) newErrors.fullName = true;
+    if (!formData.email || !formData.email.trim()) newErrors.email = true;
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (newErrors.fullName && fullNameRef.current) fullNameRef.current.focus();
+      else if (newErrors.email && emailRef.current) emailRef.current.focus();
       return;
     }
 
@@ -65,7 +81,7 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Edit Member</DialogTitle>
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
@@ -74,6 +90,9 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
             label="Full Name"
             name="fullName"
             value={formData.fullName}
+            inputRef={fullNameRef}
+            error={Boolean(errors.fullName)}
+            helperText={errors.fullName ? 'Full name is required' : ''}
             onChange={handleChange}
             fullWidth
             required
@@ -92,6 +111,9 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
             name="email"
             type="email"
             value={formData.email}
+            inputRef={emailRef}
+            error={Boolean(errors.email)}
+            helperText={errors.email ? 'Valid email is required' : ''}
             onChange={handleChange}
             fullWidth
             required

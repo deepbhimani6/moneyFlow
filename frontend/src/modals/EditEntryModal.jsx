@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -29,8 +29,14 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [description, setDescription] = useState('');
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const memberInputRef = useRef(null);
+  const amountRef = useRef(null);
+  const dateRef = useRef(null);
+  const timeRef = useRef(null);
 
   // Split group details
   const [splitGroupMembers, setSplitGroupMembers] = useState([]);
@@ -45,6 +51,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
       setDate(toInputDateFormat(entry.date) || '');
       setTime(toInputTimeFormat(entry.time) || '');
       setDescription(entry.description || '');
+      setErrors({});
       setError('');
 
       if (entry.isSplit && entry.splitGroupId) {
@@ -79,12 +86,12 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
   };
 
   // Handle per-person amount change for split entries
-  const handlePerPersonChange = (newPerPerson) => {
-    setAmount(newPerPerson);
-    const numPerPerson = parseFloat(newPerPerson);
+  const handlePerPersonChange = (newAmount) => {
+    setAmount(newAmount);
+    const numAmount = parseFloat(newAmount);
     const count = splitGroupMembers.length || 1;
-    if (!isNaN(numPerPerson) && numPerPerson > 0) {
-      setTotalAmount(String(Math.trunc(numPerPerson * count)));
+    if (!isNaN(numAmount) && numAmount > 0) {
+      setTotalAmount(String(Math.trunc(numAmount * count)));
     }
   };
 
@@ -92,9 +99,20 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
     e.preventDefault();
     setError('');
 
-    const numericAmount = Math.trunc(parseFloat(amount));
-    if (isNaN(numericAmount) || numericAmount <= 0) {
-      setError('Please enter a valid amount');
+    const newErrors = {};
+    const numericAmount = Math.trunc(parseFloat(amount) || 0);
+
+    if (!forFromName || !forFromName.trim()) newErrors.forFromName = true;
+    if (!amount || numericAmount <= 0) newErrors.amount = true;
+    if (!date || !date.trim()) newErrors.date = true;
+    if (!time || !time.trim()) newErrors.time = true;
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (newErrors.forFromName && memberInputRef.current) memberInputRef.current.focus();
+      else if (newErrors.amount && amountRef.current) amountRef.current.focus();
+      else if (newErrors.date && dateRef.current) dateRef.current.focus();
+      else if (newErrors.time && timeRef.current) timeRef.current.focus();
       return;
     }
 
@@ -102,7 +120,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
       setSubmitting(true);
 
       const payload = {
-        forFromName,
+        forFromName: forFromName.trim(),
         type: status,
         status,
         paymentStatus,
@@ -134,7 +152,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
           {isSplit ? 'Edit Split Group To Receive' : 'Edit To Receive'}
         </DialogTitle>
@@ -163,7 +181,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
                   {splitGroupMembers.map((m) => (
                     <Chip
                       key={m._id}
-                      label={`${m.forFromName} (₹${formatAmount(m.amount)})`}
+                      label={`${m.forFromName || 'Participant'} (₹${formatAmount(m.amount)})`}
                       size="small"
                       color={m._id === entry._id ? 'primary' : 'default'}
                       variant={m._id === entry._id ? 'filled' : 'outlined'}
@@ -178,11 +196,22 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
           <TextField
             label="Member Name"
             value={forFromName}
-            onChange={(e) => setForFromName(e.target.value)}
+            inputRef={memberInputRef}
+            error={Boolean(errors.forFromName)}
+            helperText={
+              errors.forFromName
+                ? 'Member name is required'
+                : isSplit
+                ? 'Participant name in this split group'
+                : ''
+            }
+            onChange={(e) => {
+              setForFromName(e.target.value);
+              if (errors.forFromName) setErrors((prev) => ({ ...prev, forFromName: false }));
+            }}
             fullWidth
             required
             disabled={isSplit}
-            helperText={isSplit ? 'Participant name in this split group' : ''}
           />
 
           {/* 2. Type */}
@@ -241,7 +270,13 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
                 label="Each Member's Share (₹)"
                 type="number"
                 value={amount}
-                onChange={(e) => handlePerPersonChange(e.target.value)}
+                inputRef={amountRef}
+                error={Boolean(errors.amount)}
+                helperText={errors.amount ? 'Please enter a valid amount' : ''}
+                onChange={(e) => {
+                  handlePerPersonChange(e.target.value);
+                  if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
+                }}
                 fullWidth
                 required
                 inputProps={{ min: '0', step: 'any' }}
@@ -252,7 +287,13 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
               label="Amount (₹)"
               type="number"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
+              inputRef={amountRef}
+              error={Boolean(errors.amount)}
+              helperText={errors.amount ? 'Please enter a valid amount' : ''}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
+              }}
               fullWidth
               required
               inputProps={{ min: '0', step: 'any' }}
@@ -275,7 +316,13 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
               label="Date"
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              inputRef={dateRef}
+              error={Boolean(errors.date)}
+              helperText={errors.date ? 'Date is required' : ''}
+              onChange={(e) => {
+                setDate(e.target.value);
+                if (errors.date) setErrors((prev) => ({ ...prev, date: false }));
+              }}
               fullWidth
               InputLabelProps={{ shrink: true }}
               required
@@ -284,7 +331,13 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
               label="Time"
               type="time"
               value={time}
-              onChange={(e) => setTime(e.target.value)}
+              inputRef={timeRef}
+              error={Boolean(errors.time)}
+              helperText={errors.time ? 'Time is required' : ''}
+              onChange={(e) => {
+                setTime(e.target.value);
+                if (errors.time) setErrors((prev) => ({ ...prev, time: false }));
+              }}
               fullWidth
               InputLabelProps={{ shrink: true }}
               required

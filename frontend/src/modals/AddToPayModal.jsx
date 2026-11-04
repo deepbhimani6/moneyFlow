@@ -1,5 +1,21 @@
-import React, { useState, useEffect } from "react";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, FormControl, InputLabel, Select, MenuItem, Autocomplete, Box, Alert, CircularProgress } from "@mui/material";
+import React, { useState, useEffect, useRef } from "react";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Autocomplete,
+  Box,
+  Alert,
+  CircularProgress,
+  FormHelperText,
+} from "@mui/material";
 import { memberService, toPayService } from "../services/api";
 
 const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
@@ -11,8 +27,14 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [time, setTime] = useState(new Date().toTimeString().split(" ")[0].substring(0, 5));
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  const memberInputRef = useRef(null);
+  const amountRef = useRef(null);
+  const dateRef = useRef(null);
+  const timeRef = useRef(null);
 
   // Fetch available members
   useEffect(() => {
@@ -34,6 +56,7 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
       setDescription("");
       setDate(new Date().toISOString().split("T")[0]);
       setTime(new Date().toTimeString().split(" ")[0].substring(0, 5));
+      setErrors({});
       setError("");
     }
   }, [open]);
@@ -56,14 +79,20 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
       finalName = inputValue.trim();
     }
 
-    if (!finalName) {
-      setError("Please select or enter a member name");
-      return;
-    }
-
+    const newErrors = {};
     const numericAmount = Math.trunc(parseFloat(amount) || 0);
-    if (!amount || numericAmount <= 0) {
-      setError("Please enter a valid amount");
+
+    if (!finalName) newErrors.member = true;
+    if (!amount || numericAmount <= 0) newErrors.amount = true;
+    if (!date || !date.trim()) newErrors.date = true;
+    if (!time || !time.trim()) newErrors.time = true;
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (newErrors.member && memberInputRef.current) memberInputRef.current.focus();
+      else if (newErrors.amount && amountRef.current) amountRef.current.focus();
+      else if (newErrors.date && dateRef.current) dateRef.current.focus();
+      else if (newErrors.time && timeRef.current) timeRef.current.focus();
       return;
     }
 
@@ -95,7 +124,7 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Add To Pay</DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
@@ -116,6 +145,7 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
             }}
             onChange={(event, newValue) => {
               setSelectedMember(newValue);
+              if (errors.member) setErrors((prev) => ({ ...prev, member: false }));
             }}
             renderInput={(params) => (
               <TextField
@@ -123,6 +153,9 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
                 label="Member Name"
                 placeholder="Search or enter member name..."
                 required
+                inputRef={memberInputRef}
+                error={Boolean(errors.member)}
+                helperText={errors.member ? "Please select or enter a member name" : ""}
               />
             )}
           />
@@ -137,15 +170,65 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
           </FormControl>
 
           {/* 3. Amount */}
-          <TextField label="Amount (₹)" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 1500" fullWidth required inputProps={{ min: "0", step: "any" }} />
+          <TextField
+            label="Amount (₹)"
+            type="number"
+            value={amount}
+            inputRef={amountRef}
+            error={Boolean(errors.amount)}
+            helperText={errors.amount ? "Please enter a valid amount" : ""}
+            onChange={(e) => {
+              setAmount(e.target.value);
+              if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
+            }}
+            placeholder="e.g. 1500"
+            fullWidth
+            required
+            inputProps={{ min: "0", step: "any" }}
+          />
 
           {/* Description */}
-          <TextField label="Description" type="text" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g. Dinner, cab fare, tickets..." fullWidth />
+          <TextField
+            label="Description"
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="e.g. Dinner, cab fare, tickets..."
+            fullWidth
+          />
 
           {/* 4. Date & 5. Time */}
           <Box sx={{ display: "flex", gap: 2 }}>
-            <TextField label="Date" type="date" value={date} onChange={(e) => setDate(e.target.value)} fullWidth InputLabelProps={{ shrink: true }} required />
-            <TextField label="Time" type="time" value={time} onChange={(e) => setTime(e.target.value)} fullWidth InputLabelProps={{ shrink: true }} required />
+            <TextField
+              label="Date"
+              type="date"
+              value={date}
+              inputRef={dateRef}
+              error={Boolean(errors.date)}
+              helperText={errors.date ? "Date is required" : ""}
+              onChange={(e) => {
+                setDate(e.target.value);
+                if (errors.date) setErrors((prev) => ({ ...prev, date: false }));
+              }}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              required
+            />
+            <TextField
+              label="Time"
+              type="time"
+              value={time}
+              inputRef={timeRef}
+              error={Boolean(errors.time)}
+              helperText={errors.time ? "Time is required" : ""}
+              onChange={(e) => {
+                setTime(e.target.value);
+                if (errors.time) setErrors((prev) => ({ ...prev, time: false }));
+              }}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              required
+            />
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>

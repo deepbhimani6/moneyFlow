@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -26,8 +26,12 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
     password: '',
     sendLink: true,
   });
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const fullNameRef = useRef(null);
+  const emailRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value, checked, type } = e.target;
@@ -35,14 +39,23 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
     }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: false }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
-    if (!formData.fullName || !formData.email) {
-      setError('Full Name and E-mail are required');
+    const newErrors = {};
+    if (!formData.fullName || !formData.fullName.trim()) newErrors.fullName = true;
+    if (!formData.email || !formData.email.trim()) newErrors.email = true;
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (newErrors.fullName && fullNameRef.current) fullNameRef.current.focus();
+      else if (newErrors.email && emailRef.current) emailRef.current.focus();
       return;
     }
 
@@ -61,6 +74,7 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
           password: '',
           sendLink: true,
         });
+        setErrors({});
       } else {
         setError(res.message || 'Failed to create member');
       }
@@ -73,7 +87,7 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Invite New Member</DialogTitle>
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
@@ -83,6 +97,9 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
             label="Full Name"
             name="fullName"
             value={formData.fullName}
+            inputRef={fullNameRef}
+            error={Boolean(errors.fullName)}
+            helperText={errors.fullName ? 'Full name is required' : ''}
             onChange={handleChange}
             fullWidth
             required
@@ -105,6 +122,9 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
             name="email"
             type="email"
             value={formData.email}
+            inputRef={emailRef}
+            error={Boolean(errors.email)}
+            helperText={errors.email ? 'Valid email is required' : ''}
             onChange={handleChange}
             fullWidth
             required
@@ -140,18 +160,20 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
                   name="sendLink"
                   checked={formData.sendLink}
                   onChange={handleChange}
-                  color="success"
+                  color="primary"
                 />
               }
               label={
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  Send app invite link directly to e-mail via Resend
-                </Typography>
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                    Send invite link immediately
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Member will receive an invitation link on the email address provided above.
+                  </Typography>
+                </Box>
               }
             />
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', ml: 4 }}>
-              When enabled, sends a welcome email with credentials & app link.
-            </Typography>
           </Box>
         </DialogContent>
 
@@ -173,13 +195,7 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
               )
             }
           >
-            {submitting
-              ? formData.sendLink
-                ? 'Sending Invite...'
-                : 'Adding...'
-              : formData.sendLink
-              ? 'Send Invite'
-              : 'Add Member'}
+            {submitting ? 'Saving...' : formData.sendLink ? 'Add & Send Invite' : 'Save Member'}
           </Button>
         </DialogActions>
       </form>

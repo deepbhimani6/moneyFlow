@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -13,6 +13,7 @@ import {
   Box,
   Alert,
   CircularProgress,
+  FormHelperText,
 } from "@mui/material";
 import { forSelfService } from "../services/api";
 
@@ -22,8 +23,14 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [time, setTime] = useState(new Date().toTimeString().split(" ")[0].substring(0, 5));
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  const typeRef = useRef(null);
+  const amountRef = useRef(null);
+  const dateRef = useRef(null);
+  const timeRef = useRef(null);
 
   useEffect(() => {
     if (open) {
@@ -32,6 +39,7 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
       setDescription("");
       setDate(new Date().toISOString().split("T")[0]);
       setTime(new Date().toTimeString().split(" ")[0].substring(0, 5));
+      setErrors({});
       setError("");
     }
   }, [open]);
@@ -40,9 +48,20 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
     e.preventDefault();
     setError("");
 
+    const newErrors = {};
     const numericAmount = Math.trunc(parseFloat(amount) || 0);
-    if (!amount || numericAmount <= 0) {
-      setError("Please enter a valid amount");
+
+    if (!type) newErrors.type = true;
+    if (!amount || numericAmount <= 0) newErrors.amount = true;
+    if (!date || !date.trim()) newErrors.date = true;
+    if (!time || !time.trim()) newErrors.time = true;
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (newErrors.type && typeRef.current) typeRef.current.focus();
+      else if (newErrors.amount && amountRef.current) amountRef.current.focus();
+      else if (newErrors.date && dateRef.current) dateRef.current.focus();
+      else if (newErrors.time && timeRef.current) timeRef.current.focus();
       return;
     }
 
@@ -72,23 +91,31 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Add For Self</DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
           {/* 1. Type: Add Balance always top, default selected is Expense */}
-          <FormControl fullWidth required>
-            <InputLabel id="for-self-type-label" required>Type</InputLabel>
+          <FormControl fullWidth required error={Boolean(errors.type)}>
+            <InputLabel id="for-self-type-label" required error={Boolean(errors.type)}>
+              Type
+            </InputLabel>
             <Select
               labelId="for-self-type-label"
               value={type}
               label="Type"
-              onChange={(e) => setType(e.target.value)}
+              inputRef={typeRef}
+              error={Boolean(errors.type)}
+              onChange={(e) => {
+                setType(e.target.value);
+                if (errors.type) setErrors((prev) => ({ ...prev, type: false }));
+              }}
             >
               <MenuItem value="Add Balance">Add Balance</MenuItem>
               <MenuItem value="Expense">Expense</MenuItem>
             </Select>
+            {errors.type && <FormHelperText error>Type is required</FormHelperText>}
           </FormControl>
 
           {/* 2. Amount */}
@@ -96,10 +123,14 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
             label="Amount (₹)"
             type="number"
             value={amount}
+            inputRef={amountRef}
+            error={Boolean(errors.amount)}
+            helperText={errors.amount ? "Please enter a valid amount" : ""}
             onChange={(e) => {
               const val = e.target.value;
               if (val === "" || /^[0-9]+$/.test(val)) {
                 setAmount(val);
+                if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
               }
             }}
             placeholder="e.g. 1500"
@@ -124,7 +155,13 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
               label="Date"
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              inputRef={dateRef}
+              error={Boolean(errors.date)}
+              helperText={errors.date ? "Date is required" : ""}
+              onChange={(e) => {
+                setDate(e.target.value);
+                if (errors.date) setErrors((prev) => ({ ...prev, date: false }));
+              }}
               fullWidth
               InputLabelProps={{ shrink: true }}
               required
@@ -133,7 +170,13 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
               label="Time"
               type="time"
               value={time}
-              onChange={(e) => setTime(e.target.value)}
+              inputRef={timeRef}
+              error={Boolean(errors.time)}
+              helperText={errors.time ? "Time is required" : ""}
+              onChange={(e) => {
+                setTime(e.target.value);
+                if (errors.time) setErrors((prev) => ({ ...prev, time: false }));
+              }}
               fullWidth
               InputLabelProps={{ shrink: true }}
               required

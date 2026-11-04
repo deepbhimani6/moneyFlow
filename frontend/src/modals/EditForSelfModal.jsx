@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -15,6 +15,7 @@ import {
   Alert,
   CircularProgress,
   Chip,
+  FormHelperText,
 } from "@mui/material";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { forSelfService } from "../services/api";
@@ -27,8 +28,14 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [description, setDescription] = useState("");
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  const typeRef = useRef(null);
+  const amountRef = useRef(null);
+  const dateRef = useRef(null);
+  const timeRef = useRef(null);
 
   // Split group details
   const [splitGroupMembers, setSplitGroupMembers] = useState([]);
@@ -43,6 +50,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
       setDate(toInputDateFormat(entry.date) || "");
       setTime(toInputTimeFormat(entry.time) || "");
       setDescription(entry.description || "");
+      setErrors({});
       setError("");
 
       if (entry.isSplit && entry.splitGroupId) {
@@ -90,9 +98,20 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
     e.preventDefault();
     setError("");
 
+    const newErrors = {};
     const numericAmount = Math.trunc(parseFloat(amount) || 0);
-    if (!amount || numericAmount <= 0) {
-      setError("Please enter a valid amount");
+
+    if (!type) newErrors.type = true;
+    if (!amount || numericAmount <= 0) newErrors.amount = true;
+    if (!date || !date.trim()) newErrors.date = true;
+    if (!time || !time.trim()) newErrors.time = true;
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (newErrors.type && typeRef.current) typeRef.current.focus();
+      else if (newErrors.amount && amountRef.current) amountRef.current.focus();
+      else if (newErrors.date && dateRef.current) dateRef.current.focus();
+      else if (newErrors.time && timeRef.current) timeRef.current.focus();
       return;
     }
 
@@ -123,7 +142,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle sx={{ fontWeight: 700, pb: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span>Edit For Self Entry</span>
           {isSplit && (
@@ -173,13 +192,20 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
           )}
 
           {/* 1. Type: Add Balance always top */}
-          <FormControl fullWidth required disabled={isSplit}>
-            <InputLabel id="edit-for-self-type-label" required>Type</InputLabel>
+          <FormControl fullWidth required error={Boolean(errors.type)} disabled={isSplit}>
+            <InputLabel id="edit-for-self-type-label" required error={Boolean(errors.type)}>
+              Type
+            </InputLabel>
             <Select
               labelId="edit-for-self-type-label"
               value={type}
               label="Type"
-              onChange={(e) => setType(e.target.value)}
+              inputRef={typeRef}
+              error={Boolean(errors.type)}
+              onChange={(e) => {
+                setType(e.target.value);
+                if (errors.type) setErrors((prev) => ({ ...prev, type: false }));
+              }}
             >
               {isSplit ? (
                 <MenuItem value="Expense">Expense</MenuItem>
@@ -190,6 +216,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
                 ]
               )}
             </Select>
+            {errors.type && <FormHelperText error>Type is required</FormHelperText>}
             {isSplit && (
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1 }}>
                 Type is fixed for split group participants ({type})
@@ -214,7 +241,13 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
                 label="Your Share (₹)"
                 type="number"
                 value={amount}
-                onChange={(e) => handlePerPersonChange(e.target.value)}
+                inputRef={amountRef}
+                error={Boolean(errors.amount)}
+                helperText={errors.amount ? "Please enter a valid amount" : ""}
+                onChange={(e) => {
+                  handlePerPersonChange(e.target.value);
+                  if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
+                }}
                 fullWidth
                 required
                 inputProps={{ min: "0", step: "any" }}
@@ -225,10 +258,14 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
               label="Amount (₹)"
               type="number"
               value={amount}
+              inputRef={amountRef}
+              error={Boolean(errors.amount)}
+              helperText={errors.amount ? "Please enter a valid amount" : ""}
               onChange={(e) => {
                 const val = e.target.value;
                 if (val === "" || /^[0-9]+$/.test(val)) {
                   setAmount(val);
+                  if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
                 }
               }}
               placeholder="e.g. 1500"
@@ -254,7 +291,13 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
               label="Date"
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              inputRef={dateRef}
+              error={Boolean(errors.date)}
+              helperText={errors.date ? "Date is required" : ""}
+              onChange={(e) => {
+                setDate(e.target.value);
+                if (errors.date) setErrors((prev) => ({ ...prev, date: false }));
+              }}
               fullWidth
               InputLabelProps={{ shrink: true }}
               required
@@ -263,7 +306,13 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
               label="Time"
               type="time"
               value={time}
-              onChange={(e) => setTime(e.target.value)}
+              inputRef={timeRef}
+              error={Boolean(errors.time)}
+              helperText={errors.time ? "Time is required" : ""}
+              onChange={(e) => {
+                setTime(e.target.value);
+                if (errors.time) setErrors((prev) => ({ ...prev, time: false }));
+              }}
               fullWidth
               InputLabelProps={{ shrink: true }}
               required

@@ -51,6 +51,11 @@ const theme = createTheme({
     },
     MuiFormLabel: {
       styleOverrides: {
+        root: {
+          '&.Mui-error': {
+            color: '#d32f2f !important',
+          },
+        },
         asterisk: {
           color: '#d32f2f !important',
           fontWeight: 700,
@@ -59,9 +64,36 @@ const theme = createTheme({
     },
     MuiInputLabel: {
       styleOverrides: {
+        root: {
+          '&.Mui-error': {
+            color: '#d32f2f !important',
+          },
+        },
         asterisk: {
           color: '#d32f2f !important',
           fontWeight: 700,
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          '&.Mui-error .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#d32f2f !important',
+          },
+          '&.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#d32f2f !important',
+            borderWidth: '2px !important',
+            boxShadow: '0 0 0 1px #d32f2f !important',
+          },
+          '&.MuiInputBase-multiline textarea': {
+            minHeight: '60px',
+            boxSizing: 'border-box',
+          },
+        },
+        inputMultiline: {
+          minHeight: '60px',
+          boxSizing: 'border-box',
         },
       },
     },
@@ -90,20 +122,6 @@ const theme = createTheme({
         paper: {
           borderRadius: 12,
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        },
-      },
-    },
-    MuiOutlinedInput: {
-      styleOverrides: {
-        root: {
-          '&.MuiInputBase-multiline textarea': {
-            minHeight: '60px',
-            boxSizing: 'border-box',
-          },
-        },
-        inputMultiline: {
-          minHeight: '60px',
-          boxSizing: 'border-box',
         },
       },
     },

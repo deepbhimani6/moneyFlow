@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -18,6 +18,7 @@ import {
   FormControlLabel,
   Checkbox,
   CircularProgress,
+  FormHelperText,
 } from "@mui/material";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { memberService, entryService } from "../services/api";
@@ -33,8 +34,14 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [time, setTime] = useState(new Date().toTimeString().split(" ")[0].substring(0, 5));
   const [includeMine, setIncludeMine] = useState(false);
+  const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  const memberInputRef = useRef(null);
+  const amountRef = useRef(null);
+  const dateRef = useRef(null);
+  const timeRef = useRef(null);
 
   // Fetch available members for multi-select
   useEffect(() => {
@@ -57,6 +64,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
       setDate(new Date().toISOString().split("T")[0]);
       setTime(new Date().toTimeString().split(" ")[0].substring(0, 5));
       setIncludeMine(false);
+      setErrors({});
       setError("");
     }
   }, [open]);
@@ -91,13 +99,18 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
       }
     }
 
-    if (finalNames.length === 0) {
-      setError("Please select or enter at least one member name");
-      return;
-    }
+    const newErrors = {};
+    if (finalNames.length === 0) newErrors.members = true;
+    if (!amount || numericAmount <= 0) newErrors.amount = true;
+    if (!date || !date.trim()) newErrors.date = true;
+    if (!time || !time.trim()) newErrors.time = true;
 
-    if (!amount || numericAmount <= 0) {
-      setError("Please enter a valid amount");
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (newErrors.members && memberInputRef.current) memberInputRef.current.focus();
+      else if (newErrors.amount && amountRef.current) amountRef.current.focus();
+      else if (newErrors.date && dateRef.current) dateRef.current.focus();
+      else if (newErrors.time && timeRef.current) timeRef.current.focus();
       return;
     }
 
@@ -133,7 +146,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Add To Receive</DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
@@ -156,6 +169,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
             onChange={(event, newValue) => {
               setSelectedNames(newValue);
               setInputValue("");
+              if (errors.members) setErrors((prev) => ({ ...prev, members: false }));
               if (newValue.length > 1) {
                 setType("Split");
               } else if (type === "Split" && newValue.length <= 1) {
@@ -182,8 +196,14 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                 {...params}
                 label="Member Name"
                 required
+                inputRef={memberInputRef}
+                error={Boolean(errors.members)}
                 placeholder="Choose members or type & press enter..."
-                helperText="Select 1 or more members. If multiple are selected, amount will be split."
+                helperText={
+                  errors.members
+                    ? "Please select or enter at least one member name"
+                    : "Select 1 or more members. If multiple are selected, amount will be split."
+                }
               />
             )}
           />
@@ -257,7 +277,13 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
             label="Amount (₹)"
             type="number"
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
+            inputRef={amountRef}
+            error={Boolean(errors.amount)}
+            helperText={errors.amount ? "Please enter a valid amount" : ""}
+            onChange={(e) => {
+              setAmount(e.target.value);
+              if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
+            }}
             placeholder="e.g. 1500"
             fullWidth
             required
@@ -280,7 +306,13 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               label="Date"
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              inputRef={dateRef}
+              error={Boolean(errors.date)}
+              helperText={errors.date ? "Date is required" : ""}
+              onChange={(e) => {
+                setDate(e.target.value);
+                if (errors.date) setErrors((prev) => ({ ...prev, date: false }));
+              }}
               fullWidth
               InputLabelProps={{ shrink: true }}
               required
@@ -289,7 +321,13 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               label="Time"
               type="time"
               value={time}
-              onChange={(e) => setTime(e.target.value)}
+              inputRef={timeRef}
+              error={Boolean(errors.time)}
+              helperText={errors.time ? "Time is required" : ""}
+              onChange={(e) => {
+                setTime(e.target.value);
+                if (errors.time) setErrors((prev) => ({ ...prev, time: false }));
+              }}
               fullWidth
               InputLabelProps={{ shrink: true }}
               required
