@@ -115,9 +115,9 @@ const ForSelfPage = () => {
         aVal = Number(a.amount || 0);
         bVal = Number(b.amount || 0);
       } else if (orderBy === "type") {
-        // Ensure "Add Balance" sorts above "Expense" in asc order
-        const aType = (a.type || a.status || "").toLowerCase();
-        const bType = (b.type || b.status || "").toLowerCase();
+        // Ensure "Add Balance" sorts above "Expense" and "Split" in asc order
+        const aType = (a.isSplit ? "split" : (a.type || a.status || "")).toLowerCase();
+        const bType = (b.isSplit ? "split" : (b.type || b.status || "")).toLowerCase();
         if (aType === "add balance" && bType !== "add balance") return order === "asc" ? -1 : 1;
         if (bType === "add balance" && aType !== "add balance") return order === "asc" ? 1 : -1;
         aVal = aType;

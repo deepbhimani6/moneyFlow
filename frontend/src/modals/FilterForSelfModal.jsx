@@ -60,7 +60,7 @@ const FilterForSelfModal = ({ open, onClose, currentFilters, onApplyFilters, onR
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Filter For Self</DialogTitle>
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
-        {/* Type Filter: Add Balance always top, only Add Balance & Expense */}
+        {/* Type Filter: Add Balance always top, Add Balance, Expense, Split */}
         <FormControl fullWidth>
           <InputLabel id="filter-for-self-type-label">Type</InputLabel>
           <Select
@@ -75,6 +75,7 @@ const FilterForSelfModal = ({ open, onClose, currentFilters, onApplyFilters, onR
             <MenuItem value="All">All Types</MenuItem>
             <MenuItem value="Add Balance">Add Balance</MenuItem>
             <MenuItem value="Expense">Expense</MenuItem>
+            <MenuItem value="Split">Split</MenuItem>
           </Select>
         </FormControl>
 

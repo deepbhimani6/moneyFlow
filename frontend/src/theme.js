@@ -80,16 +80,24 @@ const theme = createTheme({
         root: {
           '&.Mui-error .MuiOutlinedInput-notchedOutline': {
             borderColor: '#d32f2f !important',
+            borderWidth: '1px !important',
+          },
+          '&.Mui-error:hover .MuiOutlinedInput-notchedOutline': {
+            borderColor: '#d32f2f !important',
+            borderWidth: '1px !important',
           },
           '&.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline': {
             borderColor: '#d32f2f !important',
-            borderWidth: '2px !important',
-            boxShadow: '0 0 0 1px #d32f2f !important',
+            borderWidth: '1px !important',
+            boxShadow: 'none !important',
           },
           '&.MuiInputBase-multiline textarea': {
             minHeight: '60px',
             boxSizing: 'border-box',
           },
+        },
+        notchedOutline: {
+          boxShadow: 'none !important',
         },
         inputMultiline: {
           minHeight: '60px',

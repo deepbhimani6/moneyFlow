@@ -24,12 +24,40 @@ const getForSelfEntries = async (req, res) => {
     // 1. Type / Status filter (Add Balance / Expense / Split)
     const effectiveType = type || status;
     if (effectiveType && effectiveType !== "All") {
-      andConditions.push({
-        $or: [
-          { type: { $regex: new RegExp(`^${effectiveType}$`, "i") } },
-          { status: { $regex: new RegExp(`^${effectiveType}$`, "i") } },
-        ],
-      });
+      if (effectiveType.toLowerCase() === "split") {
+        andConditions.push({
+          $or: [
+            { type: { $regex: /^split$/i } },
+            { status: { $regex: /^split$/i } },
+            { isSplit: true },
+          ],
+        });
+      } else if (effectiveType.toLowerCase() === "expense") {
+        andConditions.push({
+          $and: [
+            {
+              $or: [
+                { type: { $regex: /^expense$/i } },
+                { status: { $regex: /^expense$/i } },
+              ],
+            },
+            {
+              $or: [
+                { isSplit: false },
+                { isSplit: { $exists: false } },
+                { isSplit: null },
+              ],
+            },
+          ],
+        });
+      } else {
+        andConditions.push({
+          $or: [
+            { type: { $regex: new RegExp(`^${effectiveType}$`, "i") } },
+            { status: { $regex: new RegExp(`^${effectiveType}$`, "i") } },
+          ],
+        });
+      }
     }
 
     // 2. Payment Status (Paid / Pending)
@@ -92,7 +120,7 @@ const getForSelfEntries = async (req, res) => {
       .reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
     const totalPersonalExpenses = entries
-      .filter((e) => (e.type || "").toLowerCase() === "expense")
+      .filter((e) => (e.type || "").toLowerCase() === "expense" || (e.type || "").toLowerCase() === "split" || e.isSplit)
       .reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
     const netBalance = totalBalanceAdded - totalPersonalExpenses;

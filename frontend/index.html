@@ -21,18 +21,20 @@
         color: #d32f2f !important;
         font-weight: 700;
       }
-      /* Required field validation error styles: red label, red border, red focused outline */
+      /* Required field validation error styles: red label, red 1px border */
       .MuiFormLabel-root.Mui-error,
       .MuiInputLabel-root.Mui-error {
         color: #d32f2f !important;
       }
-      .MuiOutlinedInput-root.Mui-error .MuiOutlinedInput-notchedOutline {
-        border-color: #d32f2f !important;
-      }
+      .MuiOutlinedInput-root.Mui-error .MuiOutlinedInput-notchedOutline,
+      .MuiOutlinedInput-root.Mui-error:hover .MuiOutlinedInput-notchedOutline,
       .MuiOutlinedInput-root.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline {
         border-color: #d32f2f !important;
-        border-width: 2px !important;
-        box-shadow: 0 0 0 1px #d32f2f !important;
+        border-width: 1px !important;
+        box-shadow: none !important;
+      }
+      .MuiOutlinedInput-notchedOutline {
+        box-shadow: none !important;
       }
       .MuiFormHelperText-root.Mui-error {
         color: #d32f2f !important;
