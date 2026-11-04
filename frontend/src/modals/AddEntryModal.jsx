@@ -48,6 +48,31 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
     return name.toLowerCase().includes('myself');
   });
 
+  const isOnlyMyself = selectedNames.length === 1 && isMyselfAdded;
+  const isOnlyOneOther = selectedNames.length === 1 && !isMyselfAdded;
+
+  // Automatically enforce valid type according to selected participants:
+  // - Only myself: no "Loan" (cannot loan to oneself) -> default to Expense if Loan
+  // - Only 1 other person: no "Add Balance" (cannot add balance to another person) -> default to Expense if Add Balance
+  // - Multiple members: automatically "Split"
+  useEffect(() => {
+    if (selectedNames.length > 1) {
+      setType('Split');
+    } else if (isOnlyMyself) {
+      if (type === 'Loan' || type === 'Split') {
+        setType('Expense');
+      }
+    } else if (isOnlyOneOther) {
+      if (type === 'Add Balance' || type === 'Split') {
+        setType('Expense');
+      }
+    } else if (selectedNames.length === 0) {
+      if (type === 'Split') {
+        setType('Expense');
+      }
+    }
+  }, [selectedNames, isOnlyMyself, isOnlyOneOther, type]);
+
   // Split calculation preview:
   // If myself is already selected in the list, count is simply selectedNames.length
   // If myself is NOT selected, count depends on includeMine checkbox
@@ -249,6 +274,16 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
             >
               {selectedNames.length > 1 ? (
                 <MenuItem value="Split">Split</MenuItem>
+              ) : isOnlyMyself ? (
+                [
+                  <MenuItem key="Add Balance" value="Add Balance">Add Balance</MenuItem>,
+                  <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
+                ]
+              ) : isOnlyOneOther ? (
+                [
+                  <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
+                  <MenuItem key="Loan" value="Loan">Loan</MenuItem>,
+                ]
               ) : (
                 [
                   <MenuItem key="Add Balance" value="Add Balance">Add Balance</MenuItem>,

@@ -139,6 +139,19 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
   const isAddBalance = status === "Add Balance";
   const shouldHideStatus = isMyself || isAddBalance;
 
+  // Enforce valid type when editing single entry:
+  // - If myself: no Loan allowed
+  // - If other member: no Add Balance allowed
+  useEffect(() => {
+    if (!isSplit) {
+      if (isMyself && status === 'Loan') {
+        setStatus('Expense');
+      } else if (!isMyself && status === 'Add Balance') {
+        setStatus('Expense');
+      }
+    }
+  }, [isMyself, isSplit, status]);
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit}>
@@ -203,9 +216,13 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
             >
               {isSplit ? (
                 <MenuItem value={status}>{status}</MenuItem>
-              ) : (
+              ) : isMyself ? (
                 [
                   <MenuItem key="Add Balance" value="Add Balance">Add Balance</MenuItem>,
+                  <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
+                ]
+              ) : (
+                [
                   <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
                   <MenuItem key="Loan" value="Loan">Loan</MenuItem>,
                 ]
