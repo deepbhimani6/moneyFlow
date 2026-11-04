@@ -29,14 +29,19 @@ const sendInviteEmail = async ({ toEmail, fullName, inviteLink, username, tempor
       </div>
     `;
 
-    const data = await resend.emails.send({
+    const { data, error } = await resend.emails.send({
       from,
       to: [toEmail],
       subject,
       html,
     });
 
-    console.log(`[Resend Email Sent]: to=${toEmail}, id=${data.data?.id || data.id}`);
+    if (error) {
+      console.error(`[Resend Email Error]: to=${toEmail}, error=`, error.message);
+      return { success: false, error: error.message };
+    }
+
+    console.log(`[Resend Email Sent]: to=${toEmail}, id=${data?.id}`);
     return { success: true, data };
   } catch (error) {
     console.error(`[Resend Email Error]: ${error.message}`);
