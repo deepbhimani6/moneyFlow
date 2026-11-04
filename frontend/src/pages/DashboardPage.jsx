@@ -66,8 +66,8 @@ const DashboardPage = () => {
       amount: stats.totalBalance,
       color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f',
       icon: <AccountBalanceWalletIcon sx={{ fontSize: 32, color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f' }} />,
-      subtitle: '((Total Balance - Total Expenses - Total Loans - Total Pending) + Total Received)',
-      calculationLine: `((₹${formatAmount(stats.totalAddBalance)} - ₹${formatAmount(stats.totalExpenses)} - ₹${formatAmount(stats.totalLoans)} - ₹${formatAmount(stats.totalPending)}) + ₹${formatAmount(stats.totalReceived)})`,
+      subtitle: '((Total Balance - Total Expenses - Total Loans - Total Pending))',
+      calculationLine: `(₹${formatAmount(stats.totalAddBalance)} - ₹${formatAmount(stats.totalExpenses)} - ₹${formatAmount(stats.totalLoans)} - ₹${formatAmount(stats.totalPending)})`,
       gridProps: { xs: 12, sm: 6, md: 6 },
     },
     {
