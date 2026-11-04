@@ -271,7 +271,11 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
             placeholder="e.g. Dinner with team, office supplies, cab fare..."
             fullWidth
             multiline
-            rows={2}
+            sx={{
+              '& .MuiInputBase-inputMultiline': {
+                minHeight: '60px',
+              },
+            }}
           />
 
           {/* 4. Date & 5. Time */}

@@ -277,7 +277,11 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
             placeholder="e.g. Dinner with team, office supplies, cab fare..."
             fullWidth
             multiline
-            rows={2}
+            sx={{
+              '& .MuiInputBase-inputMultiline': {
+                minHeight: '60px',
+              },
+            }}
           />
 
           {/* 5. Date & Time */}

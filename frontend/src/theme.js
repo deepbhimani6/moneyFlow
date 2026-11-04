@@ -69,6 +69,28 @@ const theme = createTheme({
         },
       },
     },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          '&.MuiInputBase-multiline textarea': {
+            minHeight: '60px',
+            boxSizing: 'border-box',
+          },
+        },
+        inputMultiline: {
+          minHeight: '60px',
+          boxSizing: 'border-box',
+        },
+      },
+    },
+    MuiInputBase: {
+      styleOverrides: {
+        inputMultiline: {
+          minHeight: '60px',
+          boxSizing: 'border-box',
+        },
+      },
+    },
   },
 });
 
