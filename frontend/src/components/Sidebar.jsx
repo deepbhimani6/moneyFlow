@@ -13,7 +13,7 @@ import {
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import HandshakeIcon from '@mui/icons-material/Handshake';
+import PaymentIcon from '@mui/icons-material/Payment';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
@@ -22,7 +22,7 @@ const drawerWidth = 240;
 const menuItems = [
   { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   { id: 'entries', path: '/entries', label: 'Entries', icon: <ReceiptLongIcon /> },
-  { id: 'borrowed', path: '/borrowed', label: 'Borrowed', icon: <HandshakeIcon /> },
+  { id: 'to-pay', path: '/to-pay', label: 'To Pay', icon: <PaymentIcon /> },
   { id: 'members', path: '/members', label: 'Members', icon: <PeopleAltIcon /> },
 ];
 

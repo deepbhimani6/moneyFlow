@@ -1,6 +1,5 @@
 const Member = require('../models/Member');
 const Entry = require('../models/Entry');
-const Borrowed = require('../models/Borrowed');
 const { sendInviteEmail } = require('../utils/email');
 
 // @desc    Get all members

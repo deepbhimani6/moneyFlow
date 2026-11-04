@@ -87,29 +87,34 @@ export const memberService = {
   },
 };
 
-export const borrowedService = {
-  getBorrowed: async (params = {}) => {
-    const res = await api.get('/borrowed', { params });
+export const toPayService = {
+  getToPayEntries: async (params = {}) => {
+    const res = await api.get('/to-pay', { params });
     return res.data;
   },
-  createBorrowed: async (borrowedData) => {
-    const res = await api.post('/borrowed', borrowedData);
+  getSplitGroupEntries: async (splitGroupId) => {
+    const res = await api.get(`/to-pay/split-group/${splitGroupId}`);
     return res.data;
   },
-  updateBorrowed: async (id, borrowedData) => {
-    const res = await api.put(`/borrowed/${id}`, borrowedData);
+  createToPayEntry: async (entryData) => {
+    const res = await api.post('/to-pay', entryData);
     return res.data;
   },
-  deleteBorrowed: async (id) => {
-    const res = await api.delete(`/borrowed/${id}`);
+  updateToPayEntry: async (id, entryData) => {
+    const res = await api.put(`/to-pay/${id}`, entryData);
     return res.data;
   },
-  bulkUpdateStatus: async (ids, status) => {
-    const res = await api.post('/borrowed/bulk-status', { ids, status });
+  deleteToPayEntry: async (id) => {
+    const res = await api.delete(`/to-pay/${id}`);
+    return res.data;
+  },
+  bulkUpdateStatus: async (ids, statusOrData) => {
+    const payload = typeof statusOrData === 'string' ? { ids, status: statusOrData } : { ids, ...statusOrData };
+    const res = await api.post('/to-pay/bulk-status', payload);
     return res.data;
   },
   bulkDelete: async (ids) => {
-    const res = await api.post('/borrowed/bulk-delete', { ids });
+    const res = await api.post('/to-pay/bulk-delete', { ids });
     return res.data;
   },
 };

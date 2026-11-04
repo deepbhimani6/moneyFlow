@@ -1,10 +1,10 @@
 const mongoose = require("mongoose");
 
-const borrowedSchema = new mongoose.Schema(
+const toPaySchema = new mongoose.Schema(
   {
-    personName: {
+    forFromName: {
       type: String,
-      required: [true, "Person / Lender name is required"],
+      required: [true, "For/From Name is required"],
       trim: true,
     },
     memberId: {
@@ -14,13 +14,20 @@ const borrowedSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["Expense", "Borrowed", "Loan"],
+      enum: ["Add Balance", "Expense", "Loan", "Paid", "Split", "To Pay"],
+      required: [true, "Type is required"],
       default: "Expense",
     },
-    status: {
+    paymentStatus: {
       type: String,
       enum: ["Pending", "Paid"],
       default: "Pending",
+    },
+    status: {
+      type: String,
+      default: function () {
+        return this.type || "Expense";
+      },
     },
     amount: {
       type: Number,
@@ -35,6 +42,23 @@ const borrowedSchema = new mongoose.Schema(
       type: String,
       required: true, // Format: HH:mm
     },
+    // Split metadata
+    isSplit: {
+      type: Boolean,
+      default: false,
+    },
+    splitGroupId: {
+      type: String,
+      default: null,
+    },
+    originalTotalAmount: {
+      type: Number,
+      default: null,
+    },
+    isMine: {
+      type: Boolean,
+      default: false,
+    },
     description: {
       type: String,
       trim: true,
@@ -44,4 +68,4 @@ const borrowedSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Borrowed", borrowedSchema);
+module.exports = mongoose.model("ToPay", toPaySchema);

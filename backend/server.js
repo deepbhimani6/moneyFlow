@@ -7,7 +7,7 @@ const connectDB = require('./config/db');
 const memberRoutes = require('./routes/memberRoutes');
 const entryRoutes = require('./routes/entryRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
-const borrowedRoutes = require('./routes/borrowedRoutes');
+const toPayRoutes = require('./routes/toPayRoutes');
 
 const app = express();
 
@@ -27,7 +27,7 @@ app.get('/api/health', (req, res) => {
 // Mount Routes
 app.use('/api/members', memberRoutes);
 app.use('/api/entries', entryRoutes);
-app.use('/api/borrowed', borrowedRoutes);
+app.use('/api/to-pay', toPayRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 
 // Error Handling Middleware
