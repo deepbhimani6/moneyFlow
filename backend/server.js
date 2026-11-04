@@ -1,6 +1,9 @@
+const path = require('path');
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const fs = require('fs');
 const connectDB = require('./config/db');
 
 // Import Routes
@@ -31,6 +34,18 @@ app.use('/api/entries', entryRoutes);
 app.use('/api/to-pay', toPayRoutes);
 app.use('/api/for-self', forSelfRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+
+// Serve Frontend in production
+const frontendDist = path.join(__dirname, '../frontend/dist');
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist));
+  app.use((req, res, next) => {
+    if (req.method === 'GET' && !req.originalUrl.startsWith('/api')) {
+      return res.sendFile(path.join(frontendDist, 'index.html'));
+    }
+    next();
+  });
+}
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
