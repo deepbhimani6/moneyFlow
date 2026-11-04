@@ -1,10 +1,24 @@
+const nodemailer = require('nodemailer');
 const { Resend } = require('resend');
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder');
 
+const getSmtpTransporter = () => {
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, '') : null;
+  if (!user || !pass) return null;
+
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user,
+      pass,
+    },
+  });
+};
+
 const sendInviteEmail = async ({ toEmail, fullName, inviteLink, username, temporaryPassword }) => {
   try {
-    const from = process.env.EMAIL_FROM || 'MoneyFlow <onboarding@resend.dev>';
     const subject = `You're invited to join MoneyFlow`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
@@ -29,6 +43,22 @@ const sendInviteEmail = async ({ toEmail, fullName, inviteLink, username, tempor
       </div>
     `;
 
+    // 1. Try Gmail SMTP if configured
+    const transporter = getSmtpTransporter();
+    if (transporter) {
+      const from = process.env.EMAIL_FROM || `"MoneyFlow" <${process.env.SMTP_USER}>`;
+      const info = await transporter.sendMail({
+        from,
+        to: toEmail,
+        subject,
+        html,
+      });
+      console.log(`[Gmail SMTP Email Sent]: to=${toEmail}, messageId=${info.messageId}`);
+      return { success: true, data: info };
+    }
+
+    // 2. Fallback to Resend if SMTP is not configured
+    const from = process.env.EMAIL_FROM || 'MoneyFlow <onboarding@resend.dev>';
     const { data, error } = await resend.emails.send({
       from,
       to: [toEmail],
@@ -44,7 +74,7 @@ const sendInviteEmail = async ({ toEmail, fullName, inviteLink, username, tempor
     console.log(`[Resend Email Sent]: to=${toEmail}, id=${data?.id}`);
     return { success: true, data };
   } catch (error) {
-    console.error(`[Resend Email Error]: ${error.message}`);
+    console.error(`[Email Error]: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
