@@ -92,7 +92,7 @@ const DashboardPage = () => {
       amount: stats.totalPending,
       color: '#ed6c02',
       icon: <PendingActionsIcon sx={{ fontSize: 32, color: '#ed6c02' }} />,
-      subtitle: 'Type: Split (Status: Pending)',
+      subtitle: 'Type: Split (Pending) + Expenses (not Myself (You), Pending)',
       gridProps: { xs: 12, sm: 6, md: 6 },
     },
     {

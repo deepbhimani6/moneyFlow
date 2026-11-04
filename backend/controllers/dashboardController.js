@@ -43,16 +43,29 @@ const getDashboardStats = async (req, res) => {
     ]);
     const totalLoans = loanRes[0]?.total || 0;
 
-    // 4. Total Pending: Type: Split (Status: Pending)
+    // 4. Total Pending: Type: Split (Status: Pending) + Type: Expenses (not For/From Name: Myself (You) (Status: Pending))
     const pendingRes = await Entry.aggregate([
       {
         $match: {
-          type: "Split",
-          $or: [
-            { paymentStatus: "Pending" },
-            { paymentStatus: { $exists: false } },
-            { paymentStatus: null },
-            { paymentStatus: { $ne: "Received" } },
+          $and: [
+            {
+              $or: [
+                { paymentStatus: "Pending" },
+                { paymentStatus: { $exists: false } },
+                { paymentStatus: null },
+                { paymentStatus: { $ne: "Received" } },
+              ],
+            },
+            {
+              $or: [
+                { type: "Split" },
+                {
+                  type: { $in: ["Expense", "Expenses"] },
+                  forFromName: { $not: /myself/i },
+                  isMine: { $ne: true },
+                },
+              ],
+            },
           ],
         },
       },
