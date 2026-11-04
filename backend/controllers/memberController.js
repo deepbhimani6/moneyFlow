@@ -2,6 +2,22 @@ const Member = require('../models/Member');
 const Entry = require('../models/Entry');
 const { sendInviteEmail } = require('../utils/email');
 
+const getAppUrl = (req) => {
+  if (process.env.APP_URL && !process.env.APP_URL.includes('localhost')) {
+    return process.env.APP_URL.replace(/\/+$/, '');
+  }
+  const origin = req.get('origin');
+  if (origin && !origin.includes('localhost')) {
+    return origin.replace(/\/+$/, '');
+  }
+  const host = req.get('host');
+  if (host && !host.includes('localhost')) {
+    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
+    return `${protocol}://${host}`.replace(/\/+$/, '');
+  }
+  return process.env.APP_URL || 'https://moneyflow-5a2a.onrender.com';
+};
+
 // @desc    Get all members
 // @route   GET /api/members
 const getMembers = async (req, res) => {
@@ -51,7 +67,7 @@ const createMember = async (req, res) => {
 
     // Check if invite link checkbox was checked
     if (sendLink) {
-      const appUrl = process.env.APP_URL || 'http://localhost:3000';
+      const appUrl = getAppUrl(req);
       const emailResult = await sendInviteEmail({
         toEmail: member.email,
         fullName: member.fullName,
@@ -248,7 +264,7 @@ const sendInviteToMember = async (req, res) => {
       });
     }
 
-    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const appUrl = getAppUrl(req);
     const emailResult = await sendInviteEmail({
       toEmail: member.email,
       fullName: member.fullName,
@@ -281,7 +297,7 @@ const bulkInviteMembers = async (req, res) => {
     }
 
     const members = await Member.find({ _id: { $in: ids } });
-    const appUrl = process.env.APP_URL || 'http://localhost:3000';
+    const appUrl = getAppUrl(req);
     let sentCount = 0;
     let failedCount = 0;
     const missingEmailMembers = [];
