@@ -6,7 +6,14 @@ const getDashboardStats = async (req, res) => {
   try {
     // 1. Added Balance: entries with Type: "Add Balance"
     const addedRes = await Entry.aggregate([
-      { $match: { type: "Add Balance" } },
+      {
+        $match: {
+          $or: [
+            { type: { $regex: /^add balance$/i } },
+            { status: { $regex: /^add balance$/i } },
+          ],
+        },
+      },
       { $group: { _id: null, total: { $sum: "$amount" } } },
     ]);
     const totalAddBalance = addedRes[0]?.total || 0;
@@ -121,8 +128,8 @@ const getDashboardStats = async (req, res) => {
     const splitPendingCount = splitDocs.filter((e) => e.paymentStatus !== "Received").length;
     const splitReceivedCount = splitDocs.filter((e) => e.paymentStatus === "Received").length;
 
-    // Formula 1: Total Balance = Added - Expenses - Loans (Status: pending) + Received
-    const totalBalance = totalAddBalance - totalExpenses - totalLoans + totalReceived;
+    // Formula: Total Balance = ((Total Balance - Total Expenses - Total Loans - Total Pending) + Total Received)
+    const totalBalance = (totalAddBalance - totalExpenses - totalLoans - totalPending) + totalReceived;
 
     res.json({
       success: true,
