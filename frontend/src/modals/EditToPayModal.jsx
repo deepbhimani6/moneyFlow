@@ -131,22 +131,6 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
   if (!entry) return null;
 
   const isSplit = Boolean(entry.isSplit);
-  const isMyself = Boolean(
-    (forFromName && forFromName.toLowerCase().includes("myself")) ||
-    (entry && (entry.isMine || (entry.forFromName && entry.forFromName.toLowerCase().includes("myself"))))
-  );
-  const isAddBalance = status === "Add Balance";
-  const shouldHideStatus = isMyself || isAddBalance;
-
-  useEffect(() => {
-    if (!isSplit) {
-      if (isMyself && status === "Loan") {
-        setStatus("Expense");
-      } else if (!isMyself && status === "Add Balance") {
-        setStatus("Expense");
-      }
-    }
-  }, [isMyself, isSplit, status]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -201,7 +185,7 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
             helperText={isSplit ? "Participant name in this split group" : ""}
           />
 
-          {/* 2. Type */}
+          {/* 2. Type: Only Expense and Loan */}
           <FormControl fullWidth disabled={isSplit}>
             <InputLabel id="edit-type-label">Type</InputLabel>
             <Select
@@ -212,11 +196,6 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
             >
               {isSplit ? (
                 <MenuItem value={status}>{status}</MenuItem>
-              ) : isMyself ? (
-                [
-                  <MenuItem key="Add Balance" value="Add Balance">Add Balance</MenuItem>,
-                  <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
-                ]
               ) : (
                 [
                   <MenuItem key="Expense" value="Expense">Expense</MenuItem>,
@@ -232,20 +211,18 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
           </FormControl>
 
           {/* Status (Pending / Paid) */}
-          {!shouldHideStatus && (
-            <FormControl fullWidth>
-              <InputLabel id="edit-payment-status-label">Status</InputLabel>
-              <Select
-                labelId="edit-payment-status-label"
-                value={paymentStatus}
-                label="Status"
-                onChange={(e) => setPaymentStatus(e.target.value)}
-              >
-                <MenuItem value="Pending">Pending</MenuItem>
-                <MenuItem value="Paid">Paid</MenuItem>
-              </Select>
-            </FormControl>
-          )}
+          <FormControl fullWidth>
+            <InputLabel id="edit-payment-status-label">Status</InputLabel>
+            <Select
+              labelId="edit-payment-status-label"
+              value={paymentStatus}
+              label="Status"
+              onChange={(e) => setPaymentStatus(e.target.value)}
+            >
+              <MenuItem value="Pending">Pending</MenuItem>
+              <MenuItem value="Paid">Paid</MenuItem>
+            </Select>
+          </FormControl>
 
           {/* 3. Amounts */}
           {isSplit ? (

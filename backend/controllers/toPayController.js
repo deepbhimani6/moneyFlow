@@ -43,7 +43,7 @@ const resolveOrCreateMember = async (item) => {
 // @route   GET /api/to-pay
 const getToPayEntries = async (req, res) => {
   try {
-    const { status, type, paymentStatus, search, description, names, selectedNames, startDate, endDate, minAmount, maxAmount } = req.query;
+    const { status, type, paymentStatus, search, description, names, selectedNames, forFromName, name, personName, startDate, endDate, minAmount, maxAmount } = req.query;
     let query = {};
     const andConditions = [];
 
@@ -61,8 +61,8 @@ const getToPayEntries = async (req, res) => {
       });
     }
 
-    // Filter by multiple participant names from Autocomplete
-    const rawNames = names || selectedNames || req.query['names[]'];
+    // Filter by member / person name
+    const rawNames = forFromName || name || personName || names || selectedNames || req.query['names[]'];
     let participantList = [];
     if (Array.isArray(rawNames)) {
       participantList = rawNames.filter(Boolean);

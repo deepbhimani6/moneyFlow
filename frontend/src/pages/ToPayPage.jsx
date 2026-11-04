@@ -40,12 +40,8 @@ const getTypeChip = (type) => {
       return <Chip label="Expense" size="small" color="error" variant="outlined" />;
     case "Loan":
       return <Chip label="Loan" size="small" color="warning" variant="outlined" />;
-    case "Split":
-      return <Chip icon={<CallSplitIcon sx={{ "&&": { fontSize: 16 } }} />} label="Split" size="small" color="info" variant="outlined" />;
-    case "Add Balance":
-      return <Chip icon={<AccountBalanceWalletIcon sx={{ "&&": { fontSize: 16 } }} />} label="Add Balance" size="small" color="primary" variant="outlined" />;
     default:
-      return <Chip label={type || "Expense"} size="small" />;
+      return <Chip label={type || "Expense"} size="small" variant="outlined" />;
   }
 };
 
@@ -82,8 +78,8 @@ const ToPayPage = () => {
     paymentStatus: "All",
     search: "",
     description: "",
-    selectedNames: [],
-    names: "",
+    selectedMember: null,
+    forFromName: "",
     startDate: "",
     endDate: "",
     minAmount: "",
@@ -467,13 +463,7 @@ const ToPayPage = () => {
             ) : (
               sortedEntries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                 const isSelected = selectedIds.includes(row._id);
-                const rowType = row.type || (["Add Balance", "Expense", "Loan", "Split"].includes(row.status) ? row.status : "Expense");
-                const isMyself = Boolean(
-                  (row.forFromName && row.forFromName.toLowerCase().includes("myself")) ||
-                  row.isMine
-                );
-                const isAddBalance = rowType === "Add Balance";
-                const shouldHideStatus = isMyself || isAddBalance;
+                const rowType = row.type || (["Expense", "Loan"].includes(row.status) ? row.status : "Expense");
 
                 return (
                   <TableRow key={row._id} hover selected={isSelected} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
@@ -495,13 +485,7 @@ const ToPayPage = () => {
                     <TableCell sx={{ whiteSpace: "nowrap" }}>{formatTime(row.time)}</TableCell>
                     <TableCell>{getTypeChip(rowType)}</TableCell>
                     <TableCell>
-                      {shouldHideStatus ? (
-                        <Typography variant="body2" color="text.disabled" sx={{ fontStyle: "italic", pl: 1 }}>
-                          —
-                        </Typography>
-                      ) : (
-                        getStatusChip(row.paymentStatus, () => handleToggleStatus(row))
-                      )}
+                      {getStatusChip(row.paymentStatus, () => handleToggleStatus(row))}
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700 }}>
                       ₹ {formatAmount(row.amount)}
@@ -614,8 +598,8 @@ const ToPayPage = () => {
             paymentStatus: "All",
             search: "",
             description: "",
-            selectedNames: [],
-            names: "",
+            selectedMember: null,
+            forFromName: "",
             startDate: "",
             endDate: "",
             minAmount: "",

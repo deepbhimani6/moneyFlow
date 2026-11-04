@@ -11,16 +11,13 @@ import {
   Select,
   MenuItem,
   Autocomplete,
-  Chip,
   Box,
-  Typography,
 } from "@mui/material";
-import PersonIcon from "@mui/icons-material/Person";
 import { memberService } from "../services/api";
 
 const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFilters }) => {
   const [members, setMembers] = useState([]);
-  const [selectedNames, setSelectedNames] = useState([]);
+  const [selectedMember, setSelectedMember] = useState(null);
   const [inputValue, setInputValue] = useState("");
   const [filters, setFilters] = useState(currentFilters || {});
 
@@ -36,51 +33,29 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
         .catch(console.error);
 
       setFilters(currentFilters || {});
-      setSelectedNames(currentFilters?.selectedNames || []);
-      setInputValue("");
+      setSelectedMember(currentFilters?.selectedMember || null);
+      setInputValue(currentFilters?.name || currentFilters?.forFromName || "");
     }
   }, [open, currentFilters]);
-
-  const isMyselfAdded = selectedNames.some((item) => {
-    const name = typeof item === "string" ? item : item.fullName;
-    return name && name.toLowerCase().includes("myself");
-  });
-
-  const handleToggleMyself = () => {
-    if (isMyselfAdded) {
-      const filtered = selectedNames.filter((item) => {
-        const name = typeof item === "string" ? item : item.fullName;
-        return !name || !name.toLowerCase().includes("myself");
-      });
-      setSelectedNames(filtered);
-    } else {
-      const updated = [{ _id: "myself", fullName: "Myself (You)" }, ...selectedNames];
-      setSelectedNames(updated);
-    }
-  };
 
   const handleChange = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleApply = () => {
-    let finalNames = [...selectedNames];
-    if (inputValue && inputValue.trim()) {
-      const trimmed = inputValue.trim();
-      const alreadyIn = finalNames.some(
-        (item) => (typeof item === "string" ? item : item.fullName).toLowerCase() === trimmed.toLowerCase()
-      );
-      if (!alreadyIn) {
-        finalNames.push(trimmed);
-      }
+    let nameVal = "";
+    if (selectedMember) {
+      nameVal = typeof selectedMember === "string" ? selectedMember.trim() : selectedMember.fullName || "";
+    } else if (inputValue && inputValue.trim()) {
+      nameVal = inputValue.trim();
     }
-
-    const stringNames = finalNames.map((item) => (typeof item === "string" ? item : item.fullName));
 
     onApplyFilters({
       ...filters,
-      selectedNames: finalNames,
-      names: stringNames.join(","),
+      selectedMember,
+      name: nameVal,
+      forFromName: nameVal,
+      names: nameVal,
       description: (filters.description || "").trim(),
     });
     onClose();
@@ -92,7 +67,9 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
       paymentStatus: "All",
       search: "",
       description: "",
-      selectedNames: [],
+      selectedMember: null,
+      name: "",
+      forFromName: "",
       names: "",
       startDate: "",
       endDate: "",
@@ -100,7 +77,7 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
       maxAmount: "",
     };
     setFilters(emptyFilters);
-    setSelectedNames([]);
+    setSelectedMember(null);
     setInputValue("");
     onResetFilters();
     onClose();
@@ -110,15 +87,18 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Filter To Pay</DialogTitle>
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
-        {/* Type Filter */}
+        {/* Type Filter: Only Expense and Loan */}
         <FormControl fullWidth>
           <InputLabel id="filter-type-label">Type</InputLabel>
-          <Select labelId="filter-type-label" value={filters.status || "All"} label="Type" onChange={(e) => handleChange("status", e.target.value)}>
+          <Select
+            labelId="filter-type-label"
+            value={filters.status || "All"}
+            label="Type"
+            onChange={(e) => handleChange("status", e.target.value)}
+          >
             <MenuItem value="All">All Types</MenuItem>
-            <MenuItem value="Add Balance">Add Balance</MenuItem>
             <MenuItem value="Expense">Expense</MenuItem>
             <MenuItem value="Loan">Loan</MenuItem>
-            <MenuItem value="Split">Split</MenuItem>
           </Select>
         </FormControl>
 
@@ -137,57 +117,28 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
           </Select>
         </FormControl>
 
-        {/* For/From Name */}
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: -1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary" }}>
-            Select Participants:
-          </Typography>
-          <Chip
-            icon={<PersonIcon sx={{ "&&": { fontSize: 16 } }} />}
-            label={isMyselfAdded ? "Myself Added ✓" : "+ Add Myself"}
-            size="small"
-            clickable
-            color={isMyselfAdded ? "primary" : "default"}
-            variant={isMyselfAdded ? "filled" : "outlined"}
-            onClick={handleToggleMyself}
-          />
-        </Box>
-
+        {/* Single Member Selection */}
         <Autocomplete
-          multiple
           freeSolo
-          options={[{ _id: "myself", fullName: "Myself (You)" }, ...members]}
-          getOptionLabel={(option) => (typeof option === "string" ? option : option.fullName)}
-          value={selectedNames}
+          options={members}
+          getOptionLabel={(option) => (typeof option === "string" ? option : option.fullName || "")}
+          isOptionEqualToValue={(option, value) => {
+            if (typeof value === "string") return option.fullName === value;
+            return option._id === value?._id;
+          }}
+          value={selectedMember}
           inputValue={inputValue}
           onInputChange={(event, newInputValue) => {
             setInputValue(newInputValue);
           }}
           onChange={(event, newValue) => {
-            setSelectedNames(newValue);
-            setInputValue("");
+            setSelectedMember(newValue);
           }}
-          renderTags={(value, getTagProps) =>
-            value.map((option, index) => {
-              const label = typeof option === "string" ? option : option.fullName;
-              const isMine = label && label.toLowerCase().includes("myself");
-              return (
-                <Chip
-                  variant="outlined"
-                  color={isMine ? "secondary" : "primary"}
-                  size="small"
-                  label={label}
-                  {...getTagProps({ index })}
-                  key={index}
-                />
-              );
-            })
-          }
           renderInput={(params) => (
             <TextField
               {...params}
-              label="For/From Name (Select Members or Type Custom)"
-              placeholder="Choose members or type & press enter..."
+              label="For/From Name (Select Member or Type Name)"
+              placeholder="Choose a member or type name..."
             />
           )}
         />
@@ -197,7 +148,7 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
           label="Description"
           value={filters.description || ""}
           onChange={(e) => handleChange("description", e.target.value)}
-          placeholder="Filter by description notes (e.g. pizza, dinner, groceries)..."
+          placeholder="Filter by description notes (e.g. dinner, tickets)..."
           fullWidth
         />
 
@@ -223,8 +174,20 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
 
         {/* Amount Range */}
         <Box sx={{ display: "flex", gap: 1.5 }}>
-          <TextField label="Min Amount (₹)" type="number" value={filters.minAmount || ""} onChange={(e) => handleChange("minAmount", e.target.value)} fullWidth />
-          <TextField label="Max Amount (₹)" type="number" value={filters.maxAmount || ""} onChange={(e) => handleChange("maxAmount", e.target.value)} fullWidth />
+          <TextField
+            label="Min Amount (₹)"
+            type="number"
+            value={filters.minAmount || ""}
+            onChange={(e) => handleChange("minAmount", e.target.value)}
+            fullWidth
+          />
+          <TextField
+            label="Max Amount (₹)"
+            type="number"
+            value={filters.maxAmount || ""}
+            onChange={(e) => handleChange("maxAmount", e.target.value)}
+            fullWidth
+          />
         </Box>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
