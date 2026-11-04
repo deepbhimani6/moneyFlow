@@ -76,39 +76,64 @@ const EntriesPage = () => {
   // Notification
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  // Scroll direction for sticky header (scroll DOWN) & sticky footer (scroll UP)
-  const [scrollDirection, setScrollDirection] = useState("down");
-  const lastScrollY = useRef(0);
+  // Viewport-visibility-based sticky header and footer
+  const tableContainerRef = useRef(null);
+  const footerWrapperRef = useRef(null);
+  const [isHeaderStuck, setIsHeaderStuck] = useState(false);
+  const [isFooterSticky, setIsFooterSticky] = useState(false);
+  const [tableBounds, setTableBounds] = useState({ left: 0, width: "100%" });
 
   useEffect(() => {
     let ticking = false;
-    const threshold = 5;
 
-    const updateScrollDirection = () => {
-      const scrollY = window.scrollY || window.pageYOffset;
-      const deltaY = scrollY - lastScrollY.current;
+    const checkStickyStates = () => {
+      const navHeight = window.innerWidth < 600 ? 56 : 64;
+      const winHeight = window.innerHeight;
 
-      if (Math.abs(deltaY) >= threshold) {
-        if (deltaY > 0) {
-          setScrollDirection("down");
-        } else {
-          setScrollDirection("up");
+      if (tableContainerRef.current) {
+        const tableRect = tableContainerRef.current.getBoundingClientRect();
+
+        setTableBounds({
+          left: Math.round(tableRect.left),
+          width: Math.round(tableRect.width),
+        });
+
+        // 1. Table Head: sticky when the table top has scrolled past the app bar,
+        // and table rows are still in the viewport.
+        const headerStuck = tableRect.top <= navHeight && tableRect.bottom > navHeight + 80;
+        setIsHeaderStuck(headerStuck);
+
+        // 2. Table Footer: sticky when table is in view,
+        // BUT the natural bottom of the table (footer) is NOT seen in the viewport!
+        if (footerWrapperRef.current) {
+          const footerRect = footerWrapperRef.current.getBoundingClientRect();
+          const isTableInView = tableRect.top < winHeight - 60 && tableRect.bottom > 100;
+          const isFooterOutOfView = footerRect.top > winHeight - 52;
+
+          setIsFooterSticky(isTableInView && isFooterOutOfView);
         }
-        lastScrollY.current = scrollY > 0 ? scrollY : 0;
       }
       ticking = false;
     };
 
-    const onScroll = () => {
+    const onScrollOrResize = () => {
       if (!ticking) {
-        window.requestAnimationFrame(updateScrollDirection);
+        window.requestAnimationFrame(checkStickyStates);
         ticking = true;
       }
     };
 
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+    // Initial check
+    checkStickyStates();
+
+    window.addEventListener("scroll", onScrollOrResize, { passive: true });
+    window.addEventListener("resize", onScrollOrResize, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScrollOrResize);
+      window.removeEventListener("resize", onScrollOrResize);
+    };
+  }, [entries, rowsPerPage, page, loading]);
 
   const fetchEntries = async () => {
     try {
@@ -269,6 +294,7 @@ const EntriesPage = () => {
 
       {/* Entries Data Table */}
       <TableContainer
+        ref={tableContainerRef}
         component={Paper}
         sx={{
           borderRadius: 2,
@@ -281,14 +307,15 @@ const EntriesPage = () => {
           <TableHead
             sx={{
               bgcolor: "#f8fafc",
-              position: scrollDirection === "down" ? "sticky" : "static",
+              position: "sticky",
               top: { xs: 56, sm: 64 },
               zIndex: 5,
               "& th": {
                 bgcolor: "#f8fafc",
-                position: scrollDirection === "down" ? "sticky" : "static",
+                position: "sticky",
                 top: { xs: 56, sm: 64 },
-                boxShadow: scrollDirection === "down" ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
+                zIndex: 5,
+                boxShadow: isHeaderStuck ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
                 transition: "box-shadow 0.2s",
               },
             }}
@@ -386,30 +413,46 @@ const EntriesPage = () => {
           </TableBody>
         </Table>
 
-        {/* Sticky Footer on Scroll UP */}
+        {/* Pagination Footer: Sticky when not seen in viewport, docked when seen */}
         <Box
+          ref={footerWrapperRef}
           sx={{
-            position: scrollDirection === "up" ? "sticky" : "static",
-            bottom: 0,
-            zIndex: 6,
-            bgcolor: "background.paper",
-            borderTop: "1px solid #e2e8f0",
-            boxShadow: scrollDirection === "up" ? "0 -3px 10px rgba(0,0,0,0.08)" : "none",
-            transition: "box-shadow 0.2s",
+            minHeight: 52,
+            position: "relative",
           }}
         >
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 20, 50, 100]}
-            component="div"
-            count={entries.length}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={(e, newPage) => setPage(newPage)}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
-              setPage(0);
+          <Box
+            sx={{
+              position: isFooterSticky ? "fixed" : "static",
+              bottom: 0,
+              left: isFooterSticky && tableBounds.left !== undefined ? `${tableBounds.left}px` : "auto",
+              width: isFooterSticky && tableBounds.width ? `${tableBounds.width}px` : "100%",
+              maxWidth: isFooterSticky && tableBounds.width ? `${tableBounds.width}px` : "none",
+              boxSizing: "border-box",
+              zIndex: 10,
+              bgcolor: "background.paper",
+              borderTop: "1px solid #e2e8f0",
+              borderLeft: isFooterSticky ? "1px solid #e2e8f0" : "none",
+              borderRight: isFooterSticky ? "1px solid #e2e8f0" : "none",
+              borderBottomLeftRadius: isFooterSticky ? 0 : 8,
+              borderBottomRightRadius: isFooterSticky ? 0 : 8,
+              boxShadow: isFooterSticky ? "0 -4px 16px rgba(0,0,0,0.10)" : "none",
+              transition: "box-shadow 0.2s, background-color 0.2s",
             }}
-          />
+          >
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 20, 50, 100]}
+              component="div"
+              count={entries.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={(e, newPage) => setPage(newPage)}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(parseInt(e.target.value, 10));
+                setPage(0);
+              }}
+            />
+          </Box>
         </Box>
       </TableContainer>
 
