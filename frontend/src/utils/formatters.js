@@ -168,35 +168,23 @@ export const capitalizeWordsInput = (str) => {
 export const isCurrentLoggedInUser = (member, profile, user) => {
   if (!member) return false;
 
-  // Check by user ID if available
-  const currentUserId = user?.id || user?._id;
-  if (currentUserId && member._id && String(currentUserId) === String(member._id)) {
+  // 1. Check explicit string literal for self
+  const memberStr = (typeof member === "string" ? member : member.fullName || "").toLowerCase().trim();
+  if (memberStr === "myself" || memberStr === "myself (you)" || memberStr === "you") {
     return true;
   }
 
-  // Check by email
-  const profileEmail = (profile?.email || user?.email || "").toLowerCase().trim();
-  const memberEmail = (member.email || "").toLowerCase().trim();
-  if (profileEmail && memberEmail && profileEmail === memberEmail) {
+  // 2. Check by unique user ID
+  const currentUserId = user?.id || user?._id || profile?._id;
+  const memberId = typeof member === "object" ? (member._id || member.id) : null;
+  if (currentUserId && memberId && String(currentUserId) === String(memberId)) {
     return true;
   }
 
-  // Check by username
-  const profileUsername = (profile?.username || user?.username || "").toLowerCase().trim();
-  const memberUsername = (member.username || "").toLowerCase().trim();
-  if (profileUsername && memberUsername && profileUsername === memberUsername) {
-    return true;
-  }
-
-  // Check by full name
-  const profileName = (profile?.fullName || user?.fullName || "").toLowerCase().trim();
-  const memberName = (typeof member === "string" ? member : member.fullName || "").toLowerCase().trim();
-  if (profileName && memberName && profileName === memberName) {
-    return true;
-  }
-
-  // Also check if member is explicitly "myself"
-  if (memberName.includes("myself")) {
+  // 3. Check by unique email of authenticated user
+  const authEmail = (user?.email || profile?.email || "").toLowerCase().trim();
+  const memberEmail = (typeof member === "object" ? (member.email || "") : "").toLowerCase().trim();
+  if (authEmail && memberEmail && authEmail === memberEmail) {
     return true;
   }
 

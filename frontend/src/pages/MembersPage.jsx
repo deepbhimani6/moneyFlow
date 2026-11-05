@@ -14,7 +14,7 @@ import { useAuth } from "../context/AuthContext";
 import InviteMemberModal from "../modals/InviteMemberModal";
 import EditMemberModal from "../modals/EditMemberModal";
 import DeleteConfirmModal from "../modals/DeleteConfirmModal";
-import { formatDate, formatAmount, capitalizeName } from "../utils/formatters";
+import { formatDate, formatAmount, capitalizeName, isCurrentLoggedInUser } from "../utils/formatters";
 
 const TABLE_RADIUS = 10;
 
@@ -71,30 +71,9 @@ const MembersPage = () => {
     setOrderBy(property);
   };
 
-  // Current logged-in member check
-  const isCurrentLoggedInUser = (member) => {
-    if (!member) return false;
-    const currentUserId = user?.id || user?._id;
-    if (currentUserId && member._id && String(currentUserId) === String(member._id)) return true;
-
-    const profileEmail = (profile?.email || user?.email || "").toLowerCase().trim();
-    const memberEmail = (member.email || "").toLowerCase().trim();
-    if (profileEmail && memberEmail && profileEmail === memberEmail) return true;
-
-    const profileUsername = (profile?.username || user?.username || "").toLowerCase().trim();
-    const memberUsername = (member.username || "").toLowerCase().trim();
-    if (profileUsername && memberUsername && profileUsername === memberUsername) return true;
-
-    const profileName = (profile?.fullName || user?.fullName || "").toLowerCase().trim();
-    const memberName = (member.fullName || "").toLowerCase().trim();
-    if (profileName && memberName && profileName === memberName) return true;
-
-    return false;
-  };
-
   // Filter out the currently logged-in member from the table
   const displayedMembers = useMemo(() => {
-    return members.filter((m) => !isCurrentLoggedInUser(m));
+    return members.filter((m) => !isCurrentLoggedInUser(m, profile, user));
   }, [members, profile, user]);
 
   const sortedMembers = useMemo(() => {
@@ -155,13 +134,13 @@ const MembersPage = () => {
 
   const handleSelectOne = (id) => {
     const targetMember = members.find((m) => m._id === id);
-    if (isCurrentLoggedInUser(targetMember)) return;
+    if (isCurrentLoggedInUser(targetMember, profile, user)) return;
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
   // Open single member delete confirmation modal and fetch entry details
   const handleOpenSingleDelete = async (member) => {
-    if (isCurrentLoggedInUser(member)) {
+    if (isCurrentLoggedInUser(member, profile, user)) {
       setSnackbar({
         open: true,
         message: "You cannot delete your own logged-in account.",
@@ -235,7 +214,7 @@ const MembersPage = () => {
     const selectedMembers = members.filter((m) => selectedIds.includes(m._id));
 
     // Current logged-in user self-deletion protection
-    const currentLoggedInSelected = selectedMembers.some((m) => isCurrentLoggedInUser(m));
+    const currentLoggedInSelected = selectedMembers.some((m) => isCurrentLoggedInUser(m, profile, user));
     if (currentLoggedInSelected) {
       setSnackbar({
         open: true,
@@ -579,7 +558,7 @@ const MembersPage = () => {
                 sortedMembers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                   const isSelected = selectedIds.includes(row._id);
                   const formattedDate = formatDate(row.joinDate);
-                  const isCurrent = isCurrentLoggedInUser(row);
+                  const isCurrent = isCurrentLoggedInUser(row, profile, user);
                   const disableDelete = isCurrent;
                   const deleteTooltip = isCurrent
                     ? "You cannot delete your own logged-in account"
@@ -690,8 +669,15 @@ const MembersPage = () => {
       <InviteMemberModal
         open={isInviteOpen}
         onClose={() => setIsInviteOpen(false)}
-        onMemberCreated={(newMember, sentLink) => {
-          fetchMembers();
+        onMemberCreated={async (newMember, sentLink) => {
+          if (newMember) {
+            setMembers((prev) => {
+              if (prev.some((m) => m._id === newMember._id)) return prev;
+              return [newMember, ...prev];
+            });
+            setPage(0);
+          }
+          await fetchMembers();
           setSnackbar({
             open: true,
             message: `Member created! ${sentLink ? "Invite email sent." : ""}`,

@@ -10,14 +10,6 @@ const isMemberCurrentAdmin = (member, profile) => {
   const memberEmail = (member.email || '').toLowerCase().trim();
   if (profileEmail && memberEmail && profileEmail === memberEmail) return true;
 
-  const profileUsername = (profile.username || '').toLowerCase().trim();
-  const memberUsername = (member.username || '').toLowerCase().trim();
-  if (profileUsername && memberUsername && profileUsername === memberUsername) return true;
-
-  const profileName = (profile.fullName || '').toLowerCase().trim();
-  const memberName = (member.fullName || '').toLowerCase().trim();
-  if (profileName && memberName && profileName === memberName) return true;
-
   return false;
 };
 
