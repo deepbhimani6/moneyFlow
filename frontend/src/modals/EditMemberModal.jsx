@@ -151,9 +151,7 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
               label="Role"
               onChange={handleChange}
             >
-              <MenuItem value="Admin" disabled={member?.email !== 'deep.bhimani@shunyavkash.com' && member?.role !== 'Admin'}>
-                Admin {member?.role !== 'Admin' && '(Deep Bhimani is currently the only Admin)'}
-              </MenuItem>
+              <MenuItem value="Admin">Admin</MenuItem>
               <MenuItem value="Member">Member</MenuItem>
             </Select>
           </FormControl>

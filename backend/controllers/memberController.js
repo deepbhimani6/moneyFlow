@@ -1,6 +1,7 @@
 const Member = require('../models/Member');
 const Entry = require('../models/Entry');
 const { sendInviteEmail } = require('../utils/email');
+const { getUniqueAdminCount } = require('../utils/adminCheck');
 
 const getAppUrl = (req) => {
   if (
@@ -102,7 +103,19 @@ const updateMember = async (req, res) => {
     if (email !== undefined) member.email = email.toLowerCase();
     if (username !== undefined) member.username = username;
     if (password !== undefined && password !== '') member.password = password;
-    if (role !== undefined) member.role = role === 'Admin' ? 'Admin' : 'Member';
+    if (role !== undefined) {
+      const targetRole = role === 'Admin' ? 'Admin' : 'Member';
+      if (member.role === 'Admin' && targetRole === 'Member') {
+        const adminCount = await getUniqueAdminCount();
+        if (adminCount <= 1) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot demote the only Admin in the system. There must always be at least one Admin.',
+          });
+        }
+      }
+      member.role = targetRole;
+    }
 
     await member.save();
     res.json({ success: true, data: member, message: 'Member updated successfully' });
@@ -212,6 +225,16 @@ const deleteMember = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Member not found' });
     }
 
+    if (member.role === 'Admin') {
+      const adminCount = await getUniqueAdminCount();
+      if (adminCount <= 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot delete the only Admin in the system. There must always be at least one Admin.',
+        });
+      }
+    }
+
     await Member.findByIdAndDelete(req.params.id);
 
     res.json({
@@ -231,6 +254,20 @@ const bulkDeleteMembers = async (req, res) => {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
       return res.status(400).json({ success: false, message: 'No member IDs provided for deletion' });
+    }
+
+    // Check if deleting these would remove all admins
+    const membersToDelete = await Member.find({ _id: { $in: ids } }).lean();
+    const adminMembersToDelete = membersToDelete.filter((m) => m.role === 'Admin');
+
+    if (adminMembersToDelete.length > 0) {
+      const totalAdminCount = await getUniqueAdminCount();
+      if (totalAdminCount - adminMembersToDelete.length <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot delete the only Admin in the system. There must always be at least one Admin.',
+        });
+      }
     }
 
     const result = await Member.deleteMany({ _id: { $in: ids } });

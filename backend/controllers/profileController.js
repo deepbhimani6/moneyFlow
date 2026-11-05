@@ -54,7 +54,19 @@ const updateProfile = async (req, res) => {
     if (email !== undefined) profile.email = email.trim();
     if (phoneNumber !== undefined) profile.phoneNumber = phoneNumber.trim();
     if (username !== undefined) profile.username = username.trim();
-    if (role !== undefined) profile.role = role.trim();
+    if (role !== undefined) {
+      const targetRole = role.trim();
+      if (profile.role === 'Admin' && targetRole === 'Member') {
+        const otherAdminCount = await Member.countDocuments({ role: 'Admin' });
+        if (otherAdminCount === 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot demote the only Admin in the system. There must always be at least one Admin.',
+          });
+        }
+      }
+      profile.role = targetRole;
+    }
     if (bio !== undefined) profile.bio = bio.trim();
     if (avatarColor !== undefined) profile.avatarColor = avatarColor;
 

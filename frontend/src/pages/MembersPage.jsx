@@ -9,6 +9,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { memberService } from "../services/api";
+import { useProfile } from "../context/ProfileContext";
 import InviteMemberModal from "../modals/InviteMemberModal";
 import EditMemberModal from "../modals/EditMemberModal";
 import DeleteConfirmModal from "../modals/DeleteConfirmModal";
@@ -17,6 +18,7 @@ import { formatDate, formatAmount } from "../utils/formatters";
 const TABLE_RADIUS = 10;
 
 const MembersPage = () => {
+  const { profile } = useProfile();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -98,6 +100,17 @@ const MembersPage = () => {
   const [isHeaderStuck, setIsHeaderStuck] = useState(false);
   const [isFooterSticky, setIsFooterSticky] = useState(false);
   const [tableBounds, setTableBounds] = useState({ left: 0, width: "100%" });
+
+  // Only Admin check: an admin cannot be deleted if they are the only admin in the system
+  const isProfileAdmin = profile?.role === "Admin";
+  const isOnlyAdmin = (member) => {
+    if (!member || member.role !== "Admin") return false;
+    if (isProfileAdmin && profile?.email && member.email !== profile.email) {
+      return false;
+    }
+    const otherAdminMembers = members.filter((m) => m.role === "Admin" && m._id !== member._id);
+    return otherAdminMembers.length === 0;
+  };
 
   useEffect(() => {
     let ticking = false;
@@ -184,6 +197,15 @@ const MembersPage = () => {
 
   // Open single member delete confirmation modal and fetch entry details
   const handleOpenSingleDelete = async (member) => {
+    if (isOnlyAdmin(member)) {
+      setSnackbar({
+        open: true,
+        message: "Cannot delete the only Admin in the system. There must always be at least one Admin.",
+        severity: "error",
+      });
+      return;
+    }
+
     setSingleDeleteState({
       open: true,
       loadingSummary: true,
@@ -245,6 +267,17 @@ const MembersPage = () => {
   const handleOpenBulkDelete = async () => {
     setBulkAnchorEl(null);
     if (selectedIds.length === 0) return;
+
+    const selectedMembers = members.filter((m) => selectedIds.includes(m._id));
+    const adminSelected = selectedMembers.filter((m) => isOnlyAdmin(m));
+    if (adminSelected.length > 0) {
+      setSnackbar({
+        open: true,
+        message: "Cannot delete the only Admin in the system. Please deselect the Admin before deleting.",
+        severity: "error",
+      });
+      return;
+    }
 
     setBulkDeleteState({
       open: true,
@@ -655,10 +688,17 @@ const MembersPage = () => {
                           </IconButton>
                         </Tooltip>
 
-                        <Tooltip title="Delete Member">
-                          <IconButton size="small" color="error" onClick={() => handleOpenSingleDelete(row)}>
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
+                        <Tooltip title={isOnlyAdmin(row) ? "Cannot delete the only Admin in the system" : "Delete Member"}>
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              disabled={isOnlyAdmin(row)}
+                              onClick={() => handleOpenSingleDelete(row)}
+                            >
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </span>
                         </Tooltip>
                       </Box>
                     </TableCell>

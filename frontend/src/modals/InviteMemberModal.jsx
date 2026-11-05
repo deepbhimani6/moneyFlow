@@ -169,7 +169,7 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
               onChange={handleChange}
             >
               <MenuItem value="Member">Member</MenuItem>
-              <MenuItem value="Admin" disabled>Admin (Deep Bhimani is currently the only Admin)</MenuItem>
+              <MenuItem value="Admin">Admin</MenuItem>
             </Select>
           </FormControl>
 
