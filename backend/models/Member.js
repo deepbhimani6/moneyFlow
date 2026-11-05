@@ -27,6 +27,11 @@ const memberSchema = new mongoose.Schema(
       type: String,
       default: '',
     },
+    role: {
+      type: String,
+      enum: ['Admin', 'Member'],
+      default: 'Member',
+    },
     joinDate: {
       type: Date,
       default: Date.now,

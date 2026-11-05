@@ -282,8 +282,8 @@ const ProfilePage = () => {
                     label="Role"
                     onChange={(e) => handleChange('role', e.target.value)}
                   >
-                    <MenuItem value="Admin">Admin</MenuItem>
-                    <MenuItem value="Member">Member</MenuItem>
+                    <MenuItem value="Admin">Admin (Current Account)</MenuItem>
+                    <MenuItem value="Member" disabled>Member (Primary account must be Admin)</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>

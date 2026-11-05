@@ -40,7 +40,7 @@ const getMembers = async (req, res) => {
 // @route   POST /api/members
 const createMember = async (req, res) => {
   try {
-    const { fullName, phoneNumber, email, username, password, sendLink } = req.body;
+    const { fullName, phoneNumber, email, username, password, sendLink, role } = req.body;
 
     if (!fullName || !email) {
       return res.status(400).json({ success: false, message: 'Full name and email are required' });
@@ -57,6 +57,7 @@ const createMember = async (req, res) => {
       email: email.toLowerCase(),
       username: username || '',
       password: password || '',
+      role: role === 'Admin' ? 'Admin' : 'Member',
       joinDate: new Date(),
     });
 
@@ -89,7 +90,7 @@ const createMember = async (req, res) => {
 // @route   PUT /api/members/:id
 const updateMember = async (req, res) => {
   try {
-    const { fullName, phoneNumber, email, username, password } = req.body;
+    const { fullName, phoneNumber, email, username, password, role } = req.body;
     const member = await Member.findById(req.params.id);
 
     if (!member) {
@@ -101,6 +102,7 @@ const updateMember = async (req, res) => {
     if (email !== undefined) member.email = email.toLowerCase();
     if (username !== undefined) member.username = username;
     if (password !== undefined && password !== '') member.password = password;
+    if (role !== undefined) member.role = role === 'Admin' ? 'Admin' : 'Member';
 
     await member.save();
     res.json({ success: true, data: member, message: 'Member updated successfully' });

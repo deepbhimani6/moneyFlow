@@ -8,6 +8,10 @@ import {
   TextField,
   Alert,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { memberService } from '../services/api';
 
@@ -18,6 +22,7 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
     email: '',
     username: '',
     password: '',
+    role: 'Member',
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -34,6 +39,7 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
         email: member.email || '',
         username: member.username || '',
         password: '',
+        role: member.role || 'Member',
       });
       setErrors({});
       setError('');
@@ -135,6 +141,22 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
             onChange={handleChange}
             fullWidth
           />
+
+          <FormControl fullWidth>
+            <InputLabel id="edit-role-label">Role</InputLabel>
+            <Select
+              labelId="edit-role-label"
+              name="role"
+              value={formData.role || 'Member'}
+              label="Role"
+              onChange={handleChange}
+            >
+              <MenuItem value="Admin" disabled={member?.email !== 'deep.bhimani@shunyavkash.com' && member?.role !== 'Admin'}>
+                Admin {member?.role !== 'Admin' && '(Deep Bhimani is currently the only Admin)'}
+              </MenuItem>
+              <MenuItem value="Member">Member</MenuItem>
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={onClose} disabled={submitting}>

@@ -531,6 +531,17 @@ const MembersPage = () => {
                 </TableSortLabel>
               </TableCell>
 
+              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "role" ? order : false}>
+                <TableSortLabel
+                  active={orderBy === "role"}
+                  direction={orderBy === "role" ? order : "asc"}
+                  onClick={() => handleRequestSort("role")}
+                  sx={{ fontWeight: 600 }}
+                >
+                  Role
+                </TableSortLabel>
+              </TableCell>
+
               <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "joinDate" ? order : false}>
                 <TableSortLabel
                   active={orderBy === "joinDate"}
@@ -567,13 +578,13 @@ const MembersPage = () => {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={32} />
                 </TableCell>
               </TableRow>
             ) : members.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
                   No members registered. Click <strong>Invite Members +</strong> to add one.
                 </TableCell>
               </TableRow>
@@ -581,6 +592,7 @@ const MembersPage = () => {
               sortedMembers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                 const isSelected = selectedIds.includes(row._id);
                 const formattedDate = formatDate(row.joinDate);
+                const isMemberAdmin = row.role === 'Admin' || row.email === 'deep.bhimani@shunyavkash.com';
 
                 return (
                   <TableRow
@@ -598,6 +610,23 @@ const MembersPage = () => {
                     <TableCell>{row.phoneNumber || "—"}</TableCell>
                     <TableCell sx={{ color: row.email ? "text.primary" : "text.secondary" }}>
                       {row.email || "—"}
+                    </TableCell>
+                    <TableCell>
+                      {isMemberAdmin ? (
+                        <Chip
+                          label="Admin"
+                          size="small"
+                          color="primary"
+                          sx={{ fontWeight: 600, height: 22, fontSize: "0.75rem" }}
+                        />
+                      ) : (
+                        <Chip
+                          label="Member"
+                          size="small"
+                          variant="outlined"
+                          sx={{ color: "text.secondary", borderColor: "#cbd5e1", height: 22, fontSize: "0.75rem" }}
+                        />
+                      )}
                     </TableCell>
                     <TableCell>{formattedDate}</TableCell>
                     <TableCell>{row.inviteSent ? <Chip icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />} label="Invite Sent" size="small" color="success" variant="outlined" /> : <Chip label="Pending" size="small" variant="outlined" />}</TableCell>

@@ -12,6 +12,10 @@ import {
   Alert,
   CircularProgress,
   Typography,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
@@ -24,6 +28,7 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
     email: '',
     username: '',
     password: '',
+    role: 'Member',
     sendLink: true,
   });
   const [errors, setErrors] = useState({});
@@ -72,6 +77,7 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
           email: '',
           username: '',
           password: '',
+          role: 'Member',
           sendLink: true,
         });
         setErrors({});
@@ -152,7 +158,22 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
             placeholder="Temporary or initial password"
           />
 
-          {/* 6. Checkbox Send Link */}
+          {/* 6. Role */}
+          <FormControl fullWidth>
+            <InputLabel id="invite-role-label">Role</InputLabel>
+            <Select
+              labelId="invite-role-label"
+              name="role"
+              value={formData.role || 'Member'}
+              label="Role"
+              onChange={handleChange}
+            >
+              <MenuItem value="Member">Member</MenuItem>
+              <MenuItem value="Admin" disabled>Admin (Deep Bhimani is currently the only Admin)</MenuItem>
+            </Select>
+          </FormControl>
+
+          {/* 7. Checkbox Send Link */}
           <Box sx={{ p: 1.5, bgcolor: '#f0fdf4', borderRadius: 2, border: '1px solid #bbf7d0' }}>
             <FormControlLabel
               control={
