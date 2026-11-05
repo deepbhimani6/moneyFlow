@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { capitalizeName } = require('../utils/formatters');
 
 const profileSchema = new mongoose.Schema(
   {
@@ -41,5 +42,11 @@ const profileSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+profileSchema.pre('save', function () {
+  if (this.isModified('fullName') && this.fullName) {
+    this.fullName = capitalizeName(this.fullName);
+  }
+});
 
 module.exports = mongoose.model('Profile', profileSchema, 'profile');

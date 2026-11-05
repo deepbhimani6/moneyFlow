@@ -13,7 +13,7 @@ import { useProfile } from "../context/ProfileContext";
 import InviteMemberModal from "../modals/InviteMemberModal";
 import EditMemberModal from "../modals/EditMemberModal";
 import DeleteConfirmModal from "../modals/DeleteConfirmModal";
-import { formatDate, formatAmount } from "../utils/formatters";
+import { formatDate, formatAmount, capitalizeName } from "../utils/formatters";
 
 const TABLE_RADIUS = 10;
 
@@ -642,8 +642,8 @@ const MembersPage = () => {
                           <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
                         )}
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 500, whiteSpace: "nowrap" }}>
-                        {row.fullName}
+                      <TableCell sx={{ fontWeight: 500, whiteSpace: "nowrap", textTransform: "capitalize" }}>
+                        {capitalizeName(row.fullName)}
                       </TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>{row.phoneNumber || "—"}</TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap", color: row.email ? "text.primary" : "text.secondary" }}>
@@ -801,7 +801,7 @@ const MembersPage = () => {
             <>
               {/* Has entries: Notice & Details (Entries are kept intact) */}
               <Alert severity="info" sx={{ fontWeight: 500 }}>
-                <strong>Notice:</strong> <strong>{singleDeleteState.member?.fullName}</strong> has <strong>{singleDeleteState.summary.entryCount} associated entry/entries</strong> (totaling ₹ {formatAmount(singleDeleteState.summary.totalAmount)}) in the Entries page.
+                <strong>Notice:</strong> <strong>{capitalizeName(singleDeleteState.member?.fullName)}</strong> has <strong>{singleDeleteState.summary.entryCount} associated entry/entries</strong> (totaling ₹ {formatAmount(singleDeleteState.summary.totalAmount)}) in the Entries page.
                 <Typography variant="caption" sx={{ display: "block", mt: 0.5, fontStyle: "italic" }}>
                   Note: Only the member will be deleted. Their entries will remain in the Entries page.
                 </Typography>
@@ -861,14 +861,14 @@ const MembersPage = () => {
               </Box>
 
               <Typography variant="body2" color="text.secondary">
-                Are you sure you want to delete member <strong>{singleDeleteState.member?.fullName}</strong>? This action cannot be reversed.
+                Are you sure you want to delete member <strong>{capitalizeName(singleDeleteState.member?.fullName)}</strong>? This action cannot be reversed.
               </Typography>
             </>
           ) : (
             <>
               {/* No entries: Normal confirmation details */}
               <Typography variant="body1">
-                Are you sure you want to delete member <strong>{singleDeleteState.member?.fullName}</strong>?
+                Are you sure you want to delete member <strong>{capitalizeName(singleDeleteState.member?.fullName)}</strong>?
               </Typography>
               <Box sx={{ p: 1.5, bgcolor: "#f8fafc", borderRadius: 2, border: "1px solid #e2e8f0" }}>
                 <Typography variant="body2" color="text.secondary">
@@ -971,8 +971,8 @@ const MembersPage = () => {
                         border: "1px solid #e2e8f0",
                       }}
                     >
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {m.fullName}
+                      <Typography variant="body2" sx={{ fontWeight: 600, textTransform: "capitalize" }}>
+                        {capitalizeName(m.fullName)}
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, color: m.count > 0 ? "primary.main" : "text.secondary" }}>
                         {m.count > 0 ? `${m.count} entries (₹ ${formatAmount(m.totalAmount)})` : "No entries"}
@@ -1072,11 +1072,11 @@ const MembersPage = () => {
                 {inviteErrorDialog.missingMembers.map((m) => (
                   <Chip
                     key={m._id}
-                    label={m.fullName}
+                    label={capitalizeName(m.fullName)}
                     size="small"
                     color="error"
                     variant="outlined"
-                    sx={{ bgcolor: "#ffffff", fontWeight: 500 }}
+                    sx={{ bgcolor: "#ffffff", fontWeight: 500, textTransform: "capitalize" }}
                   />
                 ))}
               </Box>
@@ -1105,7 +1105,7 @@ const MembersPage = () => {
                 {inviteErrorDialog.validMembers.map((m) => (
                   <Chip
                     key={m._id}
-                    label={`${m.fullName} (${m.email})`}
+                    label={`${capitalizeName(m.fullName)} (${m.email})`}
                     size="small"
                     color="success"
                     variant="outlined"

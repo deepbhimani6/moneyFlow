@@ -16,6 +16,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { memberService, toPayService } from "../services/api";
+import { capitalizeName } from "../utils/formatters";
 
 const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
   const [members, setMembers] = useState([]);
@@ -69,13 +70,13 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
 
     if (selectedMember) {
       if (typeof selectedMember === "string") {
-        finalName = selectedMember.trim();
+        finalName = capitalizeName(selectedMember);
       } else {
-        finalName = selectedMember.fullName || "";
+        finalName = capitalizeName(selectedMember.fullName || "");
         finalMemberId = selectedMember._id || null;
       }
     } else if (inputValue && inputValue.trim()) {
-      finalName = inputValue.trim();
+      finalName = capitalizeName(inputValue);
     }
 
     const newErrors = {};
@@ -154,6 +155,10 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
                 required
                 inputRef={memberInputRef}
                 error={Boolean(errors.member)}
+                inputProps={{
+                  ...params.inputProps,
+                  style: { textTransform: "capitalize" },
+                }}
                 helperText={errors.member ? "Please select or enter a member name" : ""}
               />
             )}

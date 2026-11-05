@@ -21,6 +21,7 @@ import PersonIcon from '@mui/icons-material/Person';
 import SaveIcon from '@mui/icons-material/Save';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { useProfile } from '../context/ProfileContext';
+import { capitalizeName, capitalizeWordsInput } from '../utils/formatters';
 
 const AVATAR_COLORS = [
   '#1976d2', // Primary Blue
@@ -77,16 +78,30 @@ const ProfilePage = () => {
   }, [profile]);
 
   const handleChange = (field, value) => {
+    let finalVal = value;
+    if (field === 'fullName' && typeof value === 'string') {
+      finalVal = capitalizeWordsInput(value);
+    }
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [field]: finalVal,
     }));
+  };
+
+  const handleBlur = (field) => {
+    if (field === 'fullName') {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: capitalizeName(prev.fullName),
+      }));
+    }
   };
 
   const handleSave = async (e) => {
     if (e) e.preventDefault();
 
-    if (!formData.fullName.trim()) {
+    const formattedFullName = capitalizeName(formData.fullName);
+    if (!formattedFullName) {
       setSnackbar({
         open: true,
         message: 'Full Name is required',
@@ -97,7 +112,10 @@ const ProfilePage = () => {
 
     try {
       setSaving(true);
-      const res = await updateProfile(formData);
+      const res = await updateProfile({
+        ...formData,
+        fullName: formattedFullName,
+      });
       if (res.success) {
         setSnackbar({
           open: true,
@@ -234,6 +252,8 @@ const ProfilePage = () => {
                   required
                   value={formData.fullName}
                   onChange={(e) => handleChange('fullName', e.target.value)}
+                  onBlur={() => handleBlur('fullName')}
+                  inputProps={{ style: { textTransform: 'capitalize' } }}
                   placeholder="e.g. John Doe"
                 />
               </Grid>

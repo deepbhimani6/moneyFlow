@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const Member = require('../models/Member');
 const Profile = require('../models/Profile');
 const { sendPasswordResetEmail } = require('../utils/email');
+const { capitalizeName } = require('../utils/formatters');
 const { JWT_SECRET } = require('../middleware/authMiddleware');
 
 const generateToken = (user) => {
@@ -88,7 +89,7 @@ const register = async (req, res) => {
     const role = memberCount === 0 ? 'Admin' : 'Member';
 
     const newMember = new Member({
-      fullName: fullName.trim(),
+      fullName: capitalizeName(fullName),
       email: cleanEmail,
       username: cleanUsername,
       phoneNumber: phoneNumber ? phoneNumber.trim() : '',

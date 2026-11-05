@@ -1,11 +1,13 @@
 const ToPay = require("../models/ToPay");
 const Member = require("../models/Member");
 const crypto = require("crypto");
+const { capitalizeName } = require("../utils/formatters");
 
 // Helper to resolve or auto-create a Member when a new participant name is used
 const resolveOrCreateMember = async (item) => {
   if (!item) return null;
-  const memberName = typeof item === "object" ? (item.fullName || item.name || "") : String(item).trim();
+  const rawName = typeof item === "object" ? (item.fullName || item.name || "") : String(item).trim();
+  const memberName = capitalizeName(rawName);
   const existingMemberId = typeof item === "object" ? item.memberId || item._id : null;
 
   if (!memberName || /myself/i.test(memberName) || /you\s*\(myself\)/i.test(memberName)) {

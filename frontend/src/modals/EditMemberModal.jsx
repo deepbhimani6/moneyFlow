@@ -14,6 +14,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import { memberService } from '../services/api';
+import { capitalizeName, capitalizeWordsInput } from '../utils/formatters';
 
 const EditMemberModal = ({ open, onClose, member, onMemberUpdated, isCurrentAdmin, isOnlyAdmin }) => {
   const [formData, setFormData] = useState({
@@ -34,7 +35,7 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated, isCurrentAdmi
   useEffect(() => {
     if (member) {
       setFormData({
-        fullName: member.fullName || '',
+        fullName: capitalizeName(member.fullName || ''),
         phoneNumber: member.phoneNumber || '',
         email: member.email || '',
         username: member.username || '',
@@ -47,10 +48,23 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated, isCurrentAdmi
   }, [member]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    if (name === 'fullName' && typeof value === 'string') {
+      value = capitalizeWordsInput(value);
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: false }));
+    }
+  };
+
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    if (name === 'fullName' && typeof value === 'string') {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: capitalizeName(value),
+      }));
     }
   };
 
@@ -58,8 +72,9 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated, isCurrentAdmi
     e.preventDefault();
     setError('');
 
+    const formattedFullName = capitalizeName(formData.fullName);
     const newErrors = {};
-    if (!formData.fullName || !formData.fullName.trim()) newErrors.fullName = true;
+    if (!formattedFullName) newErrors.fullName = true;
     if (!formData.email || !formData.email.trim()) newErrors.email = true;
 
     if (Object.keys(newErrors).length > 0) {
@@ -71,7 +86,10 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated, isCurrentAdmi
 
     try {
       setSubmitting(true);
-      const res = await memberService.updateMember(member._id, formData);
+      const res = await memberService.updateMember(member._id, {
+        ...formData,
+        fullName: formattedFullName,
+      });
       if (res.success) {
         onMemberUpdated(res.data);
         onClose();
@@ -100,6 +118,8 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated, isCurrentAdmi
             error={Boolean(errors.fullName)}
             helperText={errors.fullName ? 'Full name is required' : ''}
             onChange={handleChange}
+            onBlur={handleBlur}
+            inputProps={{ style: { textTransform: 'capitalize' } }}
             fullWidth
             required
           />

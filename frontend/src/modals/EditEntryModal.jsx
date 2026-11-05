@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
 import { entryService } from '../services/api';
-import { toInputDateFormat, toInputTimeFormat, formatAmount } from '../utils/formatters';
+import { toInputDateFormat, toInputTimeFormat, formatAmount, capitalizeName, capitalizeWordsInput } from '../utils/formatters';
 
 const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
   const [forFromName, setForFromName] = useState('');
@@ -44,7 +44,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
 
   useEffect(() => {
     if (entry && open) {
-      setForFromName(entry.forFromName || '');
+      setForFromName(capitalizeName(entry.forFromName || ''));
       setStatus(entry.type || entry.status || 'Expense');
       setPaymentStatus(entry.paymentStatus || 'Pending');
       setAmount(entry.amount !== undefined ? String(Math.trunc(entry.amount)) : '');
@@ -102,7 +102,8 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
     const newErrors = {};
     const numericAmount = Math.trunc(parseFloat(amount) || 0);
 
-    if (!forFromName || !forFromName.trim()) newErrors.forFromName = true;
+    const formattedForFromName = capitalizeName(forFromName);
+    if (!formattedForFromName) newErrors.forFromName = true;
     if (!amount || numericAmount <= 0) newErrors.amount = true;
     if (!date || !date.trim()) newErrors.date = true;
     if (!time || !time.trim()) newErrors.time = true;
@@ -120,7 +121,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
       setSubmitting(true);
 
       const payload = {
-        forFromName: forFromName.trim(),
+        forFromName: formattedForFromName,
         type: status,
         status,
         paymentStatus,
@@ -206,9 +207,11 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
                 : ''
             }
             onChange={(e) => {
-              setForFromName(e.target.value);
+              setForFromName(capitalizeWordsInput(e.target.value));
               if (errors.forFromName) setErrors((prev) => ({ ...prev, forFromName: false }));
             }}
+            onBlur={() => setForFromName((prev) => capitalizeName(prev))}
+            inputProps={{ style: { textTransform: 'capitalize' } }}
             fullWidth
             required
             disabled={isSplit}

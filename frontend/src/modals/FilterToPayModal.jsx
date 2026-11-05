@@ -14,6 +14,7 @@ import {
   Box,
 } from "@mui/material";
 import { memberService } from "../services/api";
+import { capitalizeName } from "../utils/formatters";
 
 const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFilters }) => {
   const [members, setMembers] = useState([]);
@@ -49,6 +50,7 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
     } else if (inputValue && inputValue.trim()) {
       nameVal = inputValue.trim();
     }
+    nameVal = capitalizeName(nameVal);
 
     onApplyFilters({
       ...filters,
@@ -139,6 +141,10 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
               {...params}
               label="Member Name"
               placeholder="Filter by member name..."
+              inputProps={{
+                ...params.inputProps,
+                style: { textTransform: "capitalize" },
+              }}
             />
           )}
         />

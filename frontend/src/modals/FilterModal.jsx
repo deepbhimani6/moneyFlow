@@ -15,6 +15,7 @@ import {
   Box,
 } from "@mui/material";
 import { memberService } from "../services/api";
+import { capitalizeName } from "../utils/formatters";
 
 const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFilters }) => {
   const [members, setMembers] = useState([]);
@@ -46,7 +47,7 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
   const handleApply = () => {
     let finalNames = [...selectedNames];
     if (inputValue && inputValue.trim()) {
-      const trimmed = inputValue.trim();
+      const trimmed = capitalizeName(inputValue);
       const alreadyIn = finalNames.some(
         (item) => (typeof item === "string" ? item : item.fullName).toLowerCase() === trimmed.toLowerCase()
       );
@@ -55,7 +56,7 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
       }
     }
 
-    const stringNames = finalNames.map((item) => (typeof item === "string" ? item : item.fullName));
+    const stringNames = finalNames.map((item) => (typeof item === "string" ? capitalizeName(item) : capitalizeName(item.fullName)));
 
     onApplyFilters({
       ...filters,
@@ -143,7 +144,8 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
                   variant="outlined"
                   color="primary"
                   size="small"
-                  label={label}
+                  label={capitalizeName(label)}
+                  sx={{ textTransform: "capitalize" }}
                   {...getTagProps({ index })}
                   key={index}
                 />
@@ -155,6 +157,10 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
               {...params}
               label="Member Name"
               placeholder="Filter by member name..."
+              inputProps={{
+                ...params.inputProps,
+                style: { textTransform: "capitalize" },
+              }}
             />
           )}
         />

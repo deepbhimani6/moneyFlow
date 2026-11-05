@@ -18,6 +18,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import AuthLayout from './AuthLayout';
 import { useAuth } from '../../context/AuthContext';
+import { capitalizeName, capitalizeWordsInput } from '../../utils/formatters';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -45,7 +46,10 @@ const RegisterPage = () => {
   const confirmPasswordRef = useRef(null);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    if (name === 'fullName' && typeof value === 'string') {
+      value = capitalizeWordsInput(value);
+    }
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -56,13 +60,24 @@ const RegisterPage = () => {
     if (error) setError('');
   };
 
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    if (name === 'fullName' && typeof value === 'string') {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: capitalizeName(value),
+      }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
+    const formattedFullName = capitalizeName(formData.fullName);
     const newErrors = {};
 
-    if (!formData.fullName || !formData.fullName.trim()) {
+    if (!formattedFullName) {
       newErrors.fullName = 'Full name is required';
     }
 
@@ -99,7 +114,7 @@ const RegisterPage = () => {
       setError('');
 
       const res = await register({
-        fullName: formData.fullName.trim(),
+        fullName: formattedFullName,
         email: formData.email.trim(),
         username: formData.username.trim(),
         phoneNumber: formData.phoneNumber.trim(),
@@ -149,6 +164,8 @@ const RegisterPage = () => {
               placeholder="e.g. John Doe"
               value={formData.fullName}
               onChange={handleChange}
+              onBlur={handleBlur}
+              inputProps={{ style: { textTransform: 'capitalize' } }}
               inputRef={fullNameRef}
               error={Boolean(errors.fullName)}
               helperText={errors.fullName || ''}

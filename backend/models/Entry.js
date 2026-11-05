@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { capitalizeName } = require("../utils/formatters");
 
 const entrySchema = new mongoose.Schema(
   {
@@ -67,5 +68,11 @@ const entrySchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+entrySchema.pre("save", function () {
+  if (this.isModified("forFromName") && this.forFromName) {
+    this.forFromName = capitalizeName(this.forFromName);
+  }
+});
 
 module.exports = mongoose.model("Entry", entrySchema, "to-receive");

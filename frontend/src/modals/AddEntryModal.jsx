@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { memberService, entryService } from "../services/api";
-import { formatAmount } from "../utils/formatters";
+import { formatAmount, capitalizeName } from "../utils/formatters";
 
 const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   const [members, setMembers] = useState([]);
@@ -85,7 +85,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
 
     let finalNames = [...selectedNames];
     if (inputValue && inputValue.trim()) {
-      const trimmed = inputValue.trim();
+      const trimmed = capitalizeName(inputValue);
       const alreadyIn = finalNames.some(
         (item) => (typeof item === "string" ? item : item.fullName).toLowerCase() === trimmed.toLowerCase()
       );
@@ -114,8 +114,8 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
       const isSplit = finalNames.length > 1;
       const res = await entryService.createEntry({
         names: finalNames.map((item) => {
-          if (typeof item === "string") return item;
-          return { name: item.fullName, memberId: item._id };
+          if (typeof item === "string") return capitalizeName(item);
+          return { name: capitalizeName(item.fullName), memberId: item._id };
         }),
         type: isSplit ? "Split" : type,
         status: isSplit ? "Split" : type,
@@ -179,7 +179,8 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                     variant="outlined"
                     color="primary"
                     size="small"
-                    label={label}
+                    label={capitalizeName(label)}
+                    sx={{ textTransform: "capitalize" }}
                     {...getTagProps({ index })}
                     key={index}
                   />
@@ -194,6 +195,10 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                 inputRef={memberInputRef}
                 error={Boolean(errors.members)}
                 placeholder="Choose members or type & press enter..."
+                inputProps={{
+                  ...params.inputProps,
+                  style: { textTransform: "capitalize" },
+                }}
                 helperText={
                   errors.members
                     ? "Please select or enter at least one member name"

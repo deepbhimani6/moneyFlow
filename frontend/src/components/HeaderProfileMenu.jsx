@@ -95,7 +95,7 @@ const HeaderProfileMenu = () => {
 
         {/* Name & Role on medium screens and up */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
-          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'text.primary', maxWidth: 120 }} noWrap>
+          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'text.primary', maxWidth: 120, textTransform: 'capitalize' }} noWrap>
             {profile?.fullName || 'Deep Bhimani'}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1 }}>
@@ -163,7 +163,7 @@ const HeaderProfileMenu = () => {
             {initials}
           </Avatar>
           <Box sx={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700, textTransform: 'capitalize' }} noWrap>
               {profile?.fullName || 'User'}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }} noWrap>

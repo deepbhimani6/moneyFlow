@@ -152,7 +152,7 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
             {initials}
           </Avatar>
           <Box sx={{ overflow: 'hidden', flexGrow: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.2 }} noWrap>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.2, textTransform: 'capitalize' }} noWrap>
               {profile?.fullName || 'Deep Bhimani'}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.72rem' }} noWrap>

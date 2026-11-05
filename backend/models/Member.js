@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const { capitalizeName } = require('../utils/formatters');
 
 const memberSchema = new mongoose.Schema(
   {
@@ -68,6 +69,13 @@ const memberSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// Automatically capitalize fullName before saving
+memberSchema.pre('save', function () {
+  if (this.isModified('fullName') && this.fullName) {
+    this.fullName = capitalizeName(this.fullName);
+  }
+});
 
 // Hash password before saving if modified and not already hashed
 memberSchema.pre('save', async function () {

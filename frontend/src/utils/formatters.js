@@ -141,3 +141,24 @@ export const formatAmount = (val) => {
   const intVal = Math.trunc(num);
   return intVal.toLocaleString("en-IN", { maximumFractionDigits: 0 });
 };
+
+/**
+ * Automatically capitalizes each word in a name (Title Case)
+ * Example: "ronak virja" -> "Ronak Virja", "DEEP BHIMANI" -> "Deep Bhimani"
+ */
+export const capitalizeName = (name) => {
+  if (!name || typeof name !== "string") return "";
+  return name
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/\b\w+/g, (txt) => txt.charAt(0).toUpperCase() + txt.slice(1).toLowerCase());
+};
+
+/**
+ * Capitalizes first letter of words dynamically while typing (preserves trailing spaces)
+ */
+export const capitalizeWordsInput = (str) => {
+  if (!str || typeof str !== "string") return "";
+  return str.replace(/\b\w/g, (c) => c.toUpperCase());
+};
+

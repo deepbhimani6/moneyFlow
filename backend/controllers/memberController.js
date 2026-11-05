@@ -3,6 +3,7 @@ const Entry = require('../models/Entry');
 const Profile = require('../models/Profile');
 const { sendInviteEmail } = require('../utils/email');
 const { getUniqueAdminCount, isMemberCurrentAdmin } = require('../utils/adminCheck');
+const { capitalizeName } = require('../utils/formatters');
 
 const getAppUrl = (req) => {
   if (
@@ -32,6 +33,16 @@ const getMembers = async (req, res) => {
       };
     }
     const members = await Member.find(query).sort({ createdAt: -1 });
+    // Auto-heal and capitalize any member whose name in DB is not capitalized
+    for (const m of members) {
+      if (m.fullName) {
+        const capitalized = capitalizeName(m.fullName);
+        if (m.fullName !== capitalized) {
+          m.fullName = capitalized;
+          Member.updateOne({ _id: m._id }, { $set: { fullName: capitalized } }).exec();
+        }
+      }
+    }
     res.json({ success: true, count: members.length, data: members });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -54,7 +65,7 @@ const createMember = async (req, res) => {
     }
 
     const member = new Member({
-      fullName,
+      fullName: capitalizeName(fullName),
       phoneNumber: phoneNumber || '',
       email: email.toLowerCase(),
       username: username || '',
@@ -99,7 +110,7 @@ const updateMember = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Member not found' });
     }
 
-    if (fullName !== undefined) member.fullName = fullName;
+    if (fullName !== undefined) member.fullName = capitalizeName(fullName);
     if (phoneNumber !== undefined) member.phoneNumber = phoneNumber;
     if (email !== undefined) member.email = email.toLowerCase();
     if (username !== undefined) member.username = username;

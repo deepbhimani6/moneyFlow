@@ -20,6 +20,7 @@ import {
 import SendIcon from '@mui/icons-material/Send';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import { memberService } from '../services/api';
+import { capitalizeName, capitalizeWordsInput } from '../utils/formatters';
 
 const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
   const [formData, setFormData] = useState({
@@ -39,7 +40,10 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
   const emailRef = useRef(null);
 
   const handleChange = (e) => {
-    const { name, value, checked, type } = e.target;
+    let { name, value, checked, type } = e.target;
+    if (name === 'fullName' && typeof value === 'string') {
+      value = capitalizeWordsInput(value);
+    }
     setFormData((prev) => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value,
@@ -49,12 +53,23 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
     }
   };
 
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    if (name === 'fullName' && typeof value === 'string') {
+      setFormData((prev) => ({
+        ...prev,
+        fullName: capitalizeName(value),
+      }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
+    const formattedFullName = capitalizeName(formData.fullName);
     const newErrors = {};
-    if (!formData.fullName || !formData.fullName.trim()) newErrors.fullName = true;
+    if (!formattedFullName) newErrors.fullName = true;
     if (!formData.email || !formData.email.trim()) newErrors.email = true;
 
     if (Object.keys(newErrors).length > 0) {
@@ -66,7 +81,10 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
 
     try {
       setSubmitting(true);
-      const res = await memberService.createMember(formData);
+      const res = await memberService.createMember({
+        ...formData,
+        fullName: formattedFullName,
+      });
       if (res.success) {
         onMemberCreated(res.data, formData.sendLink);
         onClose();
@@ -107,6 +125,8 @@ const InviteMemberModal = ({ open, onClose, onMemberCreated }) => {
             error={Boolean(errors.fullName)}
             helperText={errors.fullName ? 'Full name is required' : ''}
             onChange={handleChange}
+            onBlur={handleBlur}
+            inputProps={{ style: { textTransform: 'capitalize' } }}
             fullWidth
             required
             placeholder="e.g. John Doe"

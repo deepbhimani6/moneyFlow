@@ -1,5 +1,6 @@
 const Profile = require('../models/Profile');
 const Member = require('../models/Member');
+const { capitalizeName } = require('../utils/formatters');
 
 // Helper to seed initial profile if none exists
 const getOrCreateDefaultProfile = async () => {
@@ -50,7 +51,7 @@ const updateProfile = async (req, res) => {
       avatarColor,
     } = req.body;
 
-    if (fullName !== undefined) profile.fullName = fullName.trim();
+    if (fullName !== undefined) profile.fullName = capitalizeName(fullName);
     if (email !== undefined) profile.email = email.trim();
     if (phoneNumber !== undefined) profile.phoneNumber = phoneNumber.trim();
     if (username !== undefined) profile.username = username.trim();

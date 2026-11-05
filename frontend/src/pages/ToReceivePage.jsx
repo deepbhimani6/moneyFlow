@@ -33,7 +33,7 @@ import AddEntryModal from "../modals/AddEntryModal";
 import EditEntryModal from "../modals/EditEntryModal";
 import FilterModal from "../modals/FilterModal";
 import DeleteConfirmModal from "../modals/DeleteConfirmModal";
-import { formatDate, formatTime, formatAmount } from "../utils/formatters";
+import { formatDate, formatTime, formatAmount, capitalizeName } from "../utils/formatters";
 
 const getTypeChip = (type) => {
   switch (type) {
@@ -471,10 +471,10 @@ const ToReceivePage = () => {
                     <TableCell padding="checkbox">
                       <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>
+                    <TableCell sx={{ fontWeight: 500, textTransform: "capitalize" }}>
                       <Box sx={{ display: "flex", alignItems: "center" }}>
-                        {row.forFromName}
-                        {row.isSplit && <Chip label="Split group" size="small" variant="outlined" sx={{ ml: 1, fontSize: "0.65rem", height: 18 }} />}
+                        {capitalizeName(row.forFromName)}
+                        {row.isSplit && <Chip label="Split group" size="small" variant="outlined" sx={{ ml: 1, fontSize: "0.65rem", height: 18, textTransform: "none" }} />}
                       </Box>
                       {row.description && (
                         <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25, fontStyle: "italic" }}>
