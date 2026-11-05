@@ -3,19 +3,7 @@ const Entry = require('../models/Entry');
 const { sendInviteEmail } = require('../utils/email');
 
 const getAppUrl = (req) => {
-  if (process.env.APP_URL && !process.env.APP_URL.includes('localhost')) {
-    return process.env.APP_URL.replace(/\/+$/, '');
-  }
-  const origin = req.get('origin');
-  if (origin && !origin.includes('localhost')) {
-    return origin.replace(/\/+$/, '');
-  }
-  const host = req.get('host');
-  if (host && !host.includes('localhost')) {
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-    return `${protocol}://${host}`.replace(/\/+$/, '');
-  }
-  return process.env.APP_URL || 'https://moneyflow-5a2a.onrender.com';
+  return (process.env.APP_URL || 'https://moneyflow-5a2a.onrender.com').replace(/\/+$/, '');
 };
 
 // @desc    Get all members
