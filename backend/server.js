@@ -52,9 +52,31 @@ app.use('/api/profile', profileRoutes);
 // Serve Frontend in production
 const frontendDist = path.join(__dirname, '../frontend/dist');
 if (fs.existsSync(frontendDist)) {
-  app.use(express.static(frontendDist));
+  app.use(
+    express.static(frontendDist, {
+      setHeaders: (res, filePath) => {
+        // Ensure Service Worker, index.html, and manifest are never cached by HTTP caches
+        if (
+          filePath.endsWith('sw.js') ||
+          filePath.includes('workbox-') ||
+          filePath.endsWith('index.html') ||
+          filePath.endsWith('.webmanifest')
+        ) {
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+        } else if (filePath.includes('/assets/')) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+      },
+    })
+  );
+
   app.use((req, res, next) => {
     if (req.method === 'GET' && !req.originalUrl.startsWith('/api')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       return res.sendFile(path.join(frontendDist, 'index.html'));
     }
     next();
