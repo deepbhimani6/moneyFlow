@@ -668,6 +668,8 @@ const MembersPage = () => {
       {/* Modals */}
       <InviteMemberModal
         open={isInviteOpen}
+        existingMembers={members}
+        currentUserEmail={user?.email || profile?.email || ''}
         onClose={() => setIsInviteOpen(false)}
         onMemberCreated={async (newMember, sentLink) => {
           if (newMember) {

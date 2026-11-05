@@ -127,10 +127,18 @@ const RegisterPage = () => {
           navigate('/dashboard', { replace: true });
         }, 500);
       } else {
-        setError(res.message || 'Registration failed. Please try again.');
+        const msg = res.message || 'Registration failed. Please try again.';
+        setError(msg);
+        if (msg.toLowerCase().includes('email')) {
+          setErrors((prev) => ({ ...prev, email: msg }));
+        }
       }
     } catch (err) {
-      setError(err.message || 'An error occurred during registration.');
+      const msg = err.message || 'An error occurred during registration.';
+      setError(msg);
+      if (msg.toLowerCase().includes('email')) {
+        setErrors((prev) => ({ ...prev, email: msg }));
+      }
     } finally {
       setLoading(false);
     }

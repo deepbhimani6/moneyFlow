@@ -5,6 +5,28 @@ const { sendInviteEmail } = require('../utils/email');
 const { getUniqueAdminCount, isMemberCurrentAdmin } = require('../utils/adminCheck');
 const { capitalizeName } = require('../utils/formatters');
 
+// Generate random password meeting validation requirements:
+// At least 8 chars, uppercase, lowercase, number, symbol
+const generateSecurePassword = () => {
+  const uppers = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const lowers = 'abcdefghijkmnopqrstuvwxyz';
+  const numbers = '23456789';
+  const symbols = '!@#$%&*';
+  const all = uppers + lowers + numbers + symbols;
+
+  let pwd = '';
+  pwd += uppers[Math.floor(Math.random() * uppers.length)];
+  pwd += lowers[Math.floor(Math.random() * lowers.length)];
+  pwd += numbers[Math.floor(Math.random() * numbers.length)];
+  pwd += symbols[Math.floor(Math.random() * symbols.length)];
+
+  for (let i = 0; i < 6; i++) {
+    pwd += all[Math.floor(Math.random() * all.length)];
+  }
+
+  return pwd.split('').sort(() => 0.5 - Math.random()).join('');
+};
+
 const getAppUrl = (req) => {
   if (
     process.env.APP_URL &&
@@ -55,21 +77,60 @@ const createMember = async (req, res) => {
   try {
     const { fullName, phoneNumber, email, username, password, sendLink } = req.body;
 
-    if (!fullName || !email) {
-      return res.status(400).json({ success: false, message: 'Full name and email are required' });
+    if (!fullName || !fullName.trim()) {
+      return res.status(400).json({ success: false, message: 'Full name is required' });
     }
 
-    const existingMember = await Member.findOne({ email: email.toLowerCase() });
-    if (existingMember) {
-      return res.status(400).json({ success: false, message: 'Member with this email already exists' });
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
+    if (!cleanEmail) {
+      return res.status(400).json({ success: false, message: 'Email address is required' });
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      return res.status(400).json({ success: false, message: 'Please provide a valid email address' });
+    }
+
+    // Duplicate email check across all members (case-insensitive)
+    const existingMember = await Member.findOne({
+      email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+    });
+    if (existingMember) {
+      return res.status(400).json({
+        success: false,
+        message: 'A member or account with this email address already exists. Please use a different email.',
+      });
+    }
+
+    // Prevent inviting own logged-in email
+    if (req.user && req.user.email && req.user.email.toLowerCase().trim() === cleanEmail) {
+      return res.status(400).json({
+        success: false,
+        message: 'You cannot invite your own email address. Please use a different email.',
+      });
+    }
+
+    let cleanUsername = username ? username.trim() : cleanEmail.split('@')[0];
+    if (cleanUsername) {
+      const existingUsername = await Member.findOne({
+        username: { $regex: new RegExp(`^${cleanUsername.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+      });
+      if (existingUsername) {
+        cleanUsername = `${cleanUsername}${Math.floor(100 + Math.random() * 900)}`;
+      }
+    }
+
+    // Generate random secure password satisfying password requirements (length >= 8, mixed characters)
+    const temporaryPassword = (password && password.trim().length >= 6)
+      ? password.trim()
+      : generateSecurePassword();
 
     const member = new Member({
       fullName: capitalizeName(fullName),
-      phoneNumber: phoneNumber || '',
-      email: email.toLowerCase(),
-      username: username || '',
-      password: password || '',
+      phoneNumber: phoneNumber ? phoneNumber.trim() : '',
+      email: cleanEmail,
+      username: cleanUsername,
+      password: temporaryPassword, // pre-save hook in Member will hash it with bcrypt
       joinDate: new Date(),
     });
 
@@ -80,7 +141,7 @@ const createMember = async (req, res) => {
         toEmail: member.email,
         fullName: member.fullName,
         username: member.username,
-        temporaryPassword: member.password,
+        temporaryPassword: temporaryPassword,
         inviteLink: appUrl,
       });
 
@@ -92,7 +153,12 @@ const createMember = async (req, res) => {
 
     await member.save();
 
-    res.status(201).json({ success: true, data: member, message: 'Member created successfully' });
+    res.status(201).json({
+      success: true,
+      data: member,
+      message: 'Member created successfully',
+      temporaryPassword,
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -294,11 +360,17 @@ const sendInviteToMember = async (req, res) => {
     }
 
     const appUrl = getAppUrl(req);
+    let temporaryPassword = member.password;
+    if (!temporaryPassword || temporaryPassword.startsWith('$2a$') || temporaryPassword.startsWith('$2b$')) {
+      temporaryPassword = generateSecurePassword();
+      member.password = temporaryPassword; // will be hashed by pre-save hook
+    }
+
     const emailResult = await sendInviteEmail({
       toEmail: member.email,
       fullName: member.fullName,
       username: member.username,
-      temporaryPassword: member.password,
+      temporaryPassword,
       inviteLink: appUrl,
     });
 
@@ -343,11 +415,17 @@ const bulkInviteMembers = async (req, res) => {
     // Send emails in parallel with concurrency control
     const results = await Promise.allSettled(
       validMembers.map(async (member) => {
+        let temporaryPassword = member.password;
+        if (!temporaryPassword || temporaryPassword.startsWith('$2a$') || temporaryPassword.startsWith('$2b$')) {
+          temporaryPassword = generateSecurePassword();
+          member.password = temporaryPassword;
+        }
+
         const emailResult = await sendInviteEmail({
           toEmail: member.email,
           fullName: member.fullName,
           username: member.username,
-          temporaryPassword: member.password,
+          temporaryPassword,
           inviteLink: appUrl,
         });
 

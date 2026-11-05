@@ -59,7 +59,9 @@ const register = async (req, res) => {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const existingEmail = await Member.findOne({ email: cleanEmail });
+    const existingEmail = await Member.findOne({
+      email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+    });
     if (existingEmail) {
       return res.status(400).json({
         success: false,
