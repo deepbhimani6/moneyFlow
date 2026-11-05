@@ -11,8 +11,6 @@ import {
   Typography,
   Divider,
   Avatar,
-  IconButton,
-  Tooltip,
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -20,9 +18,7 @@ import CallReceivedIcon from '@mui/icons-material/CallReceived';
 import PaymentIcon from '@mui/icons-material/Payment';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import LogoutIcon from '@mui/icons-material/Logout';
 import { useProfile } from '../context/ProfileContext';
-import { useAuth } from '../context/AuthContext';
 
 const drawerWidth = 240;
 
@@ -39,7 +35,6 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const { profile, initials } = useProfile();
-  const { logout } = useAuth();
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -120,7 +115,7 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
       </List>
 
       {/* User Profile Mini Footer */}
-      <Box sx={{ mt: 'auto', p: 1.5, borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+      <Box sx={{ mt: 'auto', p: 1.5, borderTop: '1px solid #e2e8f0' }}>
         <ListItemButton
           selected={currentPath === '/profile'}
           onClick={() => {
@@ -133,7 +128,7 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
             display: 'flex',
             alignItems: 'center',
             gap: 1.5,
-            flexGrow: 1,
+            width: '100%',
             overflow: 'hidden',
             border: currentPath === '/profile' ? '1.5px solid #1976d2' : '1.5px solid transparent',
             backgroundColor: currentPath === '/profile' ? 'rgba(25, 118, 210, 0.08) !important' : 'transparent',
@@ -156,7 +151,7 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
           >
             {initials}
           </Avatar>
-          <Box sx={{ overflow: 'hidden' }}>
+          <Box sx={{ overflow: 'hidden', flexGrow: 1 }}>
             <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.2 }} noWrap>
               {profile?.fullName || 'Deep Bhimani'}
             </Typography>
@@ -165,25 +160,6 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
             </Typography>
           </Box>
         </ListItemButton>
-
-        <Tooltip title="Sign Out">
-          <IconButton
-            size="small"
-            aria-label="Sign out"
-            onClick={() => {
-              logout();
-              if (onMobileClose) onMobileClose();
-              navigate('/login', { replace: true });
-            }}
-            sx={{
-              color: 'text.secondary',
-              p: 1,
-              '&:hover': { color: 'error.main', bgcolor: 'rgba(211, 47, 47, 0.08)' },
-            }}
-          >
-            <LogoutIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
       </Box>
     </Box>
   );
