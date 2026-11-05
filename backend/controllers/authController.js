@@ -237,9 +237,12 @@ const forgotPassword = async (req, res) => {
       });
     }
 
-    // Generate secure random reset token
+    // Generate secure random reset token and 6-digit verification code
     const token = crypto.randomBytes(32).toString('hex');
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+
     member.resetPasswordToken = token;
+    member.resetPasswordCode = resetCode;
     member.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour expiration
     await member.save();
 
@@ -258,7 +261,6 @@ const forgotPassword = async (req, res) => {
     appUrl = appUrl.replace(/\/+$/, '');
 
     const resetLink = `${appUrl}/reset-password?token=${token}`;
-    const resetCode = token.slice(0, 8).toUpperCase();
 
     const emailResult = await sendPasswordResetEmail({
       toEmail: member.email,
@@ -273,10 +275,9 @@ const forgotPassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Password reset instructions have been sent to your email address.',
+      message: 'Password reset code and link have been sent to your email address.',
       email: member.email,
-      // For local testing convenience if SMTP/Brevo is in sandbox mode
-      resetToken: process.env.NODE_ENV !== 'production' ? token : undefined,
+      resetCode: process.env.NODE_ENV !== 'production' ? resetCode : undefined,
     });
   } catch (error) {
     console.error('[Auth Forgot Password Error]:', error);
@@ -284,47 +285,53 @@ const forgotPassword = async (req, res) => {
   }
 };
 
-// @desc    Verify if a password reset token is valid
+// @desc    Verify if a password reset token or code is valid
 // @route   GET /api/auth/verify-reset-token/:token
 const verifyResetToken = async (req, res) => {
   try {
     const { token } = req.params;
 
     if (!token) {
-      return res.status(400).json({ success: false, message: 'Reset token is required' });
+      return res.status(400).json({ success: false, message: 'Reset code or token is required' });
     }
 
+    const cleanInput = token.trim();
     const member = await Member.findOne({
-      resetPasswordToken: token,
       resetPasswordExpires: { $gt: Date.now() },
+      $or: [
+        { resetPasswordToken: cleanInput },
+        { resetPasswordCode: cleanInput },
+        { resetPasswordCode: cleanInput.toUpperCase() },
+      ],
     });
 
     if (!member) {
       return res.status(400).json({
         success: false,
-        message: 'Password reset link is invalid or has expired. Please request a new one.',
+        message: 'Password reset code is invalid or has expired. Please check your email or request a new one.',
       });
     }
 
     res.json({
       success: true,
-      message: 'Token is valid',
+      message: 'Code verified successfully',
       email: member.email,
       fullName: member.fullName,
+      token: member.resetPasswordToken,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Reset password using token
+// @desc    Reset password using token or code
 // @route   POST /api/auth/reset-password
 const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
-    if (!token) {
-      return res.status(400).json({ success: false, message: 'Reset token is required' });
+    if (!token || !token.trim()) {
+      return res.status(400).json({ success: false, message: 'Reset code or token is required' });
     }
 
     if (!newPassword || newPassword.length < 6) {
@@ -334,21 +341,27 @@ const resetPassword = async (req, res) => {
       });
     }
 
+    const cleanInput = token.trim();
     const member = await Member.findOne({
-      resetPasswordToken: token,
       resetPasswordExpires: { $gt: Date.now() },
+      $or: [
+        { resetPasswordToken: cleanInput },
+        { resetPasswordCode: cleanInput },
+        { resetPasswordCode: cleanInput.toUpperCase() },
+      ],
     });
 
     if (!member) {
       return res.status(400).json({
         success: false,
-        message: 'Password reset link is invalid or has expired. Please request a new one.',
+        message: 'Password reset code is invalid or has expired. Please check your email or request a new one.',
       });
     }
 
     // Set new password (pre-save hook will hash it)
     member.password = newPassword;
     member.resetPasswordToken = null;
+    member.resetPasswordCode = null;
     member.resetPasswordExpires = null;
     await member.save();
 

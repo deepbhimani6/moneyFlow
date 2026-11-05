@@ -93,7 +93,7 @@ const ResetPasswordPage = () => {
     const activeToken = token.trim();
 
     if (!activeToken) {
-      newErrors.token = 'Reset token is required';
+      newErrors.token = 'Reset code or token is required';
     }
 
     if (!newPassword) {
@@ -143,14 +143,14 @@ const ResetPasswordPage = () => {
   return (
     <AuthLayout
       title="Create New Password"
-      subtitle={userEmail ? `Resetting password for ${userEmail}` : 'Enter your new credentials below'}
+      subtitle={userEmail ? `Enter the reset code sent to ${userEmail} and set your new password` : 'Enter the reset code received in your email and choose a new password'}
       maxWidth={620}
     >
       {verifying && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4, gap: 1.5 }}>
           <CircularProgress size={24} />
           <Typography variant="body2" color="text.secondary">
-            Verifying reset link...
+            Verifying reset code...
           </Typography>
         </Box>
       )}
@@ -174,27 +174,26 @@ const ResetPasswordPage = () => {
           )}
 
           <Box component="form" onSubmit={handleSubmit} noValidate>
-            {/* Token field (only if not already verified or no initial token provided) */}
-            {(!initialToken || !tokenValid) && (
-              <TextField
-                fullWidth
-                label="Reset Token"
-                name="token"
-                placeholder="Paste token or code from reset email"
-                value={token}
-                onChange={(e) => {
-                  setError('');
-                  if (errors.token) setErrors((prev) => ({ ...prev, token: '' }));
-                  setToken(e.target.value);
-                }}
-                inputRef={tokenRef}
-                error={Boolean(errors.token)}
-                helperText={errors.token || ''}
-                required
-                disabled={loading}
-                sx={{ mb: 2.5 }}
-              />
-            )}
+            {/* Reset Code / Token field - Always visible */}
+            <TextField
+              fullWidth
+              label="Reset Code / Token"
+              name="token"
+              placeholder="e.g. 123456 or paste token from email"
+              value={token}
+              onChange={(e) => {
+                setError('');
+                if (errors.token) setErrors((prev) => ({ ...prev, token: '' }));
+                setToken(e.target.value);
+              }}
+              inputRef={tokenRef}
+              error={Boolean(errors.token)}
+              helperText={errors.token ? errors.token : (tokenValid ? 'Reset code verified ✓' : '')}
+              required
+              disabled={loading}
+              autoFocus={!initialToken}
+              sx={{ mb: 2.5 }}
+            />
 
             {/* New Password */}
             <TextField

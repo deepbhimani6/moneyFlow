@@ -57,6 +57,10 @@ const memberSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    resetPasswordCode: {
+      type: String,
+      default: null,
+    },
     resetPasswordExpires: {
       type: Date,
       default: null,

@@ -106,14 +106,14 @@ const ForgotPasswordPage = () => {
           </Typography>
 
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-            We've sent a password reset link to{' '}
+            We've sent a 6-digit password reset code to{' '}
             <strong style={{ color: '#0f172a' }}>{sentEmail}</strong>. Please check your inbox and spam folder.
           </Typography>
 
           <Button
             variant="contained"
             fullWidth
-            onClick={() => navigate(devToken ? `/reset-password?token=${devToken}` : '/reset-password')}
+            onClick={() => navigate('/reset-password')}
             sx={{
               py: 1.2,
               fontWeight: 700,
@@ -121,7 +121,7 @@ const ForgotPasswordPage = () => {
               borderRadius: 2,
             }}
           >
-            Enter Reset Token / Set Password
+            Enter Reset Code & Set Password
           </Button>
 
           <Button
