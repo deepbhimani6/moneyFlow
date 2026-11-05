@@ -21,9 +21,13 @@ import {
 } from "@mui/material";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { memberService, entryService } from "../services/api";
-import { formatAmount, capitalizeName } from "../utils/formatters";
+import { useProfile } from "../context/ProfileContext";
+import { useAuth } from "../context/AuthContext";
+import { formatAmount, capitalizeName, isCurrentLoggedInUser } from "../utils/formatters";
 
 const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
+  const { profile } = useProfile();
+  const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [selectedNames, setSelectedNames] = useState([]);
   const [inputValue, setInputValue] = useState("");
@@ -68,13 +72,10 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
     }
   }, [open]);
 
-  // Dropdown options: only real members (never include "myself")
+  // Dropdown options: only real members (never include logged-in user or "myself")
   const autocompleteOptions = useMemo(() => {
-    return members.filter((m) => {
-      const name = (m.fullName || "").toLowerCase().trim();
-      return !name.includes("myself");
-    });
-  }, [members]);
+    return members.filter((m) => !isCurrentLoggedInUser(m, profile, user));
+  }, [members, profile, user]);
 
   // Split is active if multiple members are selected, OR at least 1 member + myself
   const isSplitActive = selectedNames.length > 1 || (selectedNames.length >= 1 && includeMine);

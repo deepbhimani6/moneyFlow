@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -15,9 +15,13 @@ import {
   Box,
 } from "@mui/material";
 import { memberService } from "../services/api";
-import { capitalizeName } from "../utils/formatters";
+import { useProfile } from "../context/ProfileContext";
+import { useAuth } from "../context/AuthContext";
+import { capitalizeName, isCurrentLoggedInUser } from "../utils/formatters";
 
 const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFilters }) => {
+  const { profile } = useProfile();
+  const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [selectedNames, setSelectedNames] = useState([]);
   const [inputValue, setInputValue] = useState("");
@@ -39,6 +43,11 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
       setInputValue("");
     }
   }, [open, currentFilters]);
+
+  // Exclude currently logged-in user from dropdown options
+  const availableMembers = useMemo(() => {
+    return members.filter((m) => !isCurrentLoggedInUser(m, profile, user));
+  }, [members, profile, user]);
 
   const handleChange = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -121,7 +130,7 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
         <Autocomplete
           multiple
           freeSolo
-          options={members}
+          options={availableMembers}
           getOptionLabel={(option) => (typeof option === "string" ? option : option.fullName || "")}
           isOptionEqualToValue={(option, value) => {
             if (typeof value === "string") return option.fullName === value;

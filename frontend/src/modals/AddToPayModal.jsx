@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -16,9 +16,13 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { memberService, toPayService } from "../services/api";
-import { capitalizeName } from "../utils/formatters";
+import { useProfile } from "../context/ProfileContext";
+import { useAuth } from "../context/AuthContext";
+import { capitalizeName, isCurrentLoggedInUser } from "../utils/formatters";
 
 const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
+  const { profile } = useProfile();
+  const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [selectedMember, setSelectedMember] = useState(null);
   const [inputValue, setInputValue] = useState("");
@@ -60,6 +64,11 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
       setError("");
     }
   }, [open]);
+
+  // Exclude currently logged-in user from dropdown options
+  const availableMembers = useMemo(() => {
+    return members.filter((m) => !isCurrentLoggedInUser(m, profile, user));
+  }, [members, profile, user]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -132,7 +141,7 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
           {/* 1. Member / Person Name (Single Select or FreeSolo) */}
           <Autocomplete
             freeSolo
-            options={members}
+            options={availableMembers}
             getOptionLabel={(option) => (typeof option === "string" ? option : option.fullName || "")}
             isOptionEqualToValue={(option, value) => {
               if (typeof value === "string") return option.fullName === value;

@@ -162,3 +162,45 @@ export const capitalizeWordsInput = (str) => {
   return str.replace(/\b\w/g, (c) => c.toUpperCase());
 };
 
+/**
+ * Checks if a member corresponds to the currently logged in user / profile
+ */
+export const isCurrentLoggedInUser = (member, profile, user) => {
+  if (!member) return false;
+
+  // Check by user ID if available
+  const currentUserId = user?.id || user?._id;
+  if (currentUserId && member._id && String(currentUserId) === String(member._id)) {
+    return true;
+  }
+
+  // Check by email
+  const profileEmail = (profile?.email || user?.email || "").toLowerCase().trim();
+  const memberEmail = (member.email || "").toLowerCase().trim();
+  if (profileEmail && memberEmail && profileEmail === memberEmail) {
+    return true;
+  }
+
+  // Check by username
+  const profileUsername = (profile?.username || user?.username || "").toLowerCase().trim();
+  const memberUsername = (member.username || "").toLowerCase().trim();
+  if (profileUsername && memberUsername && profileUsername === memberUsername) {
+    return true;
+  }
+
+  // Check by full name
+  const profileName = (profile?.fullName || user?.fullName || "").toLowerCase().trim();
+  const memberName = (typeof member === "string" ? member : member.fullName || "").toLowerCase().trim();
+  if (profileName && memberName && profileName === memberName) {
+    return true;
+  }
+
+  // Also check if member is explicitly "myself"
+  if (memberName.includes("myself")) {
+    return true;
+  }
+
+  return false;
+};
+
+
