@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -11,13 +11,10 @@ import {
   CircularProgress,
   Link,
   Divider,
+  Grid,
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
-import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import HowToRegIcon from '@mui/icons-material/HowToReg';
 import AuthLayout from './AuthLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -35,46 +32,65 @@ const RegisterPage = () => {
     confirmPassword: '',
   });
 
+  const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  const handleChange = (field, value) => {
-    setError('');
+  const fullNameRef = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [name]: value,
     }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+    if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
 
-    if (!formData.fullName.trim()) {
-      setError('Full Name is required.');
-      return;
-    }
+    const newErrors = {};
 
-    if (!formData.email.trim()) {
-      setError('Email address is required.');
-      return;
+    if (!formData.fullName || !formData.fullName.trim()) {
+      newErrors.fullName = 'Full name is required';
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email.trim())) {
-      setError('Please enter a valid email address.');
-      return;
+    if (!formData.email || !formData.email.trim()) {
+      newErrors.email = 'Valid email is required';
+    } else if (!emailRegex.test(formData.email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
-    if (!formData.password || formData.password.length < 6) {
-      setError('Password must be at least 6 characters long.');
-      return;
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters long';
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match. Please verify.');
+    if (!formData.confirmPassword) {
+      newErrors.confirmPassword = 'Confirm password is required';
+    } else if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (newErrors.fullName && fullNameRef.current) fullNameRef.current.focus();
+      else if (newErrors.email && emailRef.current) emailRef.current.focus();
+      else if (newErrors.password && passwordRef.current) passwordRef.current.focus();
+      else if (newErrors.confirmPassword && confirmPasswordRef.current) confirmPasswordRef.current.focus();
       return;
     }
 
@@ -109,6 +125,7 @@ const RegisterPage = () => {
     <AuthLayout
       title="Create an Account"
       subtitle="Join MoneyFlow to easily manage and track personal finances"
+      maxWidth={620}
     >
       {error && (
         <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }} onClose={() => setError('')}>
@@ -123,136 +140,132 @@ const RegisterPage = () => {
       )}
 
       <Box component="form" onSubmit={handleSubmit} noValidate>
-        {/* Full Name */}
-        <TextField
-          fullWidth
-          label="Full Name"
-          placeholder="e.g. Deep Bhimani"
-          value={formData.fullName}
-          onChange={(e) => handleChange('fullName', e.target.value)}
-          required
-          disabled={loading}
-          sx={{ mb: 2 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <PersonOutlineIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
-        />
+        <Grid container spacing={2.5}>
+          {/* 1. Full Name */}
+          <Grid item xs={12}>
+            <TextField
+              label="Full Name"
+              name="fullName"
+              placeholder="e.g. John Doe"
+              value={formData.fullName}
+              onChange={handleChange}
+              inputRef={fullNameRef}
+              error={Boolean(errors.fullName)}
+              helperText={errors.fullName || ''}
+              fullWidth
+              required
+              disabled={loading}
+            />
+          </Grid>
 
-        {/* Email Address */}
-        <TextField
-          fullWidth
-          type="email"
-          label="Email Address"
-          placeholder="e.g. deep.bhimani@shunyavkash.com"
-          value={formData.email}
-          onChange={(e) => handleChange('email', e.target.value)}
-          autoComplete="email"
-          required
-          disabled={loading}
-          sx={{ mb: 2 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <EmailOutlinedIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
-        />
+          {/* 2. E-mail */}
+          <Grid item xs={12}>
+            <TextField
+              label="E-mail"
+              name="email"
+              type="email"
+              placeholder="e.g. john@example.com"
+              value={formData.email}
+              onChange={handleChange}
+              inputRef={emailRef}
+              error={Boolean(errors.email)}
+              helperText={errors.email || ''}
+              fullWidth
+              required
+              disabled={loading}
+            />
+          </Grid>
 
-        {/* Username & Phone Number in a row or stack */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
-          <TextField
-            fullWidth
-            label="Username (optional)"
-            placeholder="e.g. deepBhimani"
-            value={formData.username}
-            onChange={(e) => handleChange('username', e.target.value)}
-            disabled={loading}
-          />
-          <TextField
-            fullWidth
-            label="Phone Number (optional)"
-            placeholder="e.g. +91 6359276907"
-            value={formData.phoneNumber}
-            onChange={(e) => handleChange('phoneNumber', e.target.value)}
-            disabled={loading}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <PhoneOutlinedIcon color="action" fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Box>
+          {/* 3. Username */}
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Username"
+              name="username"
+              placeholder="e.g. johndoe"
+              value={formData.username}
+              onChange={handleChange}
+              fullWidth
+              disabled={loading}
+            />
+          </Grid>
 
-        {/* Password */}
-        <TextField
-          fullWidth
-          type={showPassword ? 'text' : 'password'}
-          label="Password"
-          placeholder="At least 6 characters"
-          value={formData.password}
-          onChange={(e) => handleChange('password', e.target.value)}
-          required
-          disabled={loading}
-          sx={{ mb: 2 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <LockOutlinedIcon color="action" />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label="toggle password visibility"
-                  onClick={() => setShowPassword(!showPassword)}
-                  edge="end"
-                  size="small"
-                >
-                  {showPassword ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
+          {/* 4. Phone Number */}
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Phone Number"
+              name="phoneNumber"
+              placeholder="e.g. +91 9876543210"
+              value={formData.phoneNumber}
+              onChange={handleChange}
+              fullWidth
+              disabled={loading}
+            />
+          </Grid>
 
-        {/* Confirm Password */}
-        <TextField
-          fullWidth
-          type={showConfirmPassword ? 'text' : 'password'}
-          label="Confirm Password"
-          placeholder="Re-enter your password"
-          value={formData.confirmPassword}
-          onChange={(e) => handleChange('confirmPassword', e.target.value)}
-          required
-          disabled={loading}
-          sx={{ mb: 3 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <LockOutlinedIcon color="action" />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label="toggle confirm password visibility"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  edge="end"
-                  size="small"
-                >
-                  {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        />
+          {/* 5. Password */}
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Password"
+              name="password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="At least 6 characters"
+              value={formData.password}
+              onChange={handleChange}
+              inputRef={passwordRef}
+              error={Boolean(errors.password)}
+              helperText={errors.password || ''}
+              fullWidth
+              required
+              disabled={loading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle password visibility"
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                      size="small"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+
+          {/* 6. Confirm Password */}
+          <Grid item xs={12} sm={6}>
+            <TextField
+              label="Confirm Password"
+              name="confirmPassword"
+              type={showConfirmPassword ? 'text' : 'password'}
+              placeholder="Re-enter your password"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              inputRef={confirmPasswordRef}
+              error={Boolean(errors.confirmPassword)}
+              helperText={errors.confirmPassword || ''}
+              fullWidth
+              required
+              disabled={loading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="toggle confirm password visibility"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      edge="end"
+                      size="small"
+                    >
+                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+        </Grid>
 
         {/* Submit Button */}
         <Button
@@ -263,6 +276,7 @@ const RegisterPage = () => {
           disabled={loading}
           startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <HowToRegIcon />}
           sx={{
+            mt: 3.5,
             py: 1.3,
             fontSize: '1rem',
             fontWeight: 700,

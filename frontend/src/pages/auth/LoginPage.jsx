@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -16,8 +16,6 @@ import {
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import LoginIcon from '@mui/icons-material/Login';
 import AuthLayout from './AuthLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -33,24 +31,46 @@ const LoginPage = () => {
     rememberMe: true,
   });
 
+  const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(location.state?.message || '');
   const [successMsg, setSuccessMsg] = useState('');
 
-  const handleChange = (field, value) => {
-    setError('');
+  const identifierRef = useRef(null);
+  const passwordRef = useRef(null);
+
+  const handleChange = (e) => {
+    const { name, value, checked, type } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [field]: value,
+      [name]: type === 'checkbox' ? checked : value,
     }));
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: '' }));
+    }
+    if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
 
-    if (!formData.identifier.trim() || !formData.password) {
-      setError('Please enter your email or username and password.');
+    const newErrors = {};
+    if (!formData.identifier || !formData.identifier.trim()) {
+      newErrors.identifier = 'Email or username is required';
+    }
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (newErrors.identifier && identifierRef.current) {
+        identifierRef.current.focus();
+      } else if (newErrors.password && passwordRef.current) {
+        passwordRef.current.focus();
+      }
       return;
     }
 
@@ -66,7 +86,7 @@ const LoginPage = () => {
           navigate(origin, { replace: true });
         }, 400);
       } else {
-        setError(res.message || 'Invalid credentials. Please try again.');
+        setError(res.message || 'Invalid email/username or password. Please try again.');
       }
     } catch (err) {
       setError(err.message || 'An error occurred during sign in.');
@@ -79,6 +99,7 @@ const LoginPage = () => {
     <AuthLayout
       title="Welcome Back"
       subtitle="Sign in to your MoneyFlow account to continue"
+      maxWidth={520}
     >
       {error && (
         <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }} onClose={() => setError('')}>
@@ -97,21 +118,18 @@ const LoginPage = () => {
         <TextField
           fullWidth
           label="Email or Username"
-          placeholder="e.g. deep.bhimani@shunyavkash.com"
+          name="identifier"
+          placeholder="e.g. deep.bhimani@shunyavkash.com or deepBhimani"
           value={formData.identifier}
-          onChange={(e) => handleChange('identifier', e.target.value)}
+          onChange={handleChange}
+          inputRef={identifierRef}
+          error={Boolean(errors.identifier)}
+          helperText={errors.identifier || ''}
           autoComplete="username"
           autoFocus
           required
           disabled={loading}
-          sx={{ mb: 2 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <PersonOutlineIcon color="action" />
-              </InputAdornment>
-            ),
-          }}
+          sx={{ mb: 2.5 }}
         />
 
         {/* Password */}
@@ -119,19 +137,18 @@ const LoginPage = () => {
           fullWidth
           type={showPassword ? 'text' : 'password'}
           label="Password"
+          name="password"
           placeholder="Enter your password"
           value={formData.password}
-          onChange={(e) => handleChange('password', e.target.value)}
+          onChange={handleChange}
+          inputRef={passwordRef}
+          error={Boolean(errors.password)}
+          helperText={errors.password || ''}
           autoComplete="current-password"
           required
           disabled={loading}
           sx={{ mb: 1.5 }}
           InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <LockOutlinedIcon color="action" />
-              </InputAdornment>
-            ),
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton
@@ -159,14 +176,15 @@ const LoginPage = () => {
           <FormControlLabel
             control={
               <Checkbox
+                name="rememberMe"
                 checked={formData.rememberMe}
-                onChange={(e) => handleChange('rememberMe', e.target.checked)}
+                onChange={handleChange}
                 color="primary"
                 size="small"
               />
             }
             label={
-              <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.85rem' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.875rem' }}>
                 Remember me
               </Typography>
             }
@@ -178,7 +196,7 @@ const LoginPage = () => {
             variant="body2"
             sx={{
               fontWeight: 600,
-              fontSize: '0.85rem',
+              fontSize: '0.875rem',
               color: 'primary.main',
               textDecoration: 'none',
               '&:hover': { textDecoration: 'underline' },

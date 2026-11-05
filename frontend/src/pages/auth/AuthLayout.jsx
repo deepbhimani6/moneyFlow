@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Card, CardContent, Typography, Container } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
-const AuthLayout = ({ children, title, subtitle }) => {
+const AuthLayout = ({ children, title, subtitle, maxWidth = 540 }) => {
   return (
     <Box
       sx={{
@@ -44,7 +44,16 @@ const AuthLayout = ({ children, title, subtitle }) => {
         }}
       />
 
-      <Container maxWidth="xs" sx={{ position: 'relative', zIndex: 1 }}>
+      <Container
+        maxWidth={false}
+        sx={{
+          position: 'relative',
+          zIndex: 1,
+          maxWidth: { xs: '100%', sm: maxWidth, md: maxWidth },
+          width: '100%',
+          px: { xs: 1, sm: 2 },
+        }}
+      >
         {/* Brand Header */}
         <Box
           sx={{
@@ -99,16 +108,16 @@ const AuthLayout = ({ children, title, subtitle }) => {
             overflow: 'visible',
           }}
         >
-          <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+          <CardContent sx={{ p: { xs: 3, sm: 4.5 } }}>
             {title && (
-              <Box sx={{ mb: 3, textAlign: 'left' }}>
+              <Box sx={{ mb: 3.5, textAlign: 'left' }}>
                 <Typography
                   variant="h5"
                   component="h2"
                   sx={{
                     fontWeight: 700,
                     color: 'text.primary',
-                    fontSize: { xs: '1.25rem', sm: '1.4rem' },
+                    fontSize: { xs: '1.3rem', sm: '1.5rem' },
                   }}
                 >
                   {title}

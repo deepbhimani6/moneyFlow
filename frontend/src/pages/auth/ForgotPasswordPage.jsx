@@ -1,17 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   TextField,
   Button,
   Typography,
-  InputAdornment,
   Alert,
   CircularProgress,
   Link,
   Divider,
 } from '@mui/material';
-import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import SendIcon from '@mui/icons-material/Send';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
@@ -23,23 +21,30 @@ const ForgotPasswordPage = () => {
   const { forgotPassword } = useAuth();
 
   const [email, setEmail] = useState('');
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [sentSuccess, setSentSuccess] = useState(false);
   const [sentEmail, setSentEmail] = useState('');
   const [devToken, setDevToken] = useState('');
 
+  const emailRef = useRef(null);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
 
-    if (!email.trim()) {
-      setError('Please provide your account email address.');
-      return;
+    const newErrors = {};
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !email.trim()) {
+      newErrors.email = 'Valid email is required';
+    } else if (!emailRegex.test(email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      setError('Please provide a valid email address.');
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (emailRef.current) emailRef.current.focus();
       return;
     }
 
@@ -69,6 +74,7 @@ const ForgotPasswordPage = () => {
     <AuthLayout
       title="Reset Password"
       subtitle="Enter your email to receive password reset instructions"
+      maxWidth={520}
     >
       {error && (
         <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }} onClose={() => setError('')}>
@@ -124,6 +130,7 @@ const ForgotPasswordPage = () => {
             onClick={() => {
               setSentSuccess(false);
               setEmail('');
+              setErrors({});
             }}
             sx={{ color: 'text.secondary', fontSize: '0.85rem' }}
           >
@@ -140,25 +147,23 @@ const ForgotPasswordPage = () => {
           <TextField
             fullWidth
             type="email"
-            label="Email Address"
-            placeholder="e.g. deep.bhimani@shunyavkash.com"
+            label="E-mail"
+            name="email"
+            placeholder="e.g. john@example.com"
             value={email}
             onChange={(e) => {
               setError('');
+              if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
               setEmail(e.target.value);
             }}
+            inputRef={emailRef}
+            error={Boolean(errors.email)}
+            helperText={errors.email || ''}
             autoComplete="email"
             autoFocus
             required
             disabled={loading}
             sx={{ mb: 3 }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <EmailOutlinedIcon color="action" />
-                </InputAdornment>
-              ),
-            }}
           />
 
           {/* Submit Button */}

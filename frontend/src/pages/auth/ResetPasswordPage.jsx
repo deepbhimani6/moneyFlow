@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -14,8 +14,6 @@ import {
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import KeyIcon from '@mui/icons-material/Key';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AuthLayout from './AuthLayout';
@@ -36,6 +34,7 @@ const ResetPasswordPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [errors, setErrors] = useState({});
 
   const [verifying, setVerifying] = useState(Boolean(initialToken));
   const [tokenValid, setTokenValid] = useState(false);
@@ -44,6 +43,10 @@ const ResetPasswordPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  const tokenRef = useRef(null);
+  const newPasswordRef = useRef(null);
+  const confirmPasswordRef = useRef(null);
 
   // Auto-verify token on mount if provided in URL
   useEffect(() => {
@@ -84,20 +87,32 @@ const ResetPasswordPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
 
+    const newErrors = {};
     const activeToken = token.trim();
+
     if (!activeToken) {
-      setError('Please provide the reset token.');
-      return;
+      newErrors.token = 'Reset token is required';
     }
 
-    if (!newPassword || newPassword.length < 6) {
-      setError('New password must be at least 6 characters long.');
-      return;
+    if (!newPassword) {
+      newErrors.newPassword = 'New password is required';
+    } else if (newPassword.length < 6) {
+      newErrors.newPassword = 'Password must be at least 6 characters long';
     }
 
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match. Please verify.');
+    if (!confirmPassword) {
+      newErrors.confirmPassword = 'Confirm password is required';
+    } else if (newPassword !== confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (newErrors.token && tokenRef.current) tokenRef.current.focus();
+      else if (newErrors.newPassword && newPasswordRef.current) newPasswordRef.current.focus();
+      else if (newErrors.confirmPassword && confirmPasswordRef.current) confirmPasswordRef.current.focus();
       return;
     }
 
@@ -129,6 +144,7 @@ const ResetPasswordPage = () => {
     <AuthLayout
       title="Create New Password"
       subtitle={userEmail ? `Resetting password for ${userEmail}` : 'Enter your new credentials below'}
+      maxWidth={520}
     >
       {verifying && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4, gap: 1.5 }}>
@@ -158,27 +174,25 @@ const ResetPasswordPage = () => {
           )}
 
           <Box component="form" onSubmit={handleSubmit} noValidate>
-            {/* Token field (only if not already provided or token was invalid) */}
+            {/* Token field (only if not already verified or no initial token provided) */}
             {(!initialToken || !tokenValid) && (
               <TextField
                 fullWidth
                 label="Reset Token"
+                name="token"
                 placeholder="Paste token or code from reset email"
                 value={token}
                 onChange={(e) => {
                   setError('');
+                  if (errors.token) setErrors((prev) => ({ ...prev, token: '' }));
                   setToken(e.target.value);
                 }}
+                inputRef={tokenRef}
+                error={Boolean(errors.token)}
+                helperText={errors.token || ''}
                 required
                 disabled={loading}
-                sx={{ mb: 2 }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <KeyIcon color="action" />
-                    </InputAdornment>
-                  ),
-                }}
+                sx={{ mb: 2.5 }}
               />
             )}
 
@@ -187,21 +201,21 @@ const ResetPasswordPage = () => {
               fullWidth
               type={showPassword ? 'text' : 'password'}
               label="New Password"
+              name="newPassword"
               placeholder="Minimum 6 characters"
               value={newPassword}
               onChange={(e) => {
                 setError('');
+                if (errors.newPassword) setErrors((prev) => ({ ...prev, newPassword: '' }));
                 setNewPassword(e.target.value);
               }}
+              inputRef={newPasswordRef}
+              error={Boolean(errors.newPassword)}
+              helperText={errors.newPassword || ''}
               required
               disabled={loading}
-              sx={{ mb: 2 }}
+              sx={{ mb: 2.5 }}
               InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockOutlinedIcon color="action" />
-                  </InputAdornment>
-                ),
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
@@ -222,21 +236,21 @@ const ResetPasswordPage = () => {
               fullWidth
               type={showConfirmPassword ? 'text' : 'password'}
               label="Confirm New Password"
+              name="confirmPassword"
               placeholder="Re-enter your new password"
               value={confirmPassword}
               onChange={(e) => {
                 setError('');
+                if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: '' }));
                 setConfirmPassword(e.target.value);
               }}
+              inputRef={confirmPasswordRef}
+              error={Boolean(errors.confirmPassword)}
+              helperText={errors.confirmPassword || ''}
               required
               disabled={loading}
               sx={{ mb: 3 }}
               InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockOutlinedIcon color="action" />
-                  </InputAdornment>
-                ),
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
