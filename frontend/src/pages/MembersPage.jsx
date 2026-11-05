@@ -704,7 +704,7 @@ const MembersPage = () => {
           fetchMembers();
           setSnackbar({
             open: true,
-            message: `Member created! ${sentLink ? "Invite email triggered via Resend." : ""}`,
+            message: `Member created! ${sentLink ? "Invite email sent." : ""}`,
             severity: "success",
           });
         }}
