@@ -11,14 +11,12 @@ import {
   CircularProgress,
   Link,
   Divider,
-  Chip,
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import EditIcon from '@mui/icons-material/Edit';
 import AuthLayout from './AuthLayout';
 import { useAuth } from '../../context/AuthContext';
 
@@ -266,45 +264,6 @@ const ResetPasswordPage = () => {
           {/* STEP 2: Password Entry (shown ONLY once code is verified) */}
           {tokenValid && (
             <Box component="form" onSubmit={handleResetPassword} noValidate>
-              {/* Verified Code Confirmation Banner */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  p: 1.5,
-                  mb: 2.5,
-                  borderRadius: 2,
-                  bgcolor: 'rgba(46, 125, 50, 0.08)',
-                  border: '1px solid rgba(46, 125, 50, 0.25)',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <CheckCircleIcon sx={{ color: 'success.main', fontSize: 20 }} />
-                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'success.dark' }}>
-                    Code verified {userEmail ? `for ${userEmail}` : 'successfully'}
-                  </Typography>
-                </Box>
-                <Chip
-                  icon={<EditIcon sx={{ fontSize: '14px !important' }} />}
-                  label="Change Code"
-                  size="small"
-                  onClick={() => {
-                    setTokenValid(false);
-                    setTimeout(() => {
-                      if (tokenRef.current) tokenRef.current.focus();
-                    }, 100);
-                  }}
-                  variant="outlined"
-                  sx={{
-                    height: 24,
-                    fontSize: '0.72rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                  }}
-                />
-              </Box>
-
               {/* New Password */}
               <TextField
                 fullWidth
