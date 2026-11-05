@@ -250,7 +250,19 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                 />
               }
               label="Add myself (splits my share into For Self)"
-              sx={{ mt: -1.5, mb: -1 }}
+              componentsProps={{
+                typography: {
+                  sx: { fontSize: "0.82rem", fontWeight: 500, color: "text.secondary" },
+                },
+              }}
+              sx={{
+                mt: -1.5,
+                mb: -1,
+                "& .MuiFormControlLabel-label": {
+                  fontSize: "0.82rem",
+                  fontWeight: 500,
+                },
+              }}
             />
           )}
 
@@ -281,7 +293,18 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                   />
                 }
                 label="Add myself (splits my share into For Self)"
-                sx={{ mb: 0.5 }}
+                componentsProps={{
+                  typography: {
+                    sx: { fontSize: "0.82rem", fontWeight: 500, color: "text.primary" },
+                  },
+                }}
+                sx={{
+                  mb: 0.5,
+                  "& .MuiFormControlLabel-label": {
+                    fontSize: "0.82rem",
+                    fontWeight: 500,
+                  },
+                }}
               />
 
               {numericAmount > 0 && (
