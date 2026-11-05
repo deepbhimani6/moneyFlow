@@ -93,14 +93,16 @@ const HeaderProfileMenu = () => {
           {initials}
         </Avatar>
 
-        {/* Name & Role on medium screens and up */}
+        {/* Name on medium screens and up */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
           <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'text.primary', maxWidth: 120, textTransform: 'capitalize' }} noWrap>
             {profile?.fullName || 'User'}
           </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1 }}>
-            {profile?.role || 'Member'}
-          </Typography>
+          {profile?.email && (
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1, maxWidth: 120 }} noWrap>
+              {profile.email}
+            </Typography>
+          )}
         </Box>
 
         <ArrowDropDownIcon
@@ -169,18 +171,6 @@ const HeaderProfileMenu = () => {
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }} noWrap>
               {profile?.email || 'user@example.com'}
             </Typography>
-            <Chip
-              label={profile?.role || 'Member'}
-              size="small"
-              sx={{
-                height: 20,
-                fontSize: '0.68rem',
-                fontWeight: 600,
-                bgcolor: 'primary.main',
-                color: '#fff',
-                mt: 0.5,
-              }}
-            />
           </Box>
         </Box>
 

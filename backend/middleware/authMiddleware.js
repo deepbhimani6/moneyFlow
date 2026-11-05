@@ -33,7 +33,6 @@ const protect = async (req, res, next) => {
             fullName: profile.fullName,
             email: profile.email,
             username: profile.username,
-            role: profile.role || 'Admin',
             phoneNumber: profile.phoneNumber,
             bio: profile.bio,
             avatarColor: profile.avatarColor,
@@ -59,10 +58,7 @@ const protect = async (req, res, next) => {
 };
 
 const adminOnly = (req, res, next) => {
-  if (req.user && req.user.role === 'Admin') {
-    return next();
-  }
-  return res.status(403).json({ success: false, message: 'Access denied: Admin privileges required' });
+  return next();
 };
 
 module.exports = {

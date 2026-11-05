@@ -53,7 +53,7 @@ const getMembers = async (req, res) => {
 // @route   POST /api/members
 const createMember = async (req, res) => {
   try {
-    const { fullName, phoneNumber, email, username, password, sendLink, role } = req.body;
+    const { fullName, phoneNumber, email, username, password, sendLink } = req.body;
 
     if (!fullName || !email) {
       return res.status(400).json({ success: false, message: 'Full name and email are required' });
@@ -70,7 +70,6 @@ const createMember = async (req, res) => {
       email: email.toLowerCase(),
       username: username || '',
       password: password || '',
-      role: role === 'Admin' ? 'Admin' : 'Member',
       joinDate: new Date(),
     });
 
@@ -103,7 +102,7 @@ const createMember = async (req, res) => {
 // @route   PUT /api/members/:id
 const updateMember = async (req, res) => {
   try {
-    const { fullName, phoneNumber, email, username, password, role } = req.body;
+    const { fullName, phoneNumber, email, username, password } = req.body;
     const member = await Member.findById(req.params.id);
 
     if (!member) {
@@ -115,27 +114,6 @@ const updateMember = async (req, res) => {
     if (email !== undefined) member.email = email.toLowerCase();
     if (username !== undefined) member.username = username;
     if (password !== undefined && password !== '') member.password = password;
-    if (role !== undefined) {
-      const targetRole = role === 'Admin' ? 'Admin' : 'Member';
-      if (member.role === 'Admin' && targetRole === 'Member') {
-        const currentProfile = await Profile.findOne();
-        if (isMemberCurrentAdmin(member, currentProfile)) {
-          return res.status(400).json({
-            success: false,
-            message: 'Cannot demote the current logged-in Admin account.',
-          });
-        }
-
-        const adminCount = await getUniqueAdminCount();
-        if (adminCount <= 1) {
-          return res.status(400).json({
-            success: false,
-            message: 'Cannot demote the only Admin in the system. There must always be at least one Admin.',
-          });
-        }
-      }
-      member.role = targetRole;
-    }
 
     await member.save();
     res.json({ success: true, data: member, message: 'Member updated successfully' });
@@ -245,24 +223,13 @@ const deleteMember = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Member not found' });
     }
 
-    // 1. Never delete the current logged-in Admin account
+    // 1. Never delete the current logged-in account
     const currentProfile = await Profile.findOne();
     if (isMemberCurrentAdmin(member, currentProfile)) {
       return res.status(400).json({
         success: false,
-        message: 'The current logged-in Admin account cannot be deleted.',
+        message: 'The current logged-in account cannot be deleted.',
       });
-    }
-
-    // 2. Never delete the only remaining Admin in the system
-    if (member.role === 'Admin') {
-      const adminCount = await getUniqueAdminCount();
-      if (adminCount <= 1) {
-        return res.status(400).json({
-          success: false,
-          message: 'Cannot delete the only Admin in the system. There must always be at least one Admin.',
-        });
-      }
     }
 
     await Member.findByIdAndDelete(req.params.id);
@@ -288,27 +255,14 @@ const bulkDeleteMembers = async (req, res) => {
 
     const membersToDelete = await Member.find({ _id: { $in: ids } }).lean();
 
-    // 1. Check if trying to delete current logged-in admin
+    // 1. Check if trying to delete current logged-in user
     const currentProfile = await Profile.findOne();
-    const containsCurrentAdmin = membersToDelete.some((m) => isMemberCurrentAdmin(m, currentProfile));
-    if (containsCurrentAdmin) {
+    const containsCurrentLoggedIn = membersToDelete.some((m) => isMemberCurrentAdmin(m, currentProfile));
+    if (containsCurrentLoggedIn) {
       return res.status(400).json({
         success: false,
-        message: 'The current logged-in Admin account cannot be deleted. Please deselect it and try again.',
+        message: 'The current logged-in account cannot be deleted. Please deselect it and try again.',
       });
-    }
-
-    // 2. Check if deleting these would remove all admins
-    const adminMembersToDelete = membersToDelete.filter((m) => m.role === 'Admin');
-
-    if (adminMembersToDelete.length > 0) {
-      const totalAdminCount = await getUniqueAdminCount();
-      if (totalAdminCount - adminMembersToDelete.length <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Cannot delete the only Admin in the system. There must always be at least one Admin.',
-        });
-      }
     }
 
     const result = await Member.deleteMany({ _id: { $in: ids } });

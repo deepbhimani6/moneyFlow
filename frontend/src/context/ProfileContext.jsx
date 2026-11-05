@@ -9,7 +9,6 @@ const EMPTY_PROFILE = {
   email: '',
   phoneNumber: '',
   username: '',
-  role: 'Member',
   bio: '',
   avatarColor: '#1976d2',
 };

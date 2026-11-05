@@ -16,14 +16,13 @@ import {
 import { memberService } from '../services/api';
 import { capitalizeName, capitalizeWordsInput } from '../utils/formatters';
 
-const EditMemberModal = ({ open, onClose, member, onMemberUpdated, isCurrentAdmin, isOnlyAdmin }) => {
+const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
     email: '',
     username: '',
     password: '',
-    role: 'Member',
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -40,7 +39,6 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated, isCurrentAdmi
         email: member.email || '',
         username: member.username || '',
         password: '',
-        role: member.role || 'Member',
       });
       setErrors({});
       setError('');
@@ -161,29 +159,6 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated, isCurrentAdmi
             onChange={handleChange}
             fullWidth
           />
-
-          <FormControl fullWidth>
-            <InputLabel id="edit-role-label">Role</InputLabel>
-            <Select
-              labelId="edit-role-label"
-              name="role"
-              value={formData.role || 'Member'}
-              label="Role"
-              onChange={handleChange}
-            >
-              <MenuItem value="Admin">Admin</MenuItem>
-              <MenuItem
-                value="Member"
-                disabled={Boolean(isCurrentAdmin || (isOnlyAdmin && member?.role === 'Admin'))}
-              >
-                {isCurrentAdmin
-                  ? 'Member (Cannot demote current logged-in Admin)'
-                  : isOnlyAdmin && member?.role === 'Admin'
-                  ? 'Member (Cannot demote the only Admin)'
-                  : 'Member'}
-              </MenuItem>
-            </Select>
-          </FormControl>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
           <Button onClick={onClose} disabled={submitting}>

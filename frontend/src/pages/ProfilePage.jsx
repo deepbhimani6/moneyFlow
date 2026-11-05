@@ -36,12 +36,6 @@ const AVATAR_COLORS = [
   '#455a64', // Blue Grey
 ];
 
-const normalizeRole = (role) => {
-  if (!role) return 'Member';
-  if (role.toLowerCase() === 'admin') return 'Admin';
-  return 'Member';
-};
-
 const ProfilePage = () => {
   const { profile, initials, updateProfile } = useProfile();
 
@@ -50,7 +44,6 @@ const ProfilePage = () => {
     email: '',
     phoneNumber: '',
     username: '',
-    role: 'Member',
     bio: '',
     avatarColor: '#1976d2',
   });
@@ -70,7 +63,6 @@ const ProfilePage = () => {
         email: profile.email || '',
         phoneNumber: profile.phoneNumber || '',
         username: profile.username || '',
-        role: normalizeRole(profile.role),
         bio: profile.bio || '',
         avatarColor: profile.avatarColor || '#1976d2',
       });
@@ -147,7 +139,6 @@ const ProfilePage = () => {
         email: profile.email || '',
         phoneNumber: profile.phoneNumber || '',
         username: profile.username || '',
-        role: normalizeRole(profile.role),
         bio: profile.bio || '',
         avatarColor: profile.avatarColor || '#1976d2',
       });
@@ -203,16 +194,6 @@ const ProfilePage = () => {
                   <Typography variant="h5" sx={{ fontWeight: 700, color: '#ffffff' }}>
                     {formData.fullName || 'User Profile'}
                   </Typography>
-                  <Chip
-                    label={formData.role || 'Admin'}
-                    size="small"
-                    sx={{
-                      bgcolor: 'rgba(255, 255, 255, 0.2)',
-                      color: '#ffffff',
-                      fontWeight: 600,
-                      backdropFilter: 'blur(4px)',
-                    }}
-                  />
                 </Box>
 
                 <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.85)', mb: 1 }}>
@@ -285,23 +266,6 @@ const ProfilePage = () => {
                   onChange={(e) => handleChange('phoneNumber', e.target.value)}
                   placeholder="e.g. +91 9876543210"
                 />
-              </Grid>
-
-              {/* Role Dropdown */}
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel id="role-select-label">Role</InputLabel>
-                  <Select
-                    labelId="role-select-label"
-                    value={formData.role}
-                    label="Role"
-                    disabled={profile?.role === 'Member'}
-                    onChange={(e) => handleChange('role', e.target.value)}
-                  >
-                    <MenuItem value="Admin">Admin</MenuItem>
-                    <MenuItem value="Member">Member</MenuItem>
-                  </Select>
-                </FormControl>
               </Grid>
 
               {/* Avatar Color Picker */}

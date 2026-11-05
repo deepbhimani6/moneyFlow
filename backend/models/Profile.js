@@ -7,7 +7,7 @@ const profileSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Full name is required'],
       trim: true,
-      default: 'Admin User',
+      default: 'User',
     },
     email: {
       type: String,
@@ -27,8 +27,7 @@ const profileSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      trim: true,
-      default: 'Admin',
+      default: '',
     },
     bio: {
       type: String,

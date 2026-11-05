@@ -12,7 +12,6 @@ const generateToken = (user) => {
       id: user._id,
       email: user.email,
       username: user.username,
-      role: user.role,
     },
     JWT_SECRET,
     { expiresIn: '30d' }
@@ -26,7 +25,6 @@ const getSanitizedUser = (user) => {
     email: user.email || '',
     username: user.username || '',
     phoneNumber: user.phoneNumber || '',
-    role: user.role || 'Member',
     bio: user.bio || '',
     avatarColor: user.avatarColor || '#1976d2',
     joinDate: user.joinDate || user.createdAt,
@@ -84,17 +82,12 @@ const register = async (req, res) => {
       cleanUsername = cleanEmail.split('@')[0];
     }
 
-    // If no members exist yet, the first user is Admin, otherwise Member
-    const memberCount = await Member.countDocuments();
-    const role = memberCount === 0 ? 'Admin' : 'Member';
-
     const newMember = new Member({
       fullName: capitalizeName(fullName),
       email: cleanEmail,
       username: cleanUsername,
       phoneNumber: phoneNumber ? phoneNumber.trim() : '',
       password,
-      role,
       avatarColor: '#1976d2',
       joinDate: new Date(),
     });
@@ -158,7 +151,6 @@ const login = async (req, res) => {
             username: profile.username,
             phoneNumber: profile.phoneNumber,
             password: password, // will be hashed by pre-save hook
-            role: profile.role || 'Admin',
             avatarColor: profile.avatarColor || '#1976d2',
             bio: profile.bio || '',
           });

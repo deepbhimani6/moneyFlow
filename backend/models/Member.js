@@ -31,8 +31,7 @@ const memberSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['Admin', 'Member'],
-      default: 'Member',
+      default: '',
     },
     bio: {
       type: String,

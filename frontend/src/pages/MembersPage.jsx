@@ -72,8 +72,7 @@ const MembersPage = () => {
   };
 
   // Current logged-in member check
-  const isProfileAdmin = profile?.role === "Admin" || user?.role === "Admin";
-  const isCurrentAdmin = (member) => {
+  const isCurrentLoggedInUser = (member) => {
     if (!member) return false;
     const currentUserId = user?.id || user?._id;
     if (currentUserId && member._id && String(currentUserId) === String(member._id)) return true;
@@ -93,19 +92,9 @@ const MembersPage = () => {
     return false;
   };
 
-  // Only Admin check: an admin cannot be deleted if they are the only admin in the system
-  const isOnlyAdmin = (member) => {
-    if (!member || member.role !== "Admin") return false;
-    if (isProfileAdmin && profile?.email && member.email !== profile.email) {
-      return false;
-    }
-    const otherAdminMembers = members.filter((m) => m.role === "Admin" && m._id !== member._id);
-    return otherAdminMembers.length === 0;
-  };
-
   // Filter out the currently logged-in member from the table
   const displayedMembers = useMemo(() => {
-    return members.filter((m) => !isCurrentAdmin(m));
+    return members.filter((m) => !isCurrentLoggedInUser(m));
   }, [members, profile, user]);
 
   const sortedMembers = useMemo(() => {
@@ -166,25 +155,16 @@ const MembersPage = () => {
 
   const handleSelectOne = (id) => {
     const targetMember = members.find((m) => m._id === id);
-    if (isCurrentAdmin(targetMember)) return;
+    if (isCurrentLoggedInUser(targetMember)) return;
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
   // Open single member delete confirmation modal and fetch entry details
   const handleOpenSingleDelete = async (member) => {
-    if (isCurrentAdmin(member)) {
+    if (isCurrentLoggedInUser(member)) {
       setSnackbar({
         open: true,
-        message: "You cannot delete your own logged-in Admin account.",
-        severity: "error",
-      });
-      return;
-    }
-
-    if (isOnlyAdmin(member)) {
-      setSnackbar({
-        open: true,
-        message: "Cannot delete the only Admin in the system. There must always be at least one Admin.",
+        message: "You cannot delete your own logged-in account.",
         severity: "error",
       });
       return;
@@ -254,22 +234,12 @@ const MembersPage = () => {
 
     const selectedMembers = members.filter((m) => selectedIds.includes(m._id));
 
-    // Current logged-in admin self-deletion protection
-    const currentAdminSelected = selectedMembers.some((m) => isCurrentAdmin(m));
-    if (currentAdminSelected) {
+    // Current logged-in user self-deletion protection
+    const currentLoggedInSelected = selectedMembers.some((m) => isCurrentLoggedInUser(m));
+    if (currentLoggedInSelected) {
       setSnackbar({
         open: true,
-        message: "You cannot delete your own logged-in Admin account. Please deselect it before deleting.",
-        severity: "error",
-      });
-      return;
-    }
-
-    const adminSelected = selectedMembers.filter((m) => isOnlyAdmin(m));
-    if (adminSelected.length > 0) {
-      setSnackbar({
-        open: true,
-        message: "Cannot delete the only Admin in the system. Please deselect the Admin before deleting.",
+        message: "You cannot delete your own logged-in account. Please deselect it before deleting.",
         severity: "error",
       });
       return;
@@ -565,17 +535,6 @@ const MembersPage = () => {
                   </TableSortLabel>
                 </TableCell>
 
-                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "role" ? order : false}>
-                  <TableSortLabel
-                    active={orderBy === "role"}
-                    direction={orderBy === "role" ? order : "asc"}
-                    onClick={() => handleRequestSort("role")}
-                    sx={{ fontWeight: 600 }}
-                  >
-                    Role
-                  </TableSortLabel>
-                </TableCell>
-
                 <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "joinDate" ? order : false}>
                   <TableSortLabel
                     active={orderBy === "joinDate"}
@@ -606,13 +565,13 @@ const MembersPage = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                     <CircularProgress size={32} />
                   </TableCell>
                 </TableRow>
               ) : displayedMembers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
                     No members registered. Click <strong>Invite Members +</strong> to add one.
                   </TableCell>
                 </TableRow>
@@ -620,14 +579,10 @@ const MembersPage = () => {
                 sortedMembers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                   const isSelected = selectedIds.includes(row._id);
                   const formattedDate = formatDate(row.joinDate);
-                  const isCurrent = isCurrentAdmin(row);
-                  const isOnly = isOnlyAdmin(row);
-                  const isMemberAdmin = row.role === 'Admin' || isCurrent;
-                  const disableDelete = isCurrent || isOnly;
+                  const isCurrent = isCurrentLoggedInUser(row);
+                  const disableDelete = isCurrent;
                   const deleteTooltip = isCurrent
-                    ? "You cannot delete your own logged-in Admin account"
-                    : isOnly
-                    ? "Cannot delete the only Admin in the system"
+                    ? "You cannot delete your own logged-in account"
                     : "Delete Member";
 
                   return (
@@ -639,7 +594,7 @@ const MembersPage = () => {
                     >
                       <TableCell padding="checkbox">
                         {isCurrent ? (
-                          <Tooltip title="Your own logged-in Admin account cannot be selected for deletion">
+                          <Tooltip title="Your own logged-in account cannot be selected for deletion">
                             <span>
                               <Checkbox disabled checked={false} size="small" />
                             </span>
@@ -654,23 +609,6 @@ const MembersPage = () => {
                       <TableCell sx={{ whiteSpace: "nowrap" }}>{row.phoneNumber || "—"}</TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap", color: row.email ? "text.primary" : "text.secondary" }}>
                         {row.email || "—"}
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: "nowrap" }}>
-                        {isMemberAdmin ? (
-                          <Chip
-                            label={isCurrent ? "Admin (You)" : "Admin"}
-                            size="small"
-                            color="primary"
-                            sx={{ fontWeight: 600, height: 22, fontSize: "0.75rem" }}
-                          />
-                        ) : (
-                          <Chip
-                            label="Member"
-                            size="small"
-                            variant="outlined"
-                            sx={{ color: "text.secondary", borderColor: "#cbd5e1", height: 22, fontSize: "0.75rem" }}
-                          />
-                        )}
                       </TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>{formattedDate}</TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>{row.inviteSent ? <Chip icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />} label="Invite Sent" size="small" color="success" variant="outlined" /> : <Chip label="Pending" size="small" variant="outlined" />}</TableCell>
@@ -765,8 +703,6 @@ const MembersPage = () => {
       <EditMemberModal
         open={Boolean(editingMember)}
         member={editingMember}
-        isCurrentAdmin={isCurrentAdmin(editingMember)}
-        isOnlyAdmin={isOnlyAdmin(editingMember)}
         onClose={() => setEditingMember(null)}
         onMemberUpdated={() => {
           fetchMembers();

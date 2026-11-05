@@ -156,7 +156,7 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
               {profile?.fullName || 'User'}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.72rem' }} noWrap>
-              {profile?.role || 'Member'}
+              {profile?.email || ''}
             </Typography>
           </Box>
         </ListItemButton>

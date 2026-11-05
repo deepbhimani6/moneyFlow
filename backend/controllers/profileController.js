@@ -6,13 +6,12 @@ const { capitalizeName } = require('../utils/formatters');
 const getOrCreateDefaultProfile = async () => {
   let profile = await Profile.findOne();
   if (!profile) {
-    const member = (await Member.findOne({ role: 'Admin' })) || (await Member.findOne());
+    const member = await Member.findOne();
     const initialData = {
-      fullName: member ? member.fullName : 'Admin User',
-      email: member && member.email ? member.email : 'admin@moneyflow.local',
+      fullName: member ? member.fullName : 'User',
+      email: member && member.email ? member.email : 'user@moneyflow.local',
       phoneNumber: member && member.phoneNumber ? member.phoneNumber : '',
-      username: member && member.username ? member.username : 'admin',
-      role: member ? member.role : 'Admin',
+      username: member && member.username ? member.username : 'user',
       bio: member && member.bio ? member.bio : 'Personal Finance & Expense Manager on MoneyFlow',
       avatarColor: member && member.avatarColor ? member.avatarColor : '#1976d2',
     };
@@ -42,7 +41,6 @@ const getProfile = async (req, res) => {
           email: member.email,
           phoneNumber: member.phoneNumber || '',
           username: member.username || '',
-          role: member.role || 'Member',
           bio: member.bio || '',
           avatarColor: member.avatarColor || '#1976d2',
           joinDate: member.joinDate || member.createdAt,
@@ -76,7 +74,6 @@ const updateProfile = async (req, res) => {
       email,
       phoneNumber,
       username,
-      role,
       bio,
       avatarColor,
     } = req.body;
@@ -116,19 +113,6 @@ const updateProfile = async (req, res) => {
           member.username = cleanUsername;
         }
       }
-      if (role !== undefined) {
-        const targetRole = role.trim();
-        if (member.role === 'Admin' && targetRole === 'Member') {
-          const adminCount = await Member.countDocuments({ role: 'Admin' });
-          if (adminCount <= 1) {
-            return res.status(400).json({
-              success: false,
-              message: 'Cannot demote the only remaining Admin account.',
-            });
-          }
-        }
-        member.role = targetRole;
-      }
       if (bio !== undefined) member.bio = bio.trim();
       if (avatarColor !== undefined) member.avatarColor = avatarColor;
 
@@ -146,7 +130,6 @@ const updateProfile = async (req, res) => {
         profile.email = member.email;
         profile.phoneNumber = member.phoneNumber;
         profile.username = member.username;
-        profile.role = member.role;
         profile.bio = member.bio;
         profile.avatarColor = member.avatarColor;
         await profile.save();
@@ -158,7 +141,6 @@ const updateProfile = async (req, res) => {
         email: member.email,
         phoneNumber: member.phoneNumber || '',
         username: member.username || '',
-        role: member.role || 'Member',
         bio: member.bio || '',
         avatarColor: member.avatarColor || '#1976d2',
         joinDate: member.joinDate || member.createdAt,
@@ -183,16 +165,6 @@ const updateProfile = async (req, res) => {
     if (email !== undefined) profile.email = email.trim();
     if (phoneNumber !== undefined) profile.phoneNumber = phoneNumber.trim();
     if (username !== undefined) profile.username = username.trim();
-    if (role !== undefined) {
-      const targetRole = role.trim();
-      if (profile.role === 'Admin' && targetRole === 'Member') {
-        return res.status(400).json({
-          success: false,
-          message: 'The current logged-in Admin account cannot be demoted.',
-        });
-      }
-      profile.role = targetRole;
-    }
     if (bio !== undefined) profile.bio = bio.trim();
     if (avatarColor !== undefined) profile.avatarColor = avatarColor;
 
@@ -226,7 +198,6 @@ const resetProfile = async (req, res) => {
           email: member.email,
           phoneNumber: member.phoneNumber || '',
           username: member.username || '',
-          role: member.role || 'Member',
           bio: member.bio || '',
           avatarColor: member.avatarColor || '#1976d2',
           joinDate: member.joinDate || member.createdAt,
