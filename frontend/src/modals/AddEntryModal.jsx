@@ -68,45 +68,17 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
     }
   }, [open]);
 
-  // Helper to identify myself
-  const isMyself = (item) => {
-    if (!item) return false;
-    if (typeof item === "string") return /myself/i.test(item);
-    return item._id === "myself" || /myself/i.test(item.fullName || "");
-  };
-
-  const selectedRealMembers = useMemo(() => {
-    return selectedNames.filter((item) => !isMyself(item));
-  }, [selectedNames]);
-
-  const hasMyselfSelected = useMemo(() => {
-    return selectedNames.some((item) => isMyself(item));
-  }, [selectedNames]);
-
-  const effectiveIncludeMine = includeMine || hasMyselfSelected;
-
-  // Dropdown options: add "Myself (You)" only when at least 1 real member is already selected
+  // Dropdown options: only real members (never include "myself")
   const autocompleteOptions = useMemo(() => {
-    if (selectedRealMembers.length >= 1 && !hasMyselfSelected) {
-      return [{ _id: "myself", fullName: "Myself (You)" }, ...members];
-    }
-    return members;
-  }, [members, selectedRealMembers.length, hasMyselfSelected]);
+    return members.filter((m) => {
+      const name = (m.fullName || "").toLowerCase().trim();
+      return !name.includes("myself");
+    });
+  }, [members]);
 
-  const handleToggleMyself = (checked) => {
-    setIncludeMine(checked);
-    if (checked) {
-      if (!hasMyselfSelected) {
-        setSelectedNames((prev) => [...prev, { _id: "myself", fullName: "Myself (You)" }]);
-      }
-    } else {
-      setSelectedNames((prev) => prev.filter((item) => !isMyself(item)));
-    }
-  };
-
-  // Split is active if multiple real members are selected, OR at least 1 real member + myself
-  const isSplitActive = selectedRealMembers.length > 1 || (selectedRealMembers.length >= 1 && effectiveIncludeMine);
-  const totalSplitCount = selectedRealMembers.length + (effectiveIncludeMine ? 1 : 0);
+  // Split is active if multiple members are selected, OR at least 1 member + myself
+  const isSplitActive = selectedNames.length > 1 || (selectedNames.length >= 1 && includeMine);
+  const totalSplitCount = selectedNames.length + (includeMine ? 1 : 0);
   const numericAmount = Math.trunc(parseFloat(amount) || 0);
   const splitPerPerson = isSplitActive && totalSplitCount > 0 ? Math.trunc(numericAmount / totalSplitCount) : 0;
 
@@ -130,24 +102,12 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
         (item) => (typeof item === "string" ? item : item.fullName).toLowerCase() === trimmed.toLowerCase()
       );
       if (!alreadyIn) {
-        if (/myself/i.test(trimmed)) {
-          finalNames.push({ _id: "myself", fullName: "Myself (You)" });
-        } else {
-          finalNames.push(trimmed);
-        }
+        finalNames.push(trimmed);
       }
     }
-
-    const realParticipants = finalNames.filter((item) => !isMyself(item));
-    const isMine = finalNames.some((item) => isMyself(item)) || effectiveIncludeMine;
 
     const newErrors = {};
-    if (realParticipants.length === 0) {
-      if (isMine) {
-        setError("Please add at least one member to split with.");
-      }
-      newErrors.members = true;
-    }
+    if (finalNames.length === 0) newErrors.members = true;
     if (!amount || numericAmount <= 0) newErrors.amount = true;
     if (!date || !date.trim()) newErrors.date = true;
     if (!time || !time.trim()) newErrors.time = true;
@@ -163,9 +123,9 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
 
     try {
       setSubmitting(true);
-      const isSplit = realParticipants.length > 1 || (realParticipants.length >= 1 && isMine);
+      const isSplit = finalNames.length > 1 || (finalNames.length >= 1 && includeMine);
       const res = await entryService.createEntry({
-        names: realParticipants.map((item) => {
+        names: finalNames.map((item) => {
           if (typeof item === "string") return capitalizeName(item);
           return { name: capitalizeName(item.fullName), memberId: item._id };
         }),
@@ -175,7 +135,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
         description,
         date,
         time,
-        includeMine: isMine,
+        includeMine: Boolean(includeMine),
       });
 
       if (res.success) {
@@ -203,12 +163,8 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
             multiple
             freeSolo
             options={autocompleteOptions}
-            getOptionLabel={(option) => {
-              if (isMyself(option)) return "Myself (You)";
-              return typeof option === "string" ? option : option.fullName || "";
-            }}
+            getOptionLabel={(option) => (typeof option === "string" ? option : option.fullName || "")}
             isOptionEqualToValue={(option, value) => {
-              if (isMyself(option) && isMyself(value)) return true;
               if (typeof value === "string") return option.fullName === value;
               return option._id === value?._id;
             }}
@@ -218,29 +174,20 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               setInputValue(newInputValue);
             }}
             onChange={(event, newValue) => {
-              const containsMyself = newValue.some((item) => isMyself(item));
-              setIncludeMine(containsMyself);
               setSelectedNames(newValue);
               setInputValue("");
               if (errors.members) setErrors((prev) => ({ ...prev, members: false }));
             }}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => {
-                const isMineOption = isMyself(option);
-                const label = isMineOption
-                  ? "Myself (You)"
-                  : (typeof option === "string" ? capitalizeName(option) : capitalizeName(option.fullName));
+                const label = typeof option === "string" ? capitalizeName(option) : capitalizeName(option.fullName);
                 return (
                   <Chip
-                    variant={isMineOption ? "filled" : "outlined"}
-                    color={isMineOption ? "secondary" : "primary"}
+                    variant="outlined"
+                    color="primary"
                     size="small"
                     label={label}
-                    sx={
-                      isMineOption
-                        ? { bgcolor: "#f3e8ff", color: "#6b21a8", fontWeight: 600 }
-                        : { textTransform: "capitalize" }
-                    }
+                    sx={{ textTransform: "capitalize" }}
                     {...getTagProps({ index })}
                     key={index}
                   />
@@ -269,12 +216,12 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
           />
 
           {/* Inline Add myself checkbox when 1 member is selected */}
-          {selectedRealMembers.length === 1 && !effectiveIncludeMine && (
+          {selectedNames.length === 1 && !includeMine && (
             <FormControlLabel
               control={
                 <Checkbox
                   checked={false}
-                  onChange={(e) => handleToggleMyself(e.target.checked)}
+                  onChange={(e) => setIncludeMine(e.target.checked)}
                   size="small"
                   color="primary"
                 />
@@ -290,15 +237,15 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                 <CallSplitIcon color="primary" fontSize="small" />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.dark" }}>
-                  {effectiveIncludeMine && selectedRealMembers.length === 1
+                  {includeMine && selectedNames.length === 1
                     ? "Split with Myself Activated"
                     : "Auto Split Activated"}
                 </Typography>
               </Box>
 
               <Typography variant="body2" sx={{ mb: 1 }}>
-                {effectiveIncludeMine
-                  ? `Splitting amount equally across ${totalSplitCount} participants (${selectedRealMembers.length} member${selectedRealMembers.length > 1 ? "s" : ""} in To Receive + your share in For Self).`
+                {includeMine
+                  ? `Splitting amount equally across ${totalSplitCount} participants (${selectedNames.length} member${selectedNames.length > 1 ? "s" : ""} in To Receive + your share in For Self).`
                   : `Splitting amount equally across ${totalSplitCount} selected members.`}
               </Typography>
 
@@ -306,8 +253,8 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               <FormControlLabel
                 control={
                   <Checkbox
-                    checked={effectiveIncludeMine}
-                    onChange={(e) => handleToggleMyself(e.target.checked)}
+                    checked={includeMine}
+                    onChange={(e) => setIncludeMine(e.target.checked)}
                     size="small"
                     color="primary"
                   />
@@ -319,7 +266,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               {numericAmount > 0 && (
                 <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5, color: "primary.main" }}>
                   ₹ {formatAmount(splitPerPerson)} per person ({totalSplitCount} participants
-                  {effectiveIncludeMine ? ", your share added to For Self" : ""})
+                  {includeMine ? ", your share added to For Self" : ""})
                 </Typography>
               )}
             </Box>
