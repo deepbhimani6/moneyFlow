@@ -329,22 +329,11 @@ const ProfilePage = () => {
                 <TextField
                   fullWidth
                   multiline
+                  minRows={3}
                   label="Bio / Notes"
                   value={formData.bio}
                   onChange={(e) => handleChange('bio', e.target.value)}
                   placeholder="Add a brief description about yourself or notes for this account..."
-                  sx={{
-                    '& .MuiInputBase-root': {
-                      minHeight: '83px',
-                      alignItems: 'flex-start',
-                    },
-                    '& textarea': {
-                      height: '83px !important',
-                      minHeight: '83px !important',
-                      boxSizing: 'border-box',
-                      overflow: 'auto',
-                    },
-                  }}
                 />
               </Grid>
             </Grid>
