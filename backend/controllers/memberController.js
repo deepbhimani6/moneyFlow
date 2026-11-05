@@ -3,7 +3,14 @@ const Entry = require('../models/Entry');
 const { sendInviteEmail } = require('../utils/email');
 
 const getAppUrl = (req) => {
-  return (process.env.APP_URL || 'https://moneyflow-5a2a.onrender.com').replace(/\/+$/, '');
+  if (
+    process.env.APP_URL &&
+    !process.env.APP_URL.includes('moneyflow.onrender.com') &&
+    !process.env.APP_URL.includes('localhost')
+  ) {
+    return process.env.APP_URL.replace(/\/+$/, '');
+  }
+  return 'https://moneyflow-5a2a.onrender.com';
 };
 
 // @desc    Get all members
