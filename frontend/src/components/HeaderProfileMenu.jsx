@@ -88,7 +88,7 @@ const HeaderProfileMenu = () => {
               {profile?.fullName || 'Deep Bhimani'}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1 }}>
-              {profile?.role || 'Account Owner'}
+              {profile?.role || 'Admin'}
             </Typography>
           </Box>
 
@@ -160,7 +160,7 @@ const HeaderProfileMenu = () => {
               {profile?.email || 'deep.bhimani@shunyavkash.com'}
             </Typography>
             <Chip
-              label={profile?.role || 'Account Owner'}
+              label={profile?.role || 'Admin'}
               size="small"
               sx={{
                 height: 20,
@@ -179,7 +179,7 @@ const HeaderProfileMenu = () => {
         <MenuItem
           onClick={() => handleNavigate('/profile')}
           sx={{
-            py: 1.3,
+            py: 1.2,
             px: 2,
             '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.08)' },
           }}
@@ -189,7 +189,7 @@ const HeaderProfileMenu = () => {
           </ListItemIcon>
           <ListItemText
             primary="My Profile"
-            secondary="View & edit account details"
+            secondary="Manage account & profile"
             primaryTypographyProps={{ fontWeight: 600, fontSize: '0.9rem' }}
             secondaryTypographyProps={{ fontSize: '0.75rem' }}
           />

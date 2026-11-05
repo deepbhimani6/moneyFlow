@@ -12,7 +12,7 @@ const getOrCreateDefaultProfile = async () => {
       email: member && member.email ? member.email : 'deep.bhimani@shunyavkash.com',
       phoneNumber: member && member.phoneNumber ? member.phoneNumber : '+91 6359276907',
       username: member && member.username ? member.username : 'deepBhimani',
-      role: 'Account Owner',
+      role: 'Admin',
       bio: 'Personal Finance & Expense Manager on MoneyFlow',
       avatarUrl: '',
       avatarColor: '#1976d2',

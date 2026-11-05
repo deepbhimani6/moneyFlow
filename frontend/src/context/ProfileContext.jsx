@@ -8,7 +8,7 @@ const DEFAULT_PROFILE = {
   email: 'deep.bhimani@shunyavkash.com',
   phoneNumber: '+91 6359276907',
   username: 'deepBhimani',
-  role: 'Account Owner',
+  role: 'Admin',
   bio: 'Personal Finance & Expense Manager on MoneyFlow',
   avatarUrl: '',
   avatarColor: '#1976d2',

@@ -8,6 +8,11 @@ import {
   TextField,
   Button,
   Avatar,
+  Chip,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  Select,
   Alert,
   Snackbar,
   CircularProgress,
@@ -30,6 +35,12 @@ const AVATAR_COLORS = [
   '#455a64', // Blue Grey
 ];
 
+const normalizeRole = (role) => {
+  if (!role) return 'Admin';
+  if (role.toLowerCase() === 'member') return 'Member';
+  return 'Admin';
+};
+
 const ProfilePage = () => {
   const { profile, initials, updateProfile } = useProfile();
 
@@ -38,9 +49,8 @@ const ProfilePage = () => {
     email: '',
     phoneNumber: '',
     username: '',
-    role: '',
+    role: 'Admin',
     bio: '',
-    avatarUrl: '',
     avatarColor: '#1976d2',
   });
 
@@ -59,9 +69,8 @@ const ProfilePage = () => {
         email: profile.email || '',
         phoneNumber: profile.phoneNumber || '',
         username: profile.username || '',
-        role: profile.role || 'Account Owner',
+        role: normalizeRole(profile.role),
         bio: profile.bio || '',
-        avatarUrl: profile.avatarUrl || '',
         avatarColor: profile.avatarColor || '#1976d2',
       });
     }
@@ -121,9 +130,8 @@ const ProfilePage = () => {
         email: 'deep.bhimani@shunyavkash.com',
         phoneNumber: '+91 6359276907',
         username: 'deepBhimani',
-        role: 'Account Owner',
+        role: 'Admin',
         bio: 'Personal Finance & Expense Manager on MoneyFlow',
-        avatarUrl: '',
         avatarColor: '#1976d2',
       });
       if (res.success) {
@@ -139,7 +147,7 @@ const ProfilePage = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 1000, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 2, sm: 3, md: 4 }, maxWidth: 1200, mx: 'auto' }}>
       {/* Top Banner / Hero Card */}
       <Card
         sx={{
@@ -158,7 +166,6 @@ const ProfilePage = () => {
             <Grid item xs={12} sm="auto" sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-start' } }}>
               <Box sx={{ position: 'relative' }}>
                 <Avatar
-                  src={formData.avatarUrl || undefined}
                   alt={formData.fullName}
                   sx={{
                     width: { xs: 84, sm: 104 },
@@ -184,7 +191,7 @@ const ProfilePage = () => {
                     {formData.fullName || 'User Profile'}
                   </Typography>
                   <Chip
-                    label={formData.role || 'Account Owner'}
+                    label={formData.role || 'Admin'}
                     size="small"
                     sx={{
                       bgcolor: 'rgba(255, 255, 255, 0.2)',
@@ -199,23 +206,22 @@ const ProfilePage = () => {
                   @{formData.username || 'username'} • {formData.email || 'No email provided'} • {formData.phoneNumber || 'No phone'}
                 </Typography>
 
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.95)', fontStyle: 'italic', maxWidth: 600 }}>
-                  "{formData.bio || 'Managing finances on MoneyFlow'}"
-                </Typography>
+                {formData.bio && (
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.95)', fontStyle: 'italic', maxWidth: 600 }}>
+                    "{formData.bio}"
+                  </Typography>
+                )}
               </Box>
             </Grid>
           </Grid>
         </CardContent>
       </Card>
 
-      {/* Personal Information Form Card */}
+      {/* Personal Information Card */}
       <Card sx={{ borderRadius: 3 }}>
         <CardContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
             <PersonIcon color="primary" /> Personal Information
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Update your primary identification, contact details, and avatar styling.
           </Typography>
 
           <Box component="form" onSubmit={handleSave}>
@@ -266,27 +272,20 @@ const ProfilePage = () => {
                 />
               </Grid>
 
-              {/* Role / Designation */}
+              {/* Role Dropdown (admin, member) */}
               <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Role / Title"
-                  value={formData.role}
-                  onChange={(e) => handleChange('role', e.target.value)}
-                  placeholder="e.g. Account Owner, Admin, Manager"
-                />
-              </Grid>
-
-              {/* Avatar Image URL */}
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Avatar Photo URL (Optional)"
-                  value={formData.avatarUrl}
-                  onChange={(e) => handleChange('avatarUrl', e.target.value)}
-                  placeholder="https://example.com/avatar.jpg"
-                  helperText="Leave empty to display stylish initials avatar"
-                />
+                <FormControl fullWidth>
+                  <InputLabel id="role-select-label">Role</InputLabel>
+                  <Select
+                    labelId="role-select-label"
+                    value={formData.role}
+                    label="Role"
+                    onChange={(e) => handleChange('role', e.target.value)}
+                  >
+                    <MenuItem value="Admin">Admin</MenuItem>
+                    <MenuItem value="Member">Member</MenuItem>
+                  </Select>
+                </FormControl>
               </Grid>
 
               {/* Avatar Color Picker */}

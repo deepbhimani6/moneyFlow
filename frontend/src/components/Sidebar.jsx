@@ -18,7 +18,6 @@ import CallReceivedIcon from '@mui/icons-material/CallReceived';
 import PaymentIcon from '@mui/icons-material/Payment';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import PersonIcon from '@mui/icons-material/Person';
 import { useProfile } from '../context/ProfileContext';
 
 const drawerWidth = 240;
@@ -29,7 +28,6 @@ const menuItems = [
   { id: 'to-receive', path: '/to-receive', label: 'To Receive', icon: <CallReceivedIcon /> },
   { id: 'to-pay', path: '/to-pay', label: 'To Pay', icon: <PaymentIcon /> },
   { id: 'members', path: '/members', label: 'Members', icon: <PeopleAltIcon /> },
-  { id: 'profile', path: '/profile', label: 'Profile', icon: <PersonIcon /> },
 ];
 
 const Sidebar = ({ mobileOpen, onMobileClose }) => {
@@ -141,7 +139,7 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
               {profile?.fullName || 'Deep Bhimani'}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.72rem' }} noWrap>
-              {profile?.role || 'Account Owner'}
+              {profile?.role || 'Admin'}
             </Typography>
           </Box>
         </ListItemButton>

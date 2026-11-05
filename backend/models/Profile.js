@@ -27,7 +27,7 @@ const profileSchema = new mongoose.Schema(
     role: {
       type: String,
       trim: true,
-      default: 'Account Owner',
+      default: 'Admin',
     },
     bio: {
       type: String,
