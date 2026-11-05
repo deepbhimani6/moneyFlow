@@ -10,6 +10,7 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import { memberService } from "../services/api";
 import { useProfile } from "../context/ProfileContext";
+import { useAuth } from "../context/AuthContext";
 import InviteMemberModal from "../modals/InviteMemberModal";
 import EditMemberModal from "../modals/EditMemberModal";
 import DeleteConfirmModal from "../modals/DeleteConfirmModal";
@@ -19,6 +20,7 @@ const TABLE_RADIUS = 10;
 
 const MembersPage = () => {
   const { profile } = useProfile();
+  const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -69,8 +71,45 @@ const MembersPage = () => {
     setOrderBy(property);
   };
 
+  // Current logged-in member check
+  const isProfileAdmin = profile?.role === "Admin" || user?.role === "Admin";
+  const isCurrentAdmin = (member) => {
+    if (!member) return false;
+    const currentUserId = user?.id || user?._id;
+    if (currentUserId && member._id && String(currentUserId) === String(member._id)) return true;
+
+    const profileEmail = (profile?.email || user?.email || "").toLowerCase().trim();
+    const memberEmail = (member.email || "").toLowerCase().trim();
+    if (profileEmail && memberEmail && profileEmail === memberEmail) return true;
+
+    const profileUsername = (profile?.username || user?.username || "").toLowerCase().trim();
+    const memberUsername = (member.username || "").toLowerCase().trim();
+    if (profileUsername && memberUsername && profileUsername === memberUsername) return true;
+
+    const profileName = (profile?.fullName || user?.fullName || "").toLowerCase().trim();
+    const memberName = (member.fullName || "").toLowerCase().trim();
+    if (profileName && memberName && profileName === memberName) return true;
+
+    return false;
+  };
+
+  // Only Admin check: an admin cannot be deleted if they are the only admin in the system
+  const isOnlyAdmin = (member) => {
+    if (!member || member.role !== "Admin") return false;
+    if (isProfileAdmin && profile?.email && member.email !== profile.email) {
+      return false;
+    }
+    const otherAdminMembers = members.filter((m) => m.role === "Admin" && m._id !== member._id);
+    return otherAdminMembers.length === 0;
+  };
+
+  // Filter out the currently logged-in member from the table
+  const displayedMembers = useMemo(() => {
+    return members.filter((m) => !isCurrentAdmin(m));
+  }, [members, profile, user]);
+
   const sortedMembers = useMemo(() => {
-    return [...members].sort((a, b) => {
+    return [...displayedMembers].sort((a, b) => {
       let aVal = a[orderBy];
       let bVal = b[orderBy];
 
@@ -89,43 +128,10 @@ const MembersPage = () => {
       if (aVal > bVal) return order === "asc" ? 1 : -1;
       return 0;
     });
-  }, [members, order, orderBy]);
+  }, [displayedMembers, order, orderBy]);
 
   // Snackbar
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-
-
-
-  // Current Admin check: the logged-in admin profile can never delete their own account
-  const isProfileAdmin = profile?.role === "Admin";
-  const isCurrentAdmin = (member) => {
-    if (!member) return false;
-    const profileEmail = (profile?.email || "").toLowerCase().trim();
-    const memberEmail = (member.email || "").toLowerCase().trim();
-    if (profileEmail && memberEmail && profileEmail === memberEmail) return true;
-
-    const profileUsername = (profile?.username || "").toLowerCase().trim();
-    const memberUsername = (member.username || "").toLowerCase().trim();
-    if (profileUsername && memberUsername && profileUsername === memberUsername) return true;
-
-    const profileName = (profile?.fullName || "").toLowerCase().trim();
-    const memberName = (member.fullName || "").toLowerCase().trim();
-    if (profileName && memberName && profileName === memberName && (member.role === "Admin" || isProfileAdmin)) return true;
-
-    return false;
-  };
-
-  // Only Admin check: an admin cannot be deleted if they are the only admin in the system
-  const isOnlyAdmin = (member) => {
-    if (!member || member.role !== "Admin") return false;
-    if (isProfileAdmin && profile?.email && member.email !== profile.email) {
-      return false;
-    }
-    const otherAdminMembers = members.filter((m) => m.role === "Admin" && m._id !== member._id);
-    return otherAdminMembers.length === 0;
-  };
-
-
 
   const fetchMembers = async () => {
     try {
@@ -147,8 +153,8 @@ const MembersPage = () => {
   }, [search]);
 
   const selectableMembers = useMemo(() => {
-    return members.filter((m) => !isCurrentAdmin(m));
-  }, [members, profile]);
+    return displayedMembers;
+  }, [displayedMembers]);
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
@@ -604,7 +610,7 @@ const MembersPage = () => {
                     <CircularProgress size={32} />
                   </TableCell>
                 </TableRow>
-              ) : members.length === 0 ? (
+              ) : displayedMembers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
                     No members registered. Click <strong>Invite Members +</strong> to add one.
@@ -721,7 +727,7 @@ const MembersPage = () => {
           <TablePagination
             rowsPerPageOptions={[5, 10, 20, 50, 100]}
             component="div"
-            count={members.length}
+            count={displayedMembers.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={(e, newPage) => setPage(newPage)}
