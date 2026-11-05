@@ -36,7 +36,7 @@ export default defineConfig({
             type: 'image/png',
           },
           {
-            src: '/vite.svg',
+            src: '/favicon.svg',
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any maskable',

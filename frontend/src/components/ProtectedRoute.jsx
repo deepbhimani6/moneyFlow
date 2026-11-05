@@ -21,8 +21,23 @@ const ProtectedRoute = ({ children }) => {
           gap: 2,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AccountBalanceWalletIcon color="primary" sx={{ fontSize: 36 }} />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 48,
+              height: 48,
+              borderRadius: '50%',
+              bgcolor: 'primary.main',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#ffffff',
+              boxShadow: '0 4px 14px rgba(25, 118, 210, 0.3)',
+              flexShrink: 0,
+            }}
+          >
+            <AccountBalanceWalletIcon sx={{ fontSize: 28 }} />
+          </Box>
           <Typography variant="h5" sx={{ fontWeight: 700 }}>
             MoneyFlow
           </Typography>

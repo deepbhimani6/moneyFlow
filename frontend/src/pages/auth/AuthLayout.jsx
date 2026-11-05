@@ -68,7 +68,7 @@ const AuthLayout = ({ children, title, subtitle, maxWidth = 620 }) => {
             sx={{
               width: 52,
               height: 52,
-              borderRadius: 3,
+              borderRadius: '50%',
               bgcolor: 'primary.main',
               display: 'flex',
               alignItems: 'center',
