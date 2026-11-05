@@ -66,4 +66,4 @@ const forSelfSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("ForSelf", forSelfSchema);
+module.exports = mongoose.model("ForSelf", forSelfSchema, "for-self");

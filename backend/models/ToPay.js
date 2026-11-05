@@ -68,4 +68,4 @@ const toPaySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("ToPay", toPaySchema);
+module.exports = mongoose.model("ToPay", toPaySchema, "to-pay");

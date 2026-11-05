@@ -5,7 +5,6 @@ const Member = require('../models/Member');
 const getOrCreateDefaultProfile = async () => {
   let profile = await Profile.findOne();
   if (!profile) {
-    // Attempt to seed from first member or deep.bhimani if found
     const member = (await Member.findOne({ email: /deep/i })) || (await Member.findOne());
     const initialData = {
       fullName: member ? member.fullName : 'Deep Bhimani',
@@ -14,18 +13,7 @@ const getOrCreateDefaultProfile = async () => {
       username: member && member.username ? member.username : 'deepBhimani',
       role: 'Admin',
       bio: 'Personal Finance & Expense Manager on MoneyFlow',
-      avatarUrl: '',
       avatarColor: '#1976d2',
-      currency: 'INR',
-      currencySymbol: '₹',
-      defaultPaymentMode: 'UPI',
-      dateFormat: 'DD-MM-YYYY',
-      notifications: {
-        emailAlerts: true,
-        dailyDigest: false,
-        splitAlerts: true,
-      },
-      linkedMemberId: member ? member._id : null,
     };
     profile = await Profile.create(initialData);
   }
@@ -59,14 +47,7 @@ const updateProfile = async (req, res) => {
       username,
       role,
       bio,
-      avatarUrl,
       avatarColor,
-      currency,
-      currencySymbol,
-      defaultPaymentMode,
-      dateFormat,
-      notifications,
-      linkedMemberId,
     } = req.body;
 
     if (fullName !== undefined) profile.fullName = fullName.trim();
@@ -75,30 +56,9 @@ const updateProfile = async (req, res) => {
     if (username !== undefined) profile.username = username.trim();
     if (role !== undefined) profile.role = role.trim();
     if (bio !== undefined) profile.bio = bio.trim();
-    if (avatarUrl !== undefined) profile.avatarUrl = avatarUrl.trim();
     if (avatarColor !== undefined) profile.avatarColor = avatarColor;
-    if (currency !== undefined) profile.currency = currency;
-    if (currencySymbol !== undefined) profile.currencySymbol = currencySymbol;
-    if (defaultPaymentMode !== undefined) profile.defaultPaymentMode = defaultPaymentMode;
-    if (dateFormat !== undefined) profile.dateFormat = dateFormat;
-    if (notifications !== undefined) profile.notifications = { ...profile.notifications, ...notifications };
-    if (linkedMemberId !== undefined) profile.linkedMemberId = linkedMemberId || null;
 
     const updatedProfile = await profile.save();
-
-    // Optionally update linked member if matching ID
-    if (profile.linkedMemberId) {
-      try {
-        await Member.findByIdAndUpdate(profile.linkedMemberId, {
-          fullName: profile.fullName,
-          phoneNumber: profile.phoneNumber,
-          email: profile.email,
-          username: profile.username,
-        });
-      } catch (err) {
-        console.warn('Could not sync with linked member:', err.message);
-      }
-    }
 
     res.json({
       success: true,

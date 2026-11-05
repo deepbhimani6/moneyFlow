@@ -10,17 +10,7 @@ const DEFAULT_PROFILE = {
   username: 'deepBhimani',
   role: 'Admin',
   bio: 'Personal Finance & Expense Manager on MoneyFlow',
-  avatarUrl: '',
   avatarColor: '#1976d2',
-  currency: 'INR',
-  currencySymbol: '₹',
-  defaultPaymentMode: 'UPI',
-  dateFormat: 'DD-MM-YYYY',
-  notifications: {
-    emailAlerts: true,
-    dailyDigest: false,
-    splitAlerts: true,
-  },
 };
 
 export const ProfileProvider = ({ children }) => {

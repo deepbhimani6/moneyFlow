@@ -68,7 +68,6 @@ const HeaderProfileMenu = () => {
         }}
       >
         <Avatar
-          src={profile?.avatarUrl || undefined}
           alt={profile?.fullName || 'User'}
           sx={{
             width: 36,
@@ -138,7 +137,6 @@ const HeaderProfileMenu = () => {
           onClick={() => handleNavigate('/profile')}
         >
           <Avatar
-            src={profile?.avatarUrl || undefined}
             alt={profile?.fullName || 'User'}
             sx={{
               width: 48,

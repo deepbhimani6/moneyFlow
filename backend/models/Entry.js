@@ -68,4 +68,4 @@ const entrySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Entry", entrySchema);
+module.exports = mongoose.model("Entry", entrySchema, "to-receive");

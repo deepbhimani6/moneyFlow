@@ -47,4 +47,4 @@ const memberSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Member', memberSchema);
+module.exports = mongoose.model('Member', memberSchema, 'members');

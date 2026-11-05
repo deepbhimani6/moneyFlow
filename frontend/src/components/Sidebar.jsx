@@ -121,7 +121,6 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
           }}
         >
           <Avatar
-            src={profile?.avatarUrl || undefined}
             alt={profile?.fullName || 'User'}
             sx={{
               width: 36,

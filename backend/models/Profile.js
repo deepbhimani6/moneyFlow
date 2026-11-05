@@ -34,43 +34,12 @@ const profileSchema = new mongoose.Schema(
       trim: true,
       default: 'Personal Finance & Expense Manager on MoneyFlow',
     },
-    avatarUrl: {
-      type: String,
-      trim: true,
-      default: '',
-    },
     avatarColor: {
       type: String,
       default: '#1976d2',
-    },
-    currency: {
-      type: String,
-      default: 'INR',
-    },
-    currencySymbol: {
-      type: String,
-      default: '₹',
-    },
-    defaultPaymentMode: {
-      type: String,
-      default: 'UPI',
-    },
-    dateFormat: {
-      type: String,
-      default: 'DD-MM-YYYY',
-    },
-    notifications: {
-      emailAlerts: { type: Boolean, default: true },
-      dailyDigest: { type: Boolean, default: false },
-      splitAlerts: { type: Boolean, default: true },
-    },
-    linkedMemberId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Member',
-      default: null,
     },
   },
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Profile', profileSchema);
+module.exports = mongoose.model('Profile', profileSchema, 'profile');
