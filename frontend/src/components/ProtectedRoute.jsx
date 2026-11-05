@@ -26,7 +26,7 @@ const ProtectedRoute = ({ children }) => {
             sx={{
               width: 48,
               height: 48,
-              borderRadius: '50%',
+              borderRadius: 2.5,
               bgcolor: 'primary.main',
               display: 'flex',
               alignItems: 'center',

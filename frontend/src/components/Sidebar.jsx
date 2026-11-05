@@ -52,19 +52,19 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
       >
         <Box
           sx={{
-            width: 36,
-            height: 36,
-            borderRadius: '50%',
+            width: 38,
+            height: 38,
+            borderRadius: 2,
             bgcolor: 'primary.main',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             color: '#ffffff',
-            boxShadow: '0 2px 8px rgba(25, 118, 210, 0.3)',
+            boxShadow: '0 2px 8px rgba(25, 118, 210, 0.28)',
             flexShrink: 0,
           }}
         >
-          <AccountBalanceWalletIcon sx={{ fontSize: 20 }} />
+          <AccountBalanceWalletIcon sx={{ fontSize: 22 }} />
         </Box>
         <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: '-0.5px' }}>
           MoneyFlow
