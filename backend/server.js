@@ -7,6 +7,7 @@ const fs = require('fs');
 const connectDB = require('./config/db');
 
 // Import Routes
+const authRoutes = require('./routes/authRoutes');
 const memberRoutes = require('./routes/memberRoutes');
 const entryRoutes = require('./routes/entryRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
@@ -40,6 +41,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Mount Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/members', memberRoutes);
 app.use('/api/entries', entryRoutes);
 app.use('/api/to-pay', toPayRoutes);

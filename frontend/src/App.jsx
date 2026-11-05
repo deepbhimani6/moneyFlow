@@ -16,7 +16,18 @@ import theme from './theme';
 import Sidebar from './components/Sidebar';
 import OnlineDetector from './components/OnlineDetector';
 import HeaderProfileMenu from './components/HeaderProfileMenu';
+import { AuthProvider } from './context/AuthContext';
 import { ProfileProvider } from './context/ProfileContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import PublicOnlyRoute from './components/PublicOnlyRoute';
+
+// Auth Pages
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+
+// Main App Pages
 import DashboardPage from './pages/DashboardPage';
 import ForSelfPage from './pages/ForSelfPage';
 import ToReceivePage from './pages/ToReceivePage';
@@ -26,7 +37,7 @@ import ProfilePage from './pages/ProfilePage';
 
 const drawerWidth = 240;
 
-function App() {
+function MainAppLayout() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
   const location = useLocation();
@@ -65,95 +76,159 @@ function App() {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <ProfileProvider>
-        <CssBaseline />
+    <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* Navigation Sidebar with URL Route Sync */}
+      <Sidebar
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
 
-        {/* Online only alert indicator */}
-        <OnlineDetector />
-
-        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-          {/* Navigation Sidebar with URL Route Sync */}
-          <Sidebar
-            mobileOpen={mobileOpen}
-            onMobileClose={() => setMobileOpen(false)}
-          />
-
-          {/* Main Content Area */}
-          <Box
-            component="main"
-            sx={{
-              flexGrow: 1,
-              width: { sm: `calc(100% - ${drawerWidth}px)` },
-              minHeight: '100vh',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            {/* Top Header Bar */}
-            <AppBar
-              position="sticky"
-              elevation={0}
-              sx={{
-                bgcolor: 'background.paper',
-                color: 'text.primary',
-                borderBottom: '1px solid #e2e8f0',
-              }}
-            >
-              <Toolbar sx={{ justifyContent: 'space-between' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <IconButton
-                    color="inherit"
-                    aria-label="open drawer"
-                    edge="start"
-                    onClick={handleDrawerToggle}
-                    sx={{ mr: 2, display: { sm: 'none' } }}
-                  >
-                    <MenuIcon />
-                  </IconButton>
-                  <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
-                    {getPageTitle()}
-                  </Typography>
-                </Box>
-
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  {/* PWA Install Button if available */}
-                  {installPrompt && (
-                    <Button
-                      variant="contained"
-                      size="small"
-                      startIcon={<GetAppIcon />}
-                      onClick={handleInstallClick}
-                      sx={{ textTransform: 'none' }}
-                    >
-                      Install PWA
-                    </Button>
-                  )}
-
-                  {/* Header Right Profile Icon & Menu */}
-                  <HeaderProfileMenu />
-                </Box>
-              </Toolbar>
-            </AppBar>
-
-            {/* Active Screen Routes */}
-            <Box sx={{ flexGrow: 1 }}>
-              <Routes>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/for-self" element={<ForSelfPage />} />
-                <Route path="/to-receive" element={<ToReceivePage />} />
-                <Route path="/entries" element={<Navigate to="/to-receive" replace />} />
-                <Route path="/to-pay" element={<ToPayPage />} />
-                <Route path="/borrowed" element={<Navigate to="/to-pay" replace />} />
-                <Route path="/members" element={<MembersPage />} />
-                <Route path="/profile" element={<ProfilePage />} />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
-              </Routes>
+      {/* Main Content Area */}
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        {/* Top Header Bar */}
+        <AppBar
+          position="sticky"
+          elevation={0}
+          sx={{
+            bgcolor: 'background.paper',
+            color: 'text.primary',
+            borderBottom: '1px solid #e2e8f0',
+          }}
+        >
+          <Toolbar sx={{ justifyContent: 'space-between' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                edge="start"
+                onClick={handleDrawerToggle}
+                sx={{ mr: 2, display: { sm: 'none' } }}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
+                {getPageTitle()}
+              </Typography>
             </Box>
-          </Box>
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              {/* PWA Install Button if available */}
+              {installPrompt && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<GetAppIcon />}
+                  onClick={handleInstallClick}
+                  sx={{ textTransform: 'none' }}
+                >
+                  Install PWA
+                </Button>
+              )}
+
+              {/* Header Right Profile Icon & Menu */}
+              <HeaderProfileMenu />
+            </Box>
+          </Toolbar>
+        </AppBar>
+
+        {/* Active Screen Routes */}
+        <Box sx={{ flexGrow: 1 }}>
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/for-self" element={<ForSelfPage />} />
+            <Route path="/to-receive" element={<ToReceivePage />} />
+            <Route path="/entries" element={<Navigate to="/to-receive" replace />} />
+            <Route path="/to-pay" element={<ToPayPage />} />
+            <Route path="/borrowed" element={<Navigate to="/to-pay" replace />} />
+            <Route path="/members" element={<MembersPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
         </Box>
-      </ProfileProvider>
+      </Box>
+    </Box>
+  );
+}
+
+function App() {
+  return (
+    <ThemeProvider theme={theme}>
+      <AuthProvider>
+        <ProfileProvider>
+          <CssBaseline />
+
+          {/* Online only alert indicator */}
+          <OnlineDetector />
+
+          <Routes>
+            {/* Public Auth Routes */}
+            <Route
+              path="/login"
+              element={
+                <PublicOnlyRoute>
+                  <LoginPage />
+                </PublicOnlyRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <PublicOnlyRoute>
+                  <RegisterPage />
+                </PublicOnlyRoute>
+              }
+            />
+            <Route
+              path="/signup"
+              element={<Navigate to="/register" replace />}
+            />
+            <Route
+              path="/forgot-password"
+              element={
+                <PublicOnlyRoute>
+                  <ForgotPasswordPage />
+                </PublicOnlyRoute>
+              }
+            />
+            <Route
+              path="/reset-password"
+              element={
+                <PublicOnlyRoute>
+                  <ResetPasswordPage />
+                </PublicOnlyRoute>
+              }
+            />
+            <Route
+              path="/reset-password/:token"
+              element={
+                <PublicOnlyRoute>
+                  <ResetPasswordPage />
+                </PublicOnlyRoute>
+              }
+            />
+
+            {/* Protected App Routes */}
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <MainAppLayout />
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </ProfileProvider>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

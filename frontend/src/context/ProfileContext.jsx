@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { profileService } from '../services/api';
+import { useAuth } from './AuthContext';
 
 const ProfileContext = createContext(null);
 
@@ -14,7 +15,12 @@ const DEFAULT_PROFILE = {
 };
 
 export const ProfileProvider = ({ children }) => {
+  const auth = useAuth();
+  const authUser = auth?.user;
+  const updateCurrentUser = auth?.updateCurrentUser;
+
   const [profile, setProfile] = useState(() => {
+    if (authUser) return authUser;
     try {
       const cached = localStorage.getItem('moneyflow_profile');
       if (cached) {
@@ -29,6 +35,13 @@ export const ProfileProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Sync profile when auth user updates
+  useEffect(() => {
+    if (authUser) {
+      setProfile((prev) => ({ ...prev, ...authUser }));
+    }
+  }, [authUser]);
+
   const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
@@ -37,6 +50,9 @@ export const ProfileProvider = ({ children }) => {
       if (res.success && res.data) {
         setProfile(res.data);
         localStorage.setItem('moneyflow_profile', JSON.stringify(res.data));
+        if (updateCurrentUser) {
+          updateCurrentUser(res.data);
+        }
       }
     } catch (err) {
       console.warn('Error loading profile from API:', err.message);
@@ -44,7 +60,7 @@ export const ProfileProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [updateCurrentUser]);
 
   const updateProfile = useCallback(async (updatedData) => {
     try {
@@ -54,6 +70,9 @@ export const ProfileProvider = ({ children }) => {
       if (res.success && res.data) {
         setProfile(res.data);
         localStorage.setItem('moneyflow_profile', JSON.stringify(res.data));
+        if (updateCurrentUser) {
+          updateCurrentUser(res.data);
+        }
         return { success: true, data: res.data };
       }
       return { success: false, message: res.message || 'Failed to update profile' };
@@ -64,11 +83,13 @@ export const ProfileProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [updateCurrentUser]);
 
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    if (auth?.isAuthenticated) {
+      fetchProfile();
+    }
+  }, [fetchProfile, auth?.isAuthenticated]);
 
   // Derive initials from fullName
   const getInitials = (name) => {

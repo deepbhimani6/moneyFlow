@@ -9,6 +9,46 @@ const api = axios.create({
   },
 });
 
+// Request Interceptor: Attach Bearer Token to all requests
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('moneyflow_token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+export const authService = {
+  login: async (credentials) => {
+    const res = await api.post('/auth/login', credentials);
+    return res.data;
+  },
+  register: async (userData) => {
+    const res = await api.post('/auth/register', userData);
+    return res.data;
+  },
+  getMe: async () => {
+    const res = await api.get('/auth/me');
+    return res.data;
+  },
+  forgotPassword: async (email) => {
+    const res = await api.post('/auth/forgot-password', { email });
+    return res.data;
+  },
+  verifyResetToken: async (token) => {
+    const res = await api.get(`/auth/verify-reset-token/${token}`);
+    return res.data;
+  },
+  resetPassword: async ({ token, newPassword }) => {
+    const res = await api.post('/auth/reset-password', { token, newPassword });
+    return res.data;
+  },
+  changePassword: async ({ currentPassword, newPassword }) => {
+    const res = await api.post('/auth/change-password', { currentPassword, newPassword });
+    return res.data;
+  },
+};
+
 export const dashboardService = {
   getStats: async () => {
     const res = await api.get('/dashboard/stats');

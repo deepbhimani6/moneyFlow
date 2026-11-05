@@ -12,12 +12,15 @@ import {
   Chip,
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
+import LogoutIcon from '@mui/icons-material/Logout';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import { useProfile } from '../context/ProfileContext';
+import { useAuth } from '../context/AuthContext';
 
 const HeaderProfileMenu = () => {
   const navigate = useNavigate();
   const { profile, initials } = useProfile();
+  const { logout } = useAuth();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
@@ -32,6 +35,12 @@ const HeaderProfileMenu = () => {
   const handleNavigate = (path) => {
     handleClose();
     navigate(path);
+  };
+
+  const handleLogout = () => {
+    handleClose();
+    logout();
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -191,6 +200,26 @@ const HeaderProfileMenu = () => {
             secondary="Manage account & profile"
             primaryTypographyProps={{ fontWeight: 600, fontSize: '0.9rem' }}
             secondaryTypographyProps={{ fontSize: '0.75rem' }}
+          />
+        </MenuItem>
+
+        <Divider />
+
+        <MenuItem
+          onClick={handleLogout}
+          sx={{
+            py: 1.2,
+            px: 2,
+            color: 'error.main',
+            '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.08)' },
+          }}
+        >
+          <ListItemIcon sx={{ color: 'error.main', minWidth: 36 }}>
+            <LogoutIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText
+            primary="Sign Out"
+            primaryTypographyProps={{ fontWeight: 600, fontSize: '0.9rem', color: 'error.main' }}
           />
         </MenuItem>
       </Menu>
