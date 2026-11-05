@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -15,6 +15,8 @@ import {
   Box,
   Typography,
   Alert,
+  FormControlLabel,
+  Checkbox,
   CircularProgress,
 } from "@mui/material";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
@@ -30,6 +32,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [time, setTime] = useState(new Date().toTimeString().split(" ")[0].substring(0, 5));
+  const [includeMine, setIncludeMine] = useState(false);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -59,25 +62,62 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
       setDescription("");
       setDate(new Date().toISOString().split("T")[0]);
       setTime(new Date().toTimeString().split(" ")[0].substring(0, 5));
+      setIncludeMine(false);
       setErrors({});
       setError("");
     }
   }, [open]);
 
-  // If multiple members selected, auto-set to Split; else default to Expense if currently Split
+  // Helper to identify myself
+  const isMyself = (item) => {
+    if (!item) return false;
+    if (typeof item === "string") return /myself/i.test(item);
+    return item._id === "myself" || /myself/i.test(item.fullName || "");
+  };
+
+  const selectedRealMembers = useMemo(() => {
+    return selectedNames.filter((item) => !isMyself(item));
+  }, [selectedNames]);
+
+  const hasMyselfSelected = useMemo(() => {
+    return selectedNames.some((item) => isMyself(item));
+  }, [selectedNames]);
+
+  const effectiveIncludeMine = includeMine || hasMyselfSelected;
+
+  // Dropdown options: add "Myself (You)" only when at least 1 real member is already selected
+  const autocompleteOptions = useMemo(() => {
+    if (selectedRealMembers.length >= 1 && !hasMyselfSelected) {
+      return [{ _id: "myself", fullName: "Myself (You)" }, ...members];
+    }
+    return members;
+  }, [members, selectedRealMembers.length, hasMyselfSelected]);
+
+  const handleToggleMyself = (checked) => {
+    setIncludeMine(checked);
+    if (checked) {
+      if (!hasMyselfSelected) {
+        setSelectedNames((prev) => [...prev, { _id: "myself", fullName: "Myself (You)" }]);
+      }
+    } else {
+      setSelectedNames((prev) => prev.filter((item) => !isMyself(item)));
+    }
+  };
+
+  // Split is active if multiple real members are selected, OR at least 1 real member + myself
+  const isSplitActive = selectedRealMembers.length > 1 || (selectedRealMembers.length >= 1 && effectiveIncludeMine);
+  const totalSplitCount = selectedRealMembers.length + (effectiveIncludeMine ? 1 : 0);
+  const numericAmount = Math.trunc(parseFloat(amount) || 0);
+  const splitPerPerson = isSplitActive && totalSplitCount > 0 ? Math.trunc(numericAmount / totalSplitCount) : 0;
+
+  // If split is active, auto-set to Split; else default to Expense if currently Split
   useEffect(() => {
-    if (selectedNames.length > 1) {
+    if (isSplitActive) {
       setType("Split");
     } else if (type === "Split") {
       setType("Expense");
     }
-  }, [selectedNames, type]);
-
-  // Split calculation preview:
-  const isSplitActive = selectedNames.length > 1;
-  const numParticipants = selectedNames.length;
-  const numericAmount = Math.trunc(parseFloat(amount) || 0);
-  const splitPerPerson = isSplitActive && numParticipants > 0 ? Math.trunc(numericAmount / numParticipants) : 0;
+  }, [isSplitActive, type]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -90,12 +130,24 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
         (item) => (typeof item === "string" ? item : item.fullName).toLowerCase() === trimmed.toLowerCase()
       );
       if (!alreadyIn) {
-        finalNames.push(trimmed);
+        if (/myself/i.test(trimmed)) {
+          finalNames.push({ _id: "myself", fullName: "Myself (You)" });
+        } else {
+          finalNames.push(trimmed);
+        }
       }
     }
 
+    const realParticipants = finalNames.filter((item) => !isMyself(item));
+    const isMine = finalNames.some((item) => isMyself(item)) || effectiveIncludeMine;
+
     const newErrors = {};
-    if (finalNames.length === 0) newErrors.members = true;
+    if (realParticipants.length === 0) {
+      if (isMine) {
+        setError("Please add at least one member to split with.");
+      }
+      newErrors.members = true;
+    }
     if (!amount || numericAmount <= 0) newErrors.amount = true;
     if (!date || !date.trim()) newErrors.date = true;
     if (!time || !time.trim()) newErrors.time = true;
@@ -111,9 +163,9 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
 
     try {
       setSubmitting(true);
-      const isSplit = finalNames.length > 1;
+      const isSplit = realParticipants.length > 1 || (realParticipants.length >= 1 && isMine);
       const res = await entryService.createEntry({
-        names: finalNames.map((item) => {
+        names: realParticipants.map((item) => {
           if (typeof item === "string") return capitalizeName(item);
           return { name: capitalizeName(item.fullName), memberId: item._id };
         }),
@@ -123,7 +175,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
         description,
         date,
         time,
-        includeMine: false,
+        includeMine: isMine,
       });
 
       if (res.success) {
@@ -150,9 +202,13 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
           <Autocomplete
             multiple
             freeSolo
-            options={members}
-            getOptionLabel={(option) => (typeof option === "string" ? option : option.fullName || "")}
+            options={autocompleteOptions}
+            getOptionLabel={(option) => {
+              if (isMyself(option)) return "Myself (You)";
+              return typeof option === "string" ? option : option.fullName || "";
+            }}
             isOptionEqualToValue={(option, value) => {
+              if (isMyself(option) && isMyself(value)) return true;
               if (typeof value === "string") return option.fullName === value;
               return option._id === value?._id;
             }}
@@ -162,25 +218,29 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               setInputValue(newInputValue);
             }}
             onChange={(event, newValue) => {
+              const containsMyself = newValue.some((item) => isMyself(item));
+              setIncludeMine(containsMyself);
               setSelectedNames(newValue);
               setInputValue("");
               if (errors.members) setErrors((prev) => ({ ...prev, members: false }));
-              if (newValue.length > 1) {
-                setType("Split");
-              } else if (type === "Split" && newValue.length <= 1) {
-                setType("Expense");
-              }
             }}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => {
-                const label = typeof option === "string" ? option : option.fullName;
+                const isMineOption = isMyself(option);
+                const label = isMineOption
+                  ? "Myself (You)"
+                  : (typeof option === "string" ? capitalizeName(option) : capitalizeName(option.fullName));
                 return (
                   <Chip
-                    variant="outlined"
-                    color="primary"
+                    variant={isMineOption ? "filled" : "outlined"}
+                    color={isMineOption ? "secondary" : "primary"}
                     size="small"
-                    label={capitalizeName(label)}
-                    sx={{ textTransform: "capitalize" }}
+                    label={label}
+                    sx={
+                      isMineOption
+                        ? { bgcolor: "#f3e8ff", color: "#6b21a8", fontWeight: 600 }
+                        : { textTransform: "capitalize" }
+                    }
                     {...getTagProps({ index })}
                     key={index}
                   />
@@ -208,38 +268,73 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
             )}
           />
 
-          {/* Multi-member Split notification */}
-          {selectedNames.length > 1 && (
+          {/* Inline Add myself checkbox when 1 member is selected */}
+          {selectedRealMembers.length === 1 && !effectiveIncludeMine && (
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={false}
+                  onChange={(e) => handleToggleMyself(e.target.checked)}
+                  size="small"
+                  color="primary"
+                />
+              }
+              label="Add myself (splits my share into For Self)"
+              sx={{ mt: -1.5, mb: -1 }}
+            />
+          )}
+
+          {/* Split notification & Add myself checkbox */}
+          {isSplitActive && (
             <Box sx={{ p: 2, bgcolor: "#e3f2fd", borderRadius: 2, border: "1px solid #90caf9" }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
                 <CallSplitIcon color="primary" fontSize="small" />
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.dark" }}>
-                  Auto Split Activated
+                  {effectiveIncludeMine && selectedRealMembers.length === 1
+                    ? "Split with Myself Activated"
+                    : "Auto Split Activated"}
                 </Typography>
               </Box>
 
               <Typography variant="body2" sx={{ mb: 1 }}>
-                Splitting amount equally across {numParticipants} selected members.
+                {effectiveIncludeMine
+                  ? `Splitting amount equally across ${totalSplitCount} participants (${selectedRealMembers.length} member${selectedRealMembers.length > 1 ? "s" : ""} in To Receive + your share in For Self).`
+                  : `Splitting amount equally across ${totalSplitCount} selected members.`}
               </Typography>
+
+              {/* Checkbox: Add myself */}
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={effectiveIncludeMine}
+                    onChange={(e) => handleToggleMyself(e.target.checked)}
+                    size="small"
+                    color="primary"
+                  />
+                }
+                label="Add myself (splits my share into For Self)"
+                sx={{ mb: 0.5 }}
+              />
 
               {numericAmount > 0 && (
                 <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5, color: "primary.main" }}>
-                  ₹ {formatAmount(splitPerPerson)} per person ({numParticipants} members)
+                  ₹ {formatAmount(splitPerPerson)} per person ({totalSplitCount} participants
+                  {effectiveIncludeMine ? ", your share added to For Self" : ""})
                 </Typography>
               )}
             </Box>
           )}
 
-          {/* 2. Type: Expense, Loan (Split when multiple) */}
-          <FormControl fullWidth required disabled={selectedNames.length > 1}>
+          {/* 2. Type: Expense, Loan (Split when multiple or split with myself) */}
+          <FormControl fullWidth required disabled={isSplitActive}>
             <InputLabel id="type-label" required>Type</InputLabel>
             <Select
               labelId="type-label"
-              value={selectedNames.length > 1 ? "Split" : type}
+              value={isSplitActive ? "Split" : type}
               label="Type"
               onChange={(e) => setType(e.target.value)}
             >
-              {selectedNames.length > 1 ? (
+              {isSplitActive ? (
                 <MenuItem value="Split">Split</MenuItem>
               ) : (
                 [
@@ -248,9 +343,9 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                 ]
               )}
             </Select>
-            {selectedNames.length > 1 && (
+            {isSplitActive && (
               <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1 }}>
-                Type automatically set to "Split" for multiple members
+                Type automatically set to "Split" for multi-participant splits
               </Typography>
             )}
           </FormControl>
