@@ -184,7 +184,7 @@ const HeaderProfileMenu = () => {
           </Box>
         </Box>
 
-        <Divider />
+        <Divider sx={{ mb: 1 }} />
 
         <MenuItem
           onClick={() => handleNavigate('/profile')}
