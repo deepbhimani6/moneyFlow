@@ -96,10 +96,10 @@ const HeaderProfileMenu = () => {
         {/* Name & Role on medium screens and up */}
         <Box sx={{ display: { xs: 'none', md: 'flex' }, flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
           <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'text.primary', maxWidth: 120, textTransform: 'capitalize' }} noWrap>
-            {profile?.fullName || 'Deep Bhimani'}
+            {profile?.fullName || 'User'}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1 }}>
-            {profile?.role || 'Admin'}
+            {profile?.role || 'Member'}
           </Typography>
         </Box>
 
@@ -170,7 +170,7 @@ const HeaderProfileMenu = () => {
               {profile?.email || 'user@example.com'}
             </Typography>
             <Chip
-              label={profile?.role || 'Admin'}
+              label={profile?.role || 'Member'}
               size="small"
               sx={{
                 height: 20,

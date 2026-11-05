@@ -34,6 +34,8 @@ const getUniqueAdminCount = async () => {
 const isMemberCurrentAdmin = (member, profile) => {
   if (!member || !profile) return false;
 
+  if (member._id && profile._id && String(member._id) === String(profile._id)) return true;
+
   const profileEmail = (profile.email || '').toLowerCase().trim();
   const memberEmail = (member.email || '').toLowerCase().trim();
   if (profileEmail && memberEmail && profileEmail === memberEmail) return true;

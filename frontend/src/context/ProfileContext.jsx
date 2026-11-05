@@ -4,13 +4,13 @@ import { useAuth } from './AuthContext';
 
 const ProfileContext = createContext(null);
 
-const DEFAULT_PROFILE = {
-  fullName: 'Deep Bhimani',
-  email: 'deep.bhimani@shunyavkash.com',
-  phoneNumber: '+91 6359276907',
-  username: 'deepBhimani',
-  role: 'Admin',
-  bio: 'Personal Finance & Expense Manager on MoneyFlow',
+const EMPTY_PROFILE = {
+  fullName: '',
+  email: '',
+  phoneNumber: '',
+  username: '',
+  role: 'Member',
+  bio: '',
   avatarColor: '#1976d2',
 };
 
@@ -29,20 +29,36 @@ export const ProfileProvider = ({ children }) => {
     } catch (e) {
       // ignore
     }
-    return DEFAULT_PROFILE;
+    return null;
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Sync profile when auth user updates
+  // Sync profile when auth user updates or account switches
   useEffect(() => {
     if (authUser) {
-      setProfile((prev) => ({ ...prev, ...authUser }));
+      setProfile((prev) => {
+        // If switched to a different user, replace with authUser
+        if (
+          !prev ||
+          (authUser._id && prev._id && prev._id !== authUser._id) ||
+          (authUser.email && prev.email && prev.email.toLowerCase() !== (prev.email || '').toLowerCase())
+        ) {
+          return authUser;
+        }
+        return { ...prev, ...authUser };
+      });
+    } else {
+      setProfile(null);
+      localStorage.removeItem('moneyflow_profile');
     }
   }, [authUser]);
 
   const fetchProfile = useCallback(async () => {
+    const token = localStorage.getItem('moneyflow_token');
+    if (!token) return;
+
     try {
       setLoading(true);
       setError(null);
@@ -86,10 +102,10 @@ export const ProfileProvider = ({ children }) => {
   }, [updateCurrentUser]);
 
   useEffect(() => {
-    if (auth?.isAuthenticated) {
+    if (auth?.isAuthenticated && authUser) {
       fetchProfile();
     }
-  }, [fetchProfile, auth?.isAuthenticated]);
+  }, [fetchProfile, auth?.isAuthenticated, authUser?._id, authUser?.email]);
 
   // Derive initials from fullName
   const getInitials = (name) => {
@@ -99,12 +115,13 @@ export const ProfileProvider = ({ children }) => {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
-  const initials = getInitials(profile?.fullName);
+  const effectiveProfile = profile || authUser || EMPTY_PROFILE;
+  const initials = getInitials(effectiveProfile?.fullName);
 
   return (
     <ProfileContext.Provider
       value={{
-        profile,
+        profile: effectiveProfile,
         initials,
         loading,
         error,

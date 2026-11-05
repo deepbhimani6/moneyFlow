@@ -46,6 +46,7 @@ export const AuthProvider = ({ children }) => {
         if (err.response?.status === 401) {
           localStorage.removeItem('moneyflow_token');
           localStorage.removeItem('moneyflow_user');
+          localStorage.removeItem('moneyflow_profile');
           if (isMounted) {
             setUser(null);
             setToken(null);
@@ -100,6 +101,7 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(() => {
     localStorage.removeItem('moneyflow_token');
     localStorage.removeItem('moneyflow_user');
+    localStorage.removeItem('moneyflow_profile');
     setToken(null);
     setUser(null);
   }, []);

@@ -7,23 +7,23 @@ const profileSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Full name is required'],
       trim: true,
-      default: 'Deep Bhimani',
+      default: 'Admin User',
     },
     email: {
       type: String,
       trim: true,
       lowercase: true,
-      default: 'deep.bhimani@shunyavkash.com',
+      default: 'admin@moneyflow.local',
     },
     phoneNumber: {
       type: String,
       trim: true,
-      default: '+91 6359276907',
+      default: '',
     },
     username: {
       type: String,
       trim: true,
-      default: 'deepBhimani',
+      default: 'admin',
     },
     role: {
       type: String,

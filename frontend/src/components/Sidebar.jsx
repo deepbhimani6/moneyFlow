@@ -153,10 +153,10 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
           </Avatar>
           <Box sx={{ overflow: 'hidden', flexGrow: 1 }}>
             <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.2, textTransform: 'capitalize' }} noWrap>
-              {profile?.fullName || 'Deep Bhimani'}
+              {profile?.fullName || 'User'}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.72rem' }} noWrap>
-              {profile?.role || 'Admin'}
+              {profile?.role || 'Member'}
             </Typography>
           </Box>
         </ListItemButton>

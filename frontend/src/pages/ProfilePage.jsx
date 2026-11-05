@@ -37,9 +37,9 @@ const AVATAR_COLORS = [
 ];
 
 const normalizeRole = (role) => {
-  if (!role) return 'Admin';
-  if (role.toLowerCase() === 'member') return 'Member';
-  return 'Admin';
+  if (!role) return 'Member';
+  if (role.toLowerCase() === 'admin') return 'Admin';
+  return 'Member';
 };
 
 const ProfilePage = () => {
@@ -50,7 +50,7 @@ const ProfilePage = () => {
     email: '',
     phoneNumber: '',
     username: '',
-    role: 'Admin',
+    role: 'Member',
     bio: '',
     avatarColor: '#1976d2',
   });
@@ -140,27 +140,22 @@ const ProfilePage = () => {
     }
   };
 
-  const handleResetToDefault = async () => {
-    try {
-      setSaving(true);
-      const res = await updateProfile({
-        fullName: 'Deep Bhimani',
-        email: 'deep.bhimani@shunyavkash.com',
-        phoneNumber: '+91 6359276907',
-        username: 'deepBhimani',
-        role: 'Admin',
-        bio: 'Personal Finance & Expense Manager on MoneyFlow',
-        avatarColor: '#1976d2',
+  const handleResetToDefault = () => {
+    if (profile) {
+      setFormData({
+        fullName: profile.fullName || '',
+        email: profile.email || '',
+        phoneNumber: profile.phoneNumber || '',
+        username: profile.username || '',
+        role: normalizeRole(profile.role),
+        bio: profile.bio || '',
+        avatarColor: profile.avatarColor || '#1976d2',
       });
-      if (res.success) {
-        setSnackbar({
-          open: true,
-          message: 'Profile reset to default values',
-          severity: 'success',
-        });
-      }
-    } finally {
-      setSaving(false);
+      setSnackbar({
+        open: true,
+        message: 'Profile form reset to your saved account details',
+        severity: 'info',
+      });
     }
   };
 
@@ -292,7 +287,7 @@ const ProfilePage = () => {
                 />
               </Grid>
 
-              {/* Role Dropdown (admin, member) */}
+              {/* Role Dropdown */}
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
                   <InputLabel id="role-select-label">Role</InputLabel>
@@ -300,10 +295,11 @@ const ProfilePage = () => {
                     labelId="role-select-label"
                     value={formData.role}
                     label="Role"
+                    disabled={profile?.role === 'Member'}
                     onChange={(e) => handleChange('role', e.target.value)}
                   >
-                    <MenuItem value="Admin">Admin (Current Account)</MenuItem>
-                    <MenuItem value="Member" disabled>Member (Primary account must be Admin)</MenuItem>
+                    <MenuItem value="Admin">Admin</MenuItem>
+                    <MenuItem value="Member">Member</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -377,7 +373,7 @@ const ProfilePage = () => {
                 onClick={handleResetToDefault}
                 disabled={saving}
               >
-                Reset Defaults
+                Reset to Saved
               </Button>
               <Button
                 type="submit"
