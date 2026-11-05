@@ -179,22 +179,44 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               setInputValue("");
               if (errors.members) setErrors((prev) => ({ ...prev, members: false }));
             }}
-            renderTags={(value, getTagProps) =>
-              value.map((option, index) => {
-                const label = typeof option === "string" ? capitalizeName(option) : capitalizeName(option.fullName);
-                return (
+            renderTags={(value, getTagProps) => (
+              <>
+                {value.map((option, index) => {
+                  const label = typeof option === "string" ? capitalizeName(option) : capitalizeName(option.fullName);
+                  return (
+                    <Chip
+                      variant="outlined"
+                      color="primary"
+                      size="small"
+                      label={label}
+                      sx={{ textTransform: "capitalize" }}
+                      {...getTagProps({ index })}
+                      key={index}
+                    />
+                  );
+                })}
+                {includeMine && (
                   <Chip
-                    variant="outlined"
-                    color="primary"
                     size="small"
-                    label={label}
-                    sx={{ textTransform: "capitalize" }}
-                    {...getTagProps({ index })}
-                    key={index}
+                    label="Myself (You)"
+                    onDelete={() => setIncludeMine(false)}
+                    sx={{
+                      bgcolor: "#ede9fe",
+                      color: "#5b21b6",
+                      fontWeight: 600,
+                      "& .MuiChip-deleteIcon": {
+                        color: "#6d28d9 !important",
+                        fontSize: "18px",
+                        opacity: 1,
+                        "&:hover": {
+                          color: "#4c1d95 !important",
+                        },
+                      },
+                    }}
                   />
-                );
-              })
-            }
+                )}
+              </>
+            )}
             renderInput={(params) => (
               <TextField
                 {...params}
@@ -245,9 +267,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               </Box>
 
               <Typography variant="body2" sx={{ mb: 1 }}>
-                {includeMine
-                  ? `Splitting amount equally across ${totalSplitCount} participants (${selectedNames.length} member${selectedNames.length > 1 ? "s" : ""} in To Receive + your share in For Self).`
-                  : `Splitting amount equally across ${totalSplitCount} selected members.`}
+                Splitting amount equally across {totalSplitCount} participants.
               </Typography>
 
               {/* Checkbox: Add myself */}
