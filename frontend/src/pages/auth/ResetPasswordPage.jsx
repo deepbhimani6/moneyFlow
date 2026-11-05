@@ -82,7 +82,6 @@ const ResetPasswordPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [resetComplete, setResetComplete] = useState(false);
 
   const tokenRef = useRef(null);
   const newPasswordRef = useRef(null);
@@ -93,8 +92,8 @@ const ResetPasswordPage = () => {
   useEffect(() => {
     let isMounted = true;
 
-    // If reset is already completed or already verified, skip verification
-    if (resetComplete || verifiedRef.current) {
+    // If already verified, skip re-verification
+    if (verifiedRef.current) {
       return;
     }
 
@@ -104,7 +103,7 @@ const ResetPasswordPage = () => {
           if (!isInitiallyVerified) setVerifying(true);
           setError('');
           const res = await verifyResetToken(initialToken);
-          if (isMounted && !resetComplete) {
+          if (isMounted) {
             if (res.success) {
               verifiedRef.current = true;
               setTokenValid(true);
@@ -125,7 +124,7 @@ const ResetPasswordPage = () => {
             }
           }
         } catch (err) {
-          if (isMounted && !resetComplete) {
+          if (isMounted) {
             setTokenValid(false);
             clearStoredResetSession();
             setError(err.message || 'Failed to verify reset token.');
@@ -141,12 +140,11 @@ const ResetPasswordPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [initialToken, isInitiallyVerified, queryToken, resetComplete, setSearchParams, verifyResetToken]);
+  }, [initialToken, isInitiallyVerified, queryToken, setSearchParams, verifyResetToken]);
 
   // Step 1: Verify Code Handler
   const handleVerifyCode = async (e) => {
     if (e) e.preventDefault();
-    if (resetComplete) return;
     setError('');
 
     const activeToken = token.trim();
@@ -199,7 +197,6 @@ const ResetPasswordPage = () => {
   // Step 2: Reset Password Handler
   const handleResetPassword = async (e) => {
     e.preventDefault();
-    if (resetComplete) return;
     setError('');
 
     const newErrors = {};
@@ -236,20 +233,13 @@ const ResetPasswordPage = () => {
       const res = await resetPassword(activeToken, newPassword);
 
       if (res.success) {
-        setResetComplete(true);
-        setSuccessMsg('Your password has been reset successfully! Redirecting to sign in...');
-        setError('');
-        setErrors({});
         clearStoredResetSession();
-        // Clear token query parameter so it doesn't trigger verification
-        setSearchParams({}, { replace: true });
-
-        setTimeout(() => {
-          navigate('/login', {
-            state: { successMsg: 'Your password has been reset successfully! Please sign in with your new password.' },
-            replace: true,
-          });
-        }, 1500);
+        // Immediately navigate to Login page with success message (no intermediate screen)
+        navigate('/login', {
+          state: { successMsg: 'Your password has been reset successfully! Please sign in with your new password.' },
+          replace: true,
+        });
+        return;
       } else {
         setError(res.message || 'Failed to reset password. The code or token may have expired.');
       }
@@ -266,17 +256,9 @@ const ResetPasswordPage = () => {
 
   return (
     <AuthLayout
-      title={
-        resetComplete
-          ? 'Password Reset'
-          : tokenValid
-          ? 'Create New Password'
-          : 'Enter Reset Code'
-      }
+      title={tokenValid ? 'Create New Password' : 'Enter Reset Code'}
       subtitle={
-        resetComplete
-          ? 'Your password has been reset successfully'
-          : tokenValid
+        tokenValid
           ? userEmail
             ? `Choose a new password for ${userEmail}`
             : 'Enter and confirm your new password below'
@@ -284,245 +266,195 @@ const ResetPasswordPage = () => {
       }
       maxWidth={620}
     >
-      {/* If Reset is Complete, ONLY show success screen */}
-      {resetComplete ? (
-        <Box sx={{ textAlign: 'center', py: 2 }}>
-          <Box
-            sx={{
-              width: 64,
-              height: 64,
-              borderRadius: '50%',
-              bgcolor: '#ecfdf5',
-              color: '#16a34a',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mx: 'auto',
-              mb: 2,
-            }}
-          >
-            <CheckCircleIcon sx={{ fontSize: 38, color: '#16a34a' }} />
-          </Box>
-          <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: '#16a34a' }}>
-            Password Reset Successfully!
+      {verifying && (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4, gap: 1.5 }}>
+          <CircularProgress size={24} />
+          <Typography variant="body2" color="text.secondary">
+            Verifying reset code...
           </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Your password has been reset successfully! Redirecting to sign in...
-          </Typography>
-          <Button
-            component={RouterLink}
-            to="/login"
-            onClick={handleBackToLogin}
-            variant="contained"
-            fullWidth
-            size="large"
-            sx={{
-              py: 1.3,
-              fontSize: '1rem',
-              fontWeight: 700,
-              borderRadius: 2,
-            }}
-          >
-            Sign In Now
-          </Button>
         </Box>
-      ) : (
+      )}
+
+      {!verifying && (
         <>
-          {verifying && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4, gap: 1.5 }}>
-              <CircularProgress size={24} />
-              <Typography variant="body2" color="text.secondary">
-                Verifying reset code...
-              </Typography>
+          {error && (
+            <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }} onClose={() => setError('')}>
+              {error}
+            </Alert>
+          )}
+
+          {successMsg && (
+            <Alert
+              icon={<CheckCircleIcon fontSize="inherit" />}
+              severity="success"
+              sx={{ mb: 2.5, borderRadius: 2 }}
+            >
+              {successMsg}
+            </Alert>
+          )}
+
+          {/* STEP 1: Code Entry & Verification (shown if code not yet verified) */}
+          {!tokenValid && (
+            <Box component="form" onSubmit={handleVerifyCode} noValidate>
+              <TextField
+                fullWidth
+                label="Reset Code / Token"
+                name="token"
+                placeholder="e.g. 123456 or paste token from email"
+                value={token}
+                onChange={(e) => {
+                  setError('');
+                  if (errors.token) setErrors((prev) => ({ ...prev, token: '' }));
+                  setToken(e.target.value);
+                }}
+                inputRef={tokenRef}
+                error={Boolean(errors.token)}
+                helperText={errors.token || ''}
+                required
+                disabled={verifying}
+                autoFocus
+                sx={{ mb: 3 }}
+              />
+
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                size="large"
+                disabled={verifying}
+                endIcon={verifying ? <CircularProgress size={20} color="inherit" /> : <ArrowForwardIcon />}
+                sx={{
+                  py: 1.3,
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
+                }}
+              >
+                {verifying ? 'Verifying Code...' : 'Verify Code & Proceed'}
+              </Button>
             </Box>
           )}
 
-          {!verifying && (
-            <>
-              {error && (
-                <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }} onClose={() => setError('')}>
-                  {error}
-                </Alert>
-              )}
+          {/* STEP 2: Password Entry (shown ONLY once code is verified) */}
+          {tokenValid && (
+            <Box component="form" onSubmit={handleResetPassword} noValidate>
+              {/* New Password */}
+              <TextField
+                fullWidth
+                type={showPassword ? 'text' : 'password'}
+                label="New Password"
+                name="newPassword"
+                placeholder="Minimum 6 characters"
+                value={newPassword}
+                onChange={(e) => {
+                  setError('');
+                  if (errors.newPassword) setErrors((prev) => ({ ...prev, newPassword: '' }));
+                  setNewPassword(e.target.value);
+                }}
+                inputRef={newPasswordRef}
+                error={Boolean(errors.newPassword)}
+                helperText={errors.newPassword || ''}
+                required
+                disabled={loading}
+                autoFocus
+                sx={{ mb: 2.5 }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle new password visibility"
+                        onClick={() => setShowPassword(!showPassword)}
+                        edge="end"
+                        size="small"
+                      >
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
 
-              {successMsg && (
-                <Alert
-                  icon={<CheckCircleIcon fontSize="inherit" />}
-                  severity="success"
-                  sx={{ mb: 2.5, borderRadius: 2 }}
-                >
-                  {successMsg}
-                </Alert>
-              )}
+              {/* Confirm New Password */}
+              <TextField
+                fullWidth
+                type={showConfirmPassword ? 'text' : 'password'}
+                label="Confirm New Password"
+                name="confirmPassword"
+                placeholder="Re-enter your new password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setError('');
+                  if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: '' }));
+                  setConfirmPassword(e.target.value);
+                }}
+                inputRef={confirmPasswordRef}
+                error={Boolean(errors.confirmPassword)}
+                helperText={errors.confirmPassword || ''}
+                required
+                disabled={loading}
+                sx={{ mb: 3 }}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="toggle confirm password visibility"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        edge="end"
+                        size="small"
+                      >
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
 
-              {/* STEP 1: Code Entry & Verification (shown if code not yet verified) */}
-              {!tokenValid && (
-                <Box component="form" onSubmit={handleVerifyCode} noValidate>
-                  <TextField
-                    fullWidth
-                    label="Reset Code / Token"
-                    name="token"
-                    placeholder="e.g. 123456 or paste token from email"
-                    value={token}
-                    onChange={(e) => {
-                      setError('');
-                      if (errors.token) setErrors((prev) => ({ ...prev, token: '' }));
-                      setToken(e.target.value);
-                    }}
-                    inputRef={tokenRef}
-                    error={Boolean(errors.token)}
-                    helperText={errors.token || ''}
-                    required
-                    disabled={verifying}
-                    autoFocus
-                    sx={{ mb: 3 }}
-                  />
-
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    size="large"
-                    disabled={verifying}
-                    endIcon={verifying ? <CircularProgress size={20} color="inherit" /> : <ArrowForwardIcon />}
-                    sx={{
-                      py: 1.3,
-                      fontSize: '1rem',
-                      fontWeight: 700,
-                      borderRadius: 2,
-                      boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
-                    }}
-                  >
-                    {verifying ? 'Verifying Code...' : 'Verify Code & Proceed'}
-                  </Button>
-                </Box>
-              )}
-
-              {/* STEP 2: Password Entry (shown ONLY once code is verified) */}
-              {tokenValid && (
-                <Box component="form" onSubmit={handleResetPassword} noValidate>
-                  {/* New Password */}
-                  <TextField
-                    fullWidth
-                    type={showPassword ? 'text' : 'password'}
-                    label="New Password"
-                    name="newPassword"
-                    placeholder="Minimum 6 characters"
-                    value={newPassword}
-                    onChange={(e) => {
-                      setError('');
-                      if (errors.newPassword) setErrors((prev) => ({ ...prev, newPassword: '' }));
-                      setNewPassword(e.target.value);
-                    }}
-                    inputRef={newPasswordRef}
-                    error={Boolean(errors.newPassword)}
-                    helperText={errors.newPassword || ''}
-                    required
-                    disabled={loading}
-                    autoFocus
-                    sx={{ mb: 2.5 }}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="toggle new password visibility"
-                            onClick={() => setShowPassword(!showPassword)}
-                            edge="end"
-                            size="small"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-
-                  {/* Confirm New Password */}
-                  <TextField
-                    fullWidth
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    label="Confirm New Password"
-                    name="confirmPassword"
-                    placeholder="Re-enter your new password"
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setError('');
-                      if (errors.confirmPassword) setErrors((prev) => ({ ...prev, confirmPassword: '' }));
-                      setConfirmPassword(e.target.value);
-                    }}
-                    inputRef={confirmPasswordRef}
-                    error={Boolean(errors.confirmPassword)}
-                    helperText={errors.confirmPassword || ''}
-                    required
-                    disabled={loading}
-                    sx={{ mb: 3 }}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label="toggle confirm password visibility"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            edge="end"
-                            size="small"
-                          >
-                            {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-
-                  {/* Submit Button */}
-                  <Button
-                    type="submit"
-                    fullWidth
-                    variant="contained"
-                    size="large"
-                    disabled={loading}
-                    startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
-                    sx={{
-                      py: 1.3,
-                      fontSize: '1rem',
-                      fontWeight: 700,
-                      borderRadius: 2,
-                      boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
-                    }}
-                  >
-                    {loading ? 'Updating Password...' : 'Save New Password'}
-                  </Button>
-                </Box>
-              )}
-            </>
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                size="large"
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CheckCircleIcon />}
+                sx={{
+                  py: 1.3,
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
+                }}
+              >
+                {loading ? 'Updating Password...' : 'Save New Password'}
+              </Button>
+            </Box>
           )}
         </>
       )}
 
-      {!resetComplete && (
-        <>
-          <Divider sx={{ my: 3 }} />
+      <Divider sx={{ my: 3 }} />
 
-          {/* Back to Login */}
-          <Box sx={{ textAlign: 'center' }}>
-            <Link
-              component={RouterLink}
-              to="/login"
-              onClick={handleBackToLogin}
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 0.5,
-                fontWeight: 600,
-                color: 'primary.main',
-                textDecoration: 'none',
-                fontSize: '0.9rem',
-                '&:hover': { textDecoration: 'underline' },
-              }}
-            >
-              <ArrowBackIcon fontSize="small" /> Back to Sign In
-            </Link>
-          </Box>
-        </>
-      )}
+      {/* Back to Login */}
+      <Box sx={{ textAlign: 'center' }}>
+        <Link
+          component={RouterLink}
+          to="/login"
+          onClick={handleBackToLogin}
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.5,
+            fontWeight: 600,
+            color: 'primary.main',
+            textDecoration: 'none',
+            fontSize: '0.9rem',
+            '&:hover': { textDecoration: 'underline' },
+          }}
+        >
+          <ArrowBackIcon fontSize="small" /> Back to Sign In
+        </Link>
+      </Box>
     </AuthLayout>
   );
 };

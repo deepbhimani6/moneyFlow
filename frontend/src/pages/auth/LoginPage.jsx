@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -39,6 +39,13 @@ const LoginPage = () => {
     location.state?.successMsg ||
       (location.state?.message && !location.state?.error ? location.state.message : '')
   );
+
+  // Clear browser history state immediately after reading so page refresh will remove the message
+  useEffect(() => {
+    if (location.state?.successMsg || location.state?.message || location.state?.error) {
+      window.history.replaceState({}, document.title, location.pathname);
+    }
+  }, [location.pathname, location.state]);
 
   const identifierRef = useRef(null);
   const passwordRef = useRef(null);
@@ -111,7 +118,7 @@ const LoginPage = () => {
       )}
 
       {successMsg && (
-        <Alert severity="success" sx={{ mb: 2.5, borderRadius: 2 }}>
+        <Alert severity="success" sx={{ mb: 2.5, borderRadius: 2 }} onClose={() => setSuccessMsg('')}>
           {successMsg}
         </Alert>
       )}
