@@ -10,7 +10,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'favicon.svg', 'vite.svg', 'icon-192.png', 'icon-512.png'],
       manifest: {
         name: 'MoneyFlow - Financial & Split Tracker',
         short_name: 'MoneyFlow',
@@ -28,6 +28,11 @@ export default defineConfig({
           {
             src: '/icon-512.png',
             sizes: '512x512',
+            type: 'image/png',
+          },
+          {
+            src: '/apple-touch-icon.png',
+            sizes: '180x180',
             type: 'image/png',
           },
           {
