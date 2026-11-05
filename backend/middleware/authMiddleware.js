@@ -61,8 +61,38 @@ const adminOnly = (req, res, next) => {
   return next();
 };
 
+// Optional auth middleware: attaches req.user if valid token provided without blocking unauthenticated requests
+const resolveAuthUser = async (req, res, next) => {
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      const token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, JWT_SECRET);
+
+      let user = null;
+      if (decoded.id) {
+        user = await Member.findById(decoded.id).select('-password');
+      }
+
+      if (!user && decoded.email) {
+        user = await Member.findOne({ email: decoded.email.toLowerCase() }).select('-password');
+      }
+
+      if (user) {
+        req.user = user;
+      }
+    } catch (error) {
+      // Ignore token verification errors for optional auth
+    }
+  }
+  next();
+};
+
 module.exports = {
   protect,
+  resolveAuthUser,
   adminOnly,
   JWT_SECRET,
 };

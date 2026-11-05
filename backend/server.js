@@ -14,6 +14,7 @@ const dashboardRoutes = require('./routes/dashboardRoutes');
 const toPayRoutes = require('./routes/toPayRoutes');
 const forSelfRoutes = require('./routes/forSelfRoutes');
 const profileRoutes = require('./routes/profileRoutes');
+const { resolveAuthUser } = require('./middleware/authMiddleware');
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 app.use(express.json());
+app.use(resolveAuthUser);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -1,8 +1,6 @@
 const Member = require('../models/Member');
 const Entry = require('../models/Entry');
-const Profile = require('../models/Profile');
 const { sendInviteEmail } = require('../utils/email');
-const { getUniqueAdminCount, isMemberCurrentAdmin } = require('../utils/adminCheck');
 const { capitalizeName } = require('../utils/formatters');
 
 // Generate random password meeting validation requirements:
@@ -305,8 +303,14 @@ const deleteMember = async (req, res) => {
     }
 
     // 1. Never delete the current logged-in account
-    const currentProfile = await Profile.findOne();
-    if (isMemberCurrentAdmin(member, currentProfile)) {
+    const currentUserId = req.user ? String(req.user._id) : null;
+    const currentUserEmail = req.user && req.user.email ? req.user.email.toLowerCase().trim() : null;
+
+    const isCurrentLoggedIn =
+      (currentUserId && String(member._id) === currentUserId) ||
+      (currentUserEmail && member.email && member.email.toLowerCase().trim() === currentUserEmail);
+
+    if (isCurrentLoggedIn) {
       return res.status(400).json({
         success: false,
         message: 'You cannot delete your logged-in account.',
@@ -337,8 +341,15 @@ const bulkDeleteMembers = async (req, res) => {
     const membersToDelete = await Member.find({ _id: { $in: ids } }).lean();
 
     // 1. Check if trying to delete current logged-in user
-    const currentProfile = await Profile.findOne();
-    const containsCurrentLoggedIn = membersToDelete.some((m) => isMemberCurrentAdmin(m, currentProfile));
+    const currentUserId = req.user ? String(req.user._id) : null;
+    const currentUserEmail = req.user && req.user.email ? req.user.email.toLowerCase().trim() : null;
+
+    const containsCurrentLoggedIn = membersToDelete.some((m) => {
+      if (currentUserId && String(m._id) === currentUserId) return true;
+      if (currentUserEmail && m.email && m.email.toLowerCase().trim() === currentUserEmail) return true;
+      return false;
+    });
+
     if (containsCurrentLoggedIn) {
       return res.status(400).json({
         success: false,
