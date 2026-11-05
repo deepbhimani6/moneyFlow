@@ -34,8 +34,11 @@ const LoginPage = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(location.state?.message || '');
-  const [successMsg, setSuccessMsg] = useState('');
+  const [error, setError] = useState(location.state?.error || '');
+  const [successMsg, setSuccessMsg] = useState(
+    location.state?.successMsg ||
+      (location.state?.message && !location.state?.error ? location.state.message : '')
+  );
 
   const identifierRef = useRef(null);
   const passwordRef = useRef(null);
