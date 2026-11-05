@@ -201,7 +201,7 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
             error={Boolean(errors.forFromName)}
             helperText={
               errors.forFromName
-                ? "Member name is required"
+                ? "Member name is required."
                 : isSplit
                 ? "Participant name in this split group"
                 : ""

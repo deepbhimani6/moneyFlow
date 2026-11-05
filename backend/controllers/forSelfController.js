@@ -150,7 +150,7 @@ const createForSelfEntry = async (req, res) => {
     const parsedAmount = Math.trunc(Number(amount));
 
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      return res.status(400).json({ success: false, message: "Please enter a valid amount" });
+      return res.status(400).json({ success: false, message: "Please enter a valid amount." });
     }
 
     const entryDate = date || new Date().toISOString().split("T")[0];
@@ -171,7 +171,7 @@ const createForSelfEntry = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `${entryType} entry created successfully`,
+      message: "Entry created successfully.",
       data: newEntry,
     });
   } catch (error) {
@@ -187,7 +187,7 @@ const updateForSelfEntry = async (req, res) => {
 
     const entry = await ForSelf.findById(req.params.id);
     if (!entry) {
-      return res.status(404).json({ success: false, message: "Entry not found" });
+      return res.status(404).json({ success: false, message: "Entry not found." });
     }
 
     if (entry.isSplit && entry.splitGroupId) {
@@ -215,7 +215,7 @@ const updateForSelfEntry = async (req, res) => {
       const updated = await ForSelf.findById(req.params.id);
       return res.json({
         success: true,
-        message: "Split entry synchronized successfully",
+        message: "Split entry synchronized.",
         data: updated,
       });
     }
@@ -236,7 +236,7 @@ const updateForSelfEntry = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Entry updated successfully",
+      message: "Entry updated successfully.",
       data: entry,
     });
   } catch (error) {
@@ -250,14 +250,14 @@ const deleteForSelfEntry = async (req, res) => {
   try {
     const entry = await ForSelf.findById(req.params.id);
     if (!entry) {
-      return res.status(404).json({ success: false, message: "Entry not found" });
+      return res.status(404).json({ success: false, message: "Entry not found." });
     }
 
     await ForSelf.findByIdAndDelete(req.params.id);
 
     res.json({
       success: true,
-      message: "Entry deleted successfully",
+      message: "Entry deleted successfully.",
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -270,14 +270,14 @@ const bulkDeleteForSelf = async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: "No entry IDs provided" });
+      return res.status(400).json({ success: false, message: "No entries selected." });
     }
 
     const result = await ForSelf.deleteMany({ _id: { $in: ids } });
 
     res.json({
       success: true,
-      message: `${result.deletedCount} entries deleted successfully`,
+      message: `${result.deletedCount} entries deleted.`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -290,10 +290,10 @@ const bulkUpdateStatusForSelf = async (req, res) => {
   try {
     const { ids, paymentStatus } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: "No entry IDs provided" });
+      return res.status(400).json({ success: false, message: "No entries selected." });
     }
     if (!paymentStatus) {
-      return res.status(400).json({ success: false, message: "Payment status is required" });
+      return res.status(400).json({ success: false, message: "Payment status is required." });
     }
 
     const result = await ForSelf.updateMany(
@@ -303,7 +303,7 @@ const bulkUpdateStatusForSelf = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Updated status for ${result.modifiedCount} entries to ${paymentStatus}`,
+      message: `Updated status for ${result.modifiedCount} entries to ${paymentStatus}.`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

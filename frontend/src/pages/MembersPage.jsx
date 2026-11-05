@@ -143,7 +143,7 @@ const MembersPage = () => {
     if (isCurrentLoggedInUser(member, profile, user)) {
       setSnackbar({
         open: true,
-        message: "You cannot delete your own logged-in account.",
+        message: "You cannot delete your logged-in account.",
         severity: "error",
       });
       return;
@@ -189,7 +189,7 @@ const MembersPage = () => {
       const res = await memberService.deleteMember(singleDeleteState.member._id);
       setSnackbar({
         open: true,
-        message: res.message || "Member deleted successfully",
+        message: res.message || "Member deleted successfully.",
         severity: "success",
       });
       setSingleDeleteState({ open: false, loadingSummary: false, member: null, summary: null });
@@ -198,7 +198,7 @@ const MembersPage = () => {
     } catch (err) {
       setSnackbar({
         open: true,
-        message: err.response?.data?.message || "Failed to delete member",
+        message: err.response?.data?.message || "Failed to delete member.",
         severity: "error",
       });
     } finally {
@@ -218,7 +218,7 @@ const MembersPage = () => {
     if (currentLoggedInSelected) {
       setSnackbar({
         open: true,
-        message: "You cannot delete your own logged-in account. Please deselect it before deleting.",
+        message: "You cannot delete your logged-in account.",
         severity: "error",
       });
       return;
@@ -263,7 +263,7 @@ const MembersPage = () => {
       const res = await memberService.bulkDelete(selectedIds);
       setSnackbar({
         open: true,
-        message: res.message || `${selectedIds.length} members deleted`,
+        message: res.message || `${selectedIds.length} members deleted.`,
         severity: "success",
       });
       setBulkDeleteState({ open: false, loadingSummary: false, summary: null });
@@ -272,7 +272,7 @@ const MembersPage = () => {
     } catch (err) {
       setSnackbar({
         open: true,
-        message: err.response?.data?.message || "Failed bulk deletion",
+        message: err.response?.data?.message || "Failed bulk deletion.",
         severity: "error",
       });
     } finally {
@@ -286,10 +286,10 @@ const MembersPage = () => {
       setSendingInviteId(id);
       const res = await memberService.sendInvite(id);
       if (res.success) {
-        setSnackbar({ open: true, message: `Invite link sent to ${memberEmail}`, severity: "success" });
+        setSnackbar({ open: true, message: `Invite sent to ${memberEmail}.`, severity: "success" });
         fetchMembers();
       } else {
-        setSnackbar({ open: true, message: res.message || "Failed to send invite", severity: "error" });
+        setSnackbar({ open: true, message: res.message || "Failed to send invite.", severity: "error" });
       }
     } catch (err) {
       setSnackbar({ open: true, message: err.response?.data?.message || err.message, severity: "error" });
@@ -306,13 +306,13 @@ const MembersPage = () => {
       if (res.sentCount > 0) {
         setSnackbar({
           open: true,
-          message: `Successfully sent invite links to ${res.sentCount} member(s)`,
+          message: `Invites sent to ${res.sentCount} member(s).`,
           severity: "success",
         });
       } else {
         setSnackbar({
           open: true,
-          message: res.message || "No invites were sent",
+          message: res.message || "No invites were sent.",
           severity: res.failedCount > 0 ? "error" : "info",
         });
       }
@@ -321,7 +321,7 @@ const MembersPage = () => {
     } catch (err) {
       setSnackbar({
         open: true,
-        message: err.response?.data?.message || "Failed to send invites",
+        message: err.response?.data?.message || "Failed to send invites.",
         severity: "error",
       });
     } finally {
@@ -682,7 +682,7 @@ const MembersPage = () => {
           await fetchMembers();
           setSnackbar({
             open: true,
-            message: `Member created! ${sentLink ? "Invite email sent." : ""}`,
+            message: sentLink ? "Member invited successfully." : "Member created successfully.",
             severity: "success",
           });
         }}
@@ -694,7 +694,7 @@ const MembersPage = () => {
         onClose={() => setEditingMember(null)}
         onMemberUpdated={() => {
           fetchMembers();
-          setSnackbar({ open: true, message: "Member details updated successfully", severity: "success" });
+          setSnackbar({ open: true, message: "Member updated successfully.", severity: "success" });
         }}
       />
 

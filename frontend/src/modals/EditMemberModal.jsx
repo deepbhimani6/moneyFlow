@@ -92,7 +92,7 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
         onMemberUpdated(res.data);
         onClose();
       } else {
-        setError(res.message || 'Failed to update member');
+        setError(res.message || 'Failed to update member.');
       }
     } catch (err) {
       setError(err.response?.data?.message || err.message);
@@ -114,7 +114,7 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
             value={formData.fullName}
             inputRef={fullNameRef}
             error={Boolean(errors.fullName)}
-            helperText={errors.fullName ? 'Full name is required' : ''}
+            helperText={errors.fullName ? 'Full name is required.' : ''}
             onChange={handleChange}
             onBlur={handleBlur}
             inputProps={{ style: { textTransform: 'capitalize' } }}
@@ -137,7 +137,7 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
             value={formData.email}
             inputRef={emailRef}
             error={Boolean(errors.email)}
-            helperText={errors.email ? 'Valid email is required' : ''}
+            helperText={errors.email ? 'Please enter a valid email address.' : ''}
             onChange={handleChange}
             fullWidth
             required

@@ -231,7 +231,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                 }}
                 helperText={
                   errors.members
-                    ? "Please select or enter at least one member name"
+                    ? "Member name is required."
                     : "Select 1 or more members. If multiple are selected, amount will be split."
                 }
               />

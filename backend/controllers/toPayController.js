@@ -140,12 +140,12 @@ const createToPayEntry = async (req, res) => {
     const entryPaymentStatus = paymentStatus || (["Paid", "Pending"].includes(status) ? status : "Pending");
 
     if (!names || (Array.isArray(names) && names.length === 0)) {
-      return res.status(400).json({ success: false, message: "Member name is required" });
+      return res.status(400).json({ success: false, message: "Member name is required." });
     }
 
     const parsedAmount = Math.trunc(Number(amount));
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      return res.status(400).json({ success: false, message: "Please enter a valid amount" });
+      return res.status(400).json({ success: false, message: "Please enter a valid amount." });
     }
 
     const entryDate = date || new Date().toISOString().split("T")[0];
@@ -175,7 +175,7 @@ const createToPayEntry = async (req, res) => {
       await singleEntry.save();
       return res.status(201).json({
         success: true,
-        message: "To Pay entry created successfully",
+        message: "Entry created successfully.",
         data: [singleEntry],
       });
     }
@@ -241,7 +241,7 @@ const createToPayEntry = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `Split successfully across ${createdEntries.length} entries (₹${splitAmount} each)`,
+      message: `Split across ${createdEntries.length} entries (₹${splitAmount} each).`,
       data: createdEntries,
     });
   } catch (error) {
@@ -268,7 +268,7 @@ const updateToPayEntry = async (req, res) => {
 
     const entry = await ToPay.findById(req.params.id);
     if (!entry) {
-      return res.status(404).json({ success: false, message: "To Pay entry not found" });
+      return res.status(404).json({ success: false, message: "Entry not found." });
     }
 
     const nextType = type || (["Add Balance", "Expense", "Loan", "Split"].includes(status) ? status : entry.type);
@@ -298,7 +298,7 @@ const updateToPayEntry = async (req, res) => {
       const updated = await ToPay.findById(req.params.id);
       return res.json({
         success: true,
-        message: `Updated all ${count} split entries in group successfully`,
+        message: `Updated ${count} split entries.`,
         data: updated,
       });
     }
@@ -332,7 +332,7 @@ const updateToPayEntry = async (req, res) => {
 
     res.json({
       success: true,
-      message: "To Pay entry updated successfully",
+      message: "Entry updated successfully.",
       data: entry,
     });
   } catch (error) {
@@ -346,14 +346,14 @@ const deleteToPayEntry = async (req, res) => {
   try {
     const entry = await ToPay.findById(req.params.id);
     if (!entry) {
-      return res.status(404).json({ success: false, message: "To Pay entry not found" });
+      return res.status(404).json({ success: false, message: "Entry not found." });
     }
 
     await ToPay.findByIdAndDelete(req.params.id);
 
     res.json({
       success: true,
-      message: "To Pay entry deleted successfully",
+      message: "Entry deleted successfully.",
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -366,7 +366,7 @@ const bulkUpdateStatus = async (req, res) => {
   try {
     const { ids, status } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: "No entry IDs provided" });
+      return res.status(400).json({ success: false, message: "No entries selected." });
     }
 
     await ToPay.updateMany(
@@ -376,7 +376,7 @@ const bulkUpdateStatus = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Updated status for ${ids.length} to-pay entries to ${status}`,
+      message: `Updated status for ${ids.length} entries to ${status}.`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -389,14 +389,14 @@ const bulkDelete = async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: "No entry IDs provided" });
+      return res.status(400).json({ success: false, message: "No entries selected." });
     }
 
     const result = await ToPay.deleteMany({ _id: { $in: ids } });
 
     res.json({
       success: true,
-      message: `${result.deletedCount} to-pay entries deleted successfully`,
+      message: `${result.deletedCount} entries deleted.`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

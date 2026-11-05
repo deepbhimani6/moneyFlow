@@ -78,17 +78,17 @@ const createMember = async (req, res) => {
     const { fullName, phoneNumber, email, username, password, sendLink } = req.body;
 
     if (!fullName || !fullName.trim()) {
-      return res.status(400).json({ success: false, message: 'Full name is required' });
+      return res.status(400).json({ success: false, message: 'Full name is required.' });
     }
 
     const cleanEmail = email ? email.trim().toLowerCase() : '';
     if (!cleanEmail) {
-      return res.status(400).json({ success: false, message: 'Email address is required' });
+      return res.status(400).json({ success: false, message: 'Email address is required.' });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(cleanEmail)) {
-      return res.status(400).json({ success: false, message: 'Please provide a valid email address' });
+      return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
     }
 
     // Duplicate email check across all members (case-insensitive)
@@ -98,7 +98,7 @@ const createMember = async (req, res) => {
     if (existingMember) {
       return res.status(400).json({
         success: false,
-        message: 'A member or account with this email address already exists. Please use a different email.',
+        message: 'This email address already exists.',
       });
     }
 
@@ -106,7 +106,7 @@ const createMember = async (req, res) => {
     if (req.user && req.user.email && req.user.email.toLowerCase().trim() === cleanEmail) {
       return res.status(400).json({
         success: false,
-        message: 'You cannot invite your own email address. Please use a different email.',
+        message: 'You cannot invite your own email address.',
       });
     }
 
@@ -156,7 +156,7 @@ const createMember = async (req, res) => {
     res.status(201).json({
       success: true,
       data: member,
-      message: 'Member created successfully',
+      message: 'Member created successfully.',
       temporaryPassword,
     });
   } catch (error) {
@@ -172,17 +172,32 @@ const updateMember = async (req, res) => {
     const member = await Member.findById(req.params.id);
 
     if (!member) {
-      return res.status(400).json({ success: false, message: 'Member not found' });
+      return res.status(404).json({ success: false, message: 'Member not found.' });
     }
 
     if (fullName !== undefined) member.fullName = capitalizeName(fullName);
-    if (phoneNumber !== undefined) member.phoneNumber = phoneNumber;
-    if (email !== undefined) member.email = email.toLowerCase();
-    if (username !== undefined) member.username = username;
+    if (phoneNumber !== undefined) member.phoneNumber = phoneNumber ? phoneNumber.trim() : '';
+    if (email !== undefined) {
+      const cleanEmail = email.trim().toLowerCase();
+      if (cleanEmail && cleanEmail !== (member.email || '').toLowerCase()) {
+        const existingEmail = await Member.findOne({
+          email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+          _id: { $ne: member._id },
+        });
+        if (existingEmail) {
+          return res.status(400).json({
+            success: false,
+            message: 'This email address already exists.',
+          });
+        }
+        member.email = cleanEmail;
+      }
+    }
+    if (username !== undefined) member.username = username ? username.trim() : '';
     if (password !== undefined && password !== '') member.password = password;
 
     await member.save();
-    res.json({ success: true, data: member, message: 'Member updated successfully' });
+    res.json({ success: true, data: member, message: 'Member updated successfully.' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -194,7 +209,7 @@ const getMemberEntriesSummary = async (req, res) => {
   try {
     const member = await Member.findById(req.params.id);
     if (!member) {
-      return res.status(404).json({ success: false, message: 'Member not found' });
+      return res.status(404).json({ success: false, message: 'Member not found.' });
     }
 
     const escapedName = member.fullName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
@@ -233,7 +248,7 @@ const getBulkMembersEntriesSummary = async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: 'No member IDs provided' });
+      return res.status(400).json({ success: false, message: 'No members selected.' });
     }
 
     const members = await Member.find({ _id: { $in: ids } });
@@ -286,7 +301,7 @@ const deleteMember = async (req, res) => {
   try {
     const member = await Member.findById(req.params.id);
     if (!member) {
-      return res.status(404).json({ success: false, message: 'Member not found' });
+      return res.status(404).json({ success: false, message: 'Member not found.' });
     }
 
     // 1. Never delete the current logged-in account
@@ -294,7 +309,7 @@ const deleteMember = async (req, res) => {
     if (isMemberCurrentAdmin(member, currentProfile)) {
       return res.status(400).json({
         success: false,
-        message: 'The current logged-in account cannot be deleted.',
+        message: 'You cannot delete your logged-in account.',
       });
     }
 
@@ -302,7 +317,7 @@ const deleteMember = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Member '${member.fullName}' deleted successfully`,
+      message: `Member '${member.fullName}' deleted.`,
       deletedMemberName: member.fullName,
     });
   } catch (error) {
@@ -316,7 +331,7 @@ const bulkDeleteMembers = async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: 'No member IDs provided for deletion' });
+      return res.status(400).json({ success: false, message: 'No members selected.' });
     }
 
     const membersToDelete = await Member.find({ _id: { $in: ids } }).lean();
@@ -327,7 +342,7 @@ const bulkDeleteMembers = async (req, res) => {
     if (containsCurrentLoggedIn) {
       return res.status(400).json({
         success: false,
-        message: 'The current logged-in account cannot be deleted. Please deselect it and try again.',
+        message: 'You cannot delete your logged-in account.',
       });
     }
 
@@ -335,7 +350,7 @@ const bulkDeleteMembers = async (req, res) => {
 
     res.json({
       success: true,
-      message: `${result.deletedCount} member(s) deleted successfully`,
+      message: `${result.deletedCount} member(s) deleted.`,
       deletedMembersCount: result.deletedCount,
     });
   } catch (error) {
@@ -349,13 +364,13 @@ const sendInviteToMember = async (req, res) => {
   try {
     const member = await Member.findById(req.params.id);
     if (!member) {
-      return res.status(404).json({ success: false, message: 'Member not found' });
+      return res.status(404).json({ success: false, message: 'Member not found.' });
     }
 
     if (!member.email || !member.email.trim()) {
       return res.status(400).json({
         success: false,
-        message: `Cannot send invite: ${member.fullName} does not have an E-mail address configured.`,
+        message: `${member.fullName} does not have an email address.`,
       });
     }
 
@@ -382,7 +397,7 @@ const sendInviteToMember = async (req, res) => {
     member.lastInviteSentAt = new Date();
     await member.save();
 
-    res.json({ success: true, message: `Invite link sent to ${member.email}` });
+    res.json({ success: true, message: `Invite sent to ${member.email}.` });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -394,7 +409,7 @@ const bulkInviteMembers = async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: 'No member IDs provided' });
+      return res.status(400).json({ success: false, message: 'No members selected.' });
     }
 
     const members = await Member.find({ _id: { $in: ids } });
@@ -405,7 +420,7 @@ const bulkInviteMembers = async (req, res) => {
     if (validMembers.length === 0) {
       return res.status(400).json({
         success: false,
-        message: 'None of the selected members have an E-mail address configured.',
+        message: 'Selected members do not have an email address.',
         sentCount: 0,
         failedCount: 0,
         missingEmailMembers,

@@ -120,14 +120,14 @@ const ResetPasswordPage = () => {
             } else {
               setTokenValid(false);
               clearStoredResetSession();
-              setError(res.message || 'Password reset link is invalid or has expired.');
+              setError(res.message || 'Password reset link is invalid or expired.');
             }
           }
         } catch (err) {
           if (isMounted) {
             setTokenValid(false);
             clearStoredResetSession();
-            setError(err.message || 'Failed to verify reset token.');
+            setError(err.message || 'Failed to verify reset code.');
           }
         } finally {
           if (isMounted) setVerifying(false);
@@ -149,7 +149,7 @@ const ResetPasswordPage = () => {
 
     const activeToken = token.trim();
     if (!activeToken) {
-      setErrors({ token: 'Reset code or token is required' });
+      setErrors({ token: 'Reset code is required.' });
       if (tokenRef.current) tokenRef.current.focus();
       return;
     }
@@ -182,13 +182,13 @@ const ResetPasswordPage = () => {
       } else {
         setTokenValid(false);
         clearStoredResetSession();
-        setError(res.message || 'Password reset code is invalid or has expired. Please check your email or request a new one.');
+        setError(res.message || 'Password reset code is invalid or expired.');
         if (tokenRef.current) tokenRef.current.focus();
       }
     } catch (err) {
       setTokenValid(false);
       clearStoredResetSession();
-      setError(err.message || 'Failed to verify reset code. Please try again.');
+      setError(err.message || 'Failed to verify reset code.');
     } finally {
       setVerifying(false);
     }
@@ -203,20 +203,20 @@ const ResetPasswordPage = () => {
     const activeToken = token.trim();
 
     if (!activeToken) {
-      newErrors.token = 'Reset code or token is required';
+      newErrors.token = 'Reset code is required.';
       setTokenValid(false);
     }
 
     if (!newPassword) {
-      newErrors.newPassword = 'New password is required';
+      newErrors.newPassword = 'New password is required.';
     } else if (newPassword.length < 6) {
-      newErrors.newPassword = 'Password must be at least 6 characters long';
+      newErrors.newPassword = 'Password must be at least 6 characters.';
     }
 
     if (!confirmPassword) {
-      newErrors.confirmPassword = 'Confirm password is required';
+      newErrors.confirmPassword = 'Confirm password is required.';
     } else if (newPassword !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = 'Passwords do not match.';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -236,15 +236,15 @@ const ResetPasswordPage = () => {
         clearStoredResetSession();
         // Immediately navigate to Login page with success message (no intermediate screen)
         navigate('/login', {
-          state: { successMsg: 'Your password has been reset successfully! Please sign in with your new password.' },
+          state: { successMsg: 'Password reset successfully.' },
           replace: true,
         });
         return;
       } else {
-        setError(res.message || 'Failed to reset password. The code or token may have expired.');
+        setError(res.message || 'Failed to reset password.');
       }
     } catch (err) {
-      setError(err.message || 'An error occurred while resetting password.');
+      setError(err.message || 'Failed to reset password.');
     } finally {
       setLoading(false);
     }

@@ -90,16 +90,16 @@ const LoginPage = () => {
       const res = await login(formData.identifier.trim(), formData.password);
 
       if (res.success) {
-        setSuccessMsg('Signed in successfully! Redirecting...');
+        setSuccessMsg('Signed in successfully.');
         const origin = location.state?.from?.pathname || '/dashboard';
         setTimeout(() => {
           navigate(origin, { replace: true });
         }, 400);
       } else {
-        setError(res.message || 'Invalid email/username or password. Please try again.');
+        setError(res.message || 'Invalid email/username or password.');
       }
     } catch (err) {
-      setError(err.message || 'An error occurred during sign in.');
+      setError(err.message || 'Unable to sign in. Please try again.');
     } finally {
       setLoading(false);
     }

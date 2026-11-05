@@ -90,7 +90,7 @@ const updateProfile = async (req, res) => {
           if (existingEmail) {
             return res.status(400).json({
               success: false,
-              message: 'An account with this email address already exists.',
+              message: 'This email address already exists.',
             });
           }
           member.email = cleanEmail;
@@ -107,7 +107,7 @@ const updateProfile = async (req, res) => {
           if (existingUsername) {
             return res.status(400).json({
               success: false,
-              message: 'Username is already taken. Please choose another.',
+              message: 'This username already exists.',
             });
           }
           member.username = cleanUsername;
@@ -150,7 +150,7 @@ const updateProfile = async (req, res) => {
 
       return res.json({
         success: true,
-        message: 'Profile updated successfully',
+        message: 'Profile updated successfully.',
         data: sanitized,
       });
     }
@@ -172,7 +172,7 @@ const updateProfile = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Profile updated successfully',
+      message: 'Profile updated successfully.',
       data: updatedProfile,
     });
   } catch (error) {
@@ -191,7 +191,7 @@ const resetProfile = async (req, res) => {
     if (member) {
       return res.json({
         success: true,
-        message: 'Profile reloaded successfully',
+        message: 'Profile reloaded successfully.',
         data: {
           _id: member._id,
           fullName: member.fullName,
@@ -211,7 +211,7 @@ const resetProfile = async (req, res) => {
     const newProfile = await getOrCreateDefaultProfile();
     res.json({
       success: true,
-      message: 'Profile reset to default successfully',
+      message: 'Profile reset successfully.',
       data: newProfile,
     });
   } catch (error) {

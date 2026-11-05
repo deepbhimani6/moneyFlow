@@ -168,7 +168,7 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
                   ...params.inputProps,
                   style: { textTransform: "capitalize" },
                 }}
-                helperText={errors.member ? "Please select or enter a member name" : ""}
+                helperText={errors.member ? "Member name is required." : ""}
               />
             )}
           />

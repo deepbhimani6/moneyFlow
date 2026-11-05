@@ -177,12 +177,12 @@ const ForSelfPage = () => {
       setActionLoading(true);
       await forSelfService.deleteForSelfEntry(itemToDelete);
       setSelectedIds((prev) => prev.filter((item) => item !== itemToDelete));
-      setSnackbar({ open: true, message: "Entry deleted successfully", severity: "success" });
+      setSnackbar({ open: true, message: "Entry deleted successfully.", severity: "success" });
       setItemToDelete(null);
       fetchEntries();
     } catch (err) {
       console.error(err);
-      setSnackbar({ open: true, message: "Failed to delete entry", severity: "error" });
+      setSnackbar({ open: true, message: "Failed to delete entry.", severity: "error" });
     } finally {
       setActionLoading(false);
     }
@@ -194,13 +194,13 @@ const ForSelfPage = () => {
     try {
       setActionLoading(true);
       await forSelfService.bulkDelete(selectedIds);
-      setSnackbar({ open: true, message: `${selectedIds.length} entries deleted successfully`, severity: "success" });
+      setSnackbar({ open: true, message: `${selectedIds.length} entries deleted.`, severity: "success" });
       setSelectedIds([]);
       setConfirmBulkDeleteOpen(false);
       fetchEntries();
     } catch (err) {
       console.error(err);
-      setSnackbar({ open: true, message: "Failed bulk deletion", severity: "error" });
+      setSnackbar({ open: true, message: "Failed bulk deletion.", severity: "error" });
     } finally {
       setActionLoading(false);
     }
@@ -485,7 +485,7 @@ const ForSelfPage = () => {
         onClose={() => setIsAddOpen(false)}
         onEntryCreated={() => {
           fetchEntries();
-          setSnackbar({ open: true, message: "Entry created successfully", severity: "success" });
+          setSnackbar({ open: true, message: "Entry created successfully.", severity: "success" });
         }}
       />
 
@@ -495,7 +495,7 @@ const ForSelfPage = () => {
         onClose={() => setEditingEntry(null)}
         onEntryUpdated={(msg) => {
           fetchEntries();
-          setSnackbar({ open: true, message: msg || "Entry updated successfully", severity: "success" });
+          setSnackbar({ open: true, message: msg || "Entry updated successfully.", severity: "success" });
         }}
       />
 

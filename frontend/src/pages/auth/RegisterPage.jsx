@@ -78,26 +78,26 @@ const RegisterPage = () => {
     const newErrors = {};
 
     if (!formattedFullName) {
-      newErrors.fullName = 'Full name is required';
+      newErrors.fullName = 'Full name is required.';
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!formData.email || !formData.email.trim()) {
-      newErrors.email = 'Valid email is required';
+      newErrors.email = 'Email address is required.';
     } else if (!emailRegex.test(formData.email.trim())) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = 'Please enter a valid email address.';
     }
 
     if (!formData.password) {
-      newErrors.password = 'Password is required';
+      newErrors.password = 'Password is required.';
     } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters long';
+      newErrors.password = 'Password must be at least 6 characters.';
     }
 
     if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Confirm password is required';
+      newErrors.confirmPassword = 'Confirm password is required.';
     } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      newErrors.confirmPassword = 'Passwords do not match.';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -122,19 +122,19 @@ const RegisterPage = () => {
       });
 
       if (res.success) {
-        setSuccessMsg('Account created successfully! Redirecting to dashboard...');
+        setSuccessMsg('Account created successfully.');
         setTimeout(() => {
           navigate('/dashboard', { replace: true });
         }, 500);
       } else {
-        const msg = res.message || 'Registration failed. Please try again.';
+        const msg = res.message || 'Registration failed.';
         setError(msg);
         if (msg.toLowerCase().includes('email')) {
           setErrors((prev) => ({ ...prev, email: msg }));
         }
       }
     } catch (err) {
-      const msg = err.message || 'An error occurred during registration.';
+      const msg = err.message || 'Registration failed.';
       setError(msg);
       if (msg.toLowerCase().includes('email')) {
         setErrors((prev) => ({ ...prev, email: msg }));

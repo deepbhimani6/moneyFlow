@@ -96,7 +96,7 @@ const ProfilePage = () => {
     if (!formattedFullName) {
       setSnackbar({
         open: true,
-        message: 'Full Name is required',
+        message: 'Full name is required.',
         severity: 'error',
       });
       return;
@@ -111,20 +111,20 @@ const ProfilePage = () => {
       if (res.success) {
         setSnackbar({
           open: true,
-          message: 'Profile updated successfully!',
+          message: 'Profile updated successfully.',
           severity: 'success',
         });
       } else {
         setSnackbar({
           open: true,
-          message: res.message || 'Failed to update profile',
+          message: res.message || 'Failed to update profile.',
           severity: 'error',
         });
       }
     } catch (err) {
       setSnackbar({
         open: true,
-        message: err.message || 'Error updating profile',
+        message: err.message || 'Error updating profile.',
         severity: 'error',
       });
     } finally {
@@ -144,7 +144,7 @@ const ProfilePage = () => {
       });
       setSnackbar({
         open: true,
-        message: 'Profile form reset to your saved account details',
+        message: 'Form reset to saved details.',
         severity: 'info',
       });
     }

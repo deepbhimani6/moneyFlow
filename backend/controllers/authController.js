@@ -39,22 +39,22 @@ const register = async (req, res) => {
     const { fullName, email, username, phoneNumber, password } = req.body;
 
     if (!fullName || !fullName.trim()) {
-      return res.status(400).json({ success: false, message: 'Full name is required' });
+      return res.status(400).json({ success: false, message: 'Full name is required.' });
     }
 
     if (!email || !email.trim()) {
-      return res.status(400).json({ success: false, message: 'Email address is required' });
+      return res.status(400).json({ success: false, message: 'Email address is required.' });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) {
-      return res.status(400).json({ success: false, message: 'Please provide a valid email address' });
+      return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
     }
 
     if (!password || password.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters long',
+        message: 'Password must be at least 6 characters.',
       });
     }
 
@@ -65,7 +65,7 @@ const register = async (req, res) => {
     if (existingEmail) {
       return res.status(400).json({
         success: false,
-        message: 'An account with this email address already exists. Please sign in.',
+        message: 'This email address already exists.',
       });
     }
 
@@ -77,7 +77,7 @@ const register = async (req, res) => {
       if (existingUsername) {
         return res.status(400).json({
           success: false,
-          message: 'Username is already taken. Please choose another.',
+          message: 'This username already exists.',
         });
       }
     } else {
@@ -100,7 +100,7 @@ const register = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: 'Account created successfully!',
+      message: 'Account created successfully.',
       token,
       user: getSanitizedUser(newMember),
     });
@@ -119,7 +119,7 @@ const login = async (req, res) => {
     if (!identifier || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide your email or username and password',
+        message: 'Email or username and password are required.',
       });
     }
 
@@ -164,7 +164,7 @@ const login = async (req, res) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email/username or password. Please check your credentials.',
+        message: 'Invalid email/username or password.',
       });
     }
 
@@ -172,7 +172,7 @@ const login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid email/username or password. Please check your credentials.',
+        message: 'Invalid email/username or password.',
       });
     }
 
@@ -186,7 +186,7 @@ const login = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Logged in successfully',
+      message: 'Logged in successfully.',
       token,
       user: getSanitizedUser(user),
     });
@@ -201,7 +201,7 @@ const login = async (req, res) => {
 const getMe = async (req, res) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ success: false, message: 'Not authenticated' });
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
     }
     res.json({
       success: true,
@@ -219,7 +219,7 @@ const forgotPassword = async (req, res) => {
     const { email } = req.body;
 
     if (!email || !email.trim()) {
-      return res.status(400).json({ success: false, message: 'Email address is required' });
+      return res.status(400).json({ success: false, message: 'Email address is required.' });
     }
 
     const cleanEmail = email.trim().toLowerCase();
@@ -228,7 +228,7 @@ const forgotPassword = async (req, res) => {
     if (!member) {
       return res.status(404).json({
         success: false,
-        message: 'No account found with that email address. Please verify or create an account.',
+        message: 'No account found with this email address.',
       });
     }
 
@@ -270,7 +270,7 @@ const forgotPassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Password reset code and link have been sent to your email address.',
+      message: 'Password reset instructions sent to your email.',
       email: member.email,
       resetCode: process.env.NODE_ENV !== 'production' ? resetCode : undefined,
     });
@@ -287,7 +287,7 @@ const verifyResetToken = async (req, res) => {
     const { token } = req.params;
 
     if (!token) {
-      return res.status(400).json({ success: false, message: 'Reset code or token is required' });
+      return res.status(400).json({ success: false, message: 'Reset code or token is required.' });
     }
 
     const cleanInput = token.trim();
@@ -303,13 +303,13 @@ const verifyResetToken = async (req, res) => {
     if (!member) {
       return res.status(400).json({
         success: false,
-        message: 'Password reset code is invalid or has expired. Please check your email or request a new one.',
+        message: 'Password reset code is invalid or expired.',
       });
     }
 
     res.json({
       success: true,
-      message: 'Code verified successfully',
+      message: 'Code verified successfully.',
       email: member.email,
       fullName: member.fullName,
       token: member.resetPasswordToken,
@@ -326,13 +326,13 @@ const resetPassword = async (req, res) => {
     const { token, newPassword } = req.body;
 
     if (!token || !token.trim()) {
-      return res.status(400).json({ success: false, message: 'Reset code or token is required' });
+      return res.status(400).json({ success: false, message: 'Reset code or token is required.' });
     }
 
     if (!newPassword || newPassword.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters long',
+        message: 'Password must be at least 6 characters.',
       });
     }
 
@@ -349,7 +349,7 @@ const resetPassword = async (req, res) => {
     if (!member) {
       return res.status(400).json({
         success: false,
-        message: 'Password reset code is invalid or has expired. Please check your email or request a new one.',
+        message: 'Password reset code is invalid or expired.',
       });
     }
 
@@ -362,7 +362,7 @@ const resetPassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Password reset successfully! You can now log in with your new password.',
+      message: 'Password reset successfully.',
     });
   } catch (error) {
     console.error('[Auth Reset Password Error]:', error);
@@ -379,25 +379,25 @@ const changePassword = async (req, res) => {
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Current password and new password are required',
+        message: 'Current password and new password are required.',
       });
     }
 
     if (newPassword.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'New password must be at least 6 characters long',
+        message: 'Password must be at least 6 characters.',
       });
     }
 
     const member = await Member.findById(req.user._id);
     if (!member) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+      return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
     const isMatch = await member.comparePassword(currentPassword);
     if (!isMatch) {
-      return res.status(400).json({ success: false, message: 'Incorrect current password' });
+      return res.status(400).json({ success: false, message: 'Current password is incorrect.' });
     }
 
     member.password = newPassword;
@@ -405,7 +405,7 @@ const changePassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Password updated successfully!',
+      message: 'Password updated successfully.',
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

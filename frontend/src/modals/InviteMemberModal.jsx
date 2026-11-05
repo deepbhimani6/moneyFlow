@@ -45,19 +45,19 @@ const InviteMemberModal = ({
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!clean) {
-      return 'Email address is required';
+      return 'Email address is required.';
     }
     if (!emailRegex.test(clean)) {
-      return 'Please enter a valid email address';
+      return 'Please enter a valid email address.';
     }
     if (currentUserEmail && clean === currentUserEmail.trim().toLowerCase()) {
-      return 'You cannot invite your own email address';
+      return 'You cannot invite your own email address.';
     }
     const isDuplicate = existingMembers.some(
       (m) => (m.email || '').trim().toLowerCase() === clean
     );
     if (isDuplicate) {
-      return 'A member or account with this email already exists';
+      return 'This email address already exists.';
     }
     return '';
   };
@@ -200,7 +200,7 @@ const InviteMemberModal = ({
             value={formData.email}
             inputRef={emailRef}
             error={Boolean(errors.email)}
-            helperText={errors.email || 'A temporary password will be automatically generated and sent to this email'}
+            helperText={errors.email || 'A temporary password will be sent to this email.'}
             onChange={handleChange}
             onBlur={handleBlur}
             fullWidth

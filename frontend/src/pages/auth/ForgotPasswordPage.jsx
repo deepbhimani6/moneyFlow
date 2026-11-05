@@ -37,9 +37,9 @@ const ForgotPasswordPage = () => {
     const newErrors = {};
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!email || !email.trim()) {
-      newErrors.email = 'Valid email is required';
+      newErrors.email = 'Email address is required.';
     } else if (!emailRegex.test(email.trim())) {
-      newErrors.email = 'Please enter a valid email address';
+      newErrors.email = 'Please enter a valid email address.';
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -61,10 +61,10 @@ const ForgotPasswordPage = () => {
           setDevToken(res.resetToken);
         }
       } else {
-        setError(res.message || 'Unable to process reset request. Please check your email.');
+        setError(res.message || 'Unable to process reset request.');
       }
     } catch (err) {
-      setError(err.message || 'An unexpected error occurred.');
+      setError(err.message || 'Unable to process reset request.');
     } finally {
       setLoading(false);
     }

@@ -139,12 +139,12 @@ const createEntry = async (req, res) => {
     const entryPaymentStatus = paymentStatus || (["Received", "Pending"].includes(status) ? status : "Pending");
 
     if (!names || (Array.isArray(names) && names.length === 0)) {
-      return res.status(400).json({ success: false, message: "Member name is required" });
+      return res.status(400).json({ success: false, message: "Member name is required." });
     }
 
     const parsedAmount = Math.trunc(Number(amount));
     if (isNaN(parsedAmount) || parsedAmount <= 0) {
-      return res.status(400).json({ success: false, message: "Please enter a valid amount" });
+      return res.status(400).json({ success: false, message: "Please enter a valid amount." });
     }
 
     const entryDate = date || new Date().toISOString().split("T")[0];
@@ -174,7 +174,7 @@ const createEntry = async (req, res) => {
       await singleEntry.save();
       return res.status(201).json({
         success: true,
-        message: "Entry created successfully",
+        message: "Entry created successfully.",
         data: [singleEntry],
       });
     }
@@ -228,7 +228,7 @@ const createEntry = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: `Split successfully across ${createdEntries.length} entries (₹${splitAmount} each)`,
+      message: `Split across ${createdEntries.length} entries (₹${splitAmount} each).`,
       data: createdEntries,
     });
   } catch (error) {
@@ -257,7 +257,7 @@ const updateEntry = async (req, res) => {
     const entry = await Entry.findById(req.params.id);
 
     if (!entry) {
-      return res.status(404).json({ success: false, message: "Entry not found" });
+      return res.status(404).json({ success: false, message: "Entry not found." });
     }
 
     const entryType = type || (["Add Balance", "Expense", "Loan", "Split"].includes(status) ? status : undefined);
@@ -303,7 +303,7 @@ const updateEntry = async (req, res) => {
 
       return res.json({
         success: true,
-        message: `Updated all ${groupCount} split member entries (₹${perPersonAmount} each)`,
+        message: `Updated ${groupCount} split entries (₹${perPersonAmount} each).`,
         isSplitGroupUpdate: true,
         data: updatedEntries,
       });
@@ -333,7 +333,7 @@ const updateEntry = async (req, res) => {
     if (description !== undefined) entry.description = description ? description.trim() : '';
 
     await entry.save();
-    res.json({ success: true, data: entry, message: "Entry updated successfully" });
+    res.json({ success: true, data: entry, message: "Entry updated successfully." });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -345,11 +345,11 @@ const deleteEntry = async (req, res) => {
   try {
     const entry = await Entry.findById(req.params.id);
     if (!entry) {
-      return res.status(404).json({ success: false, message: "Entry not found" });
+      return res.status(404).json({ success: false, message: "Entry not found." });
     }
 
     await Entry.findByIdAndDelete(req.params.id);
-    res.json({ success: true, message: "Entry deleted successfully" });
+    res.json({ success: true, message: "Entry deleted successfully." });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -361,7 +361,7 @@ const bulkUpdateStatus = async (req, res) => {
   try {
     const { ids, status, type, paymentStatus, isTypeUpdate } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: "No entry IDs provided" });
+      return res.status(400).json({ success: false, message: "No entries selected." });
     }
 
     let updateData = {};
@@ -375,13 +375,13 @@ const bulkUpdateStatus = async (req, res) => {
       const targetType = type || status;
       updateData = { type: targetType, status: targetType };
     } else {
-      return res.status(400).json({ success: false, message: "Valid status or type is required" });
+      return res.status(400).json({ success: false, message: "Valid status or type is required." });
     }
 
     const result = await Entry.updateMany({ _id: { $in: ids } }, { $set: updateData });
     res.json({
       success: true,
-      message: `${result.modifiedCount} entries updated successfully`,
+      message: `${result.modifiedCount} entries updated.`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -394,13 +394,13 @@ const bulkDeleteEntries = async (req, res) => {
   try {
     const { ids } = req.body;
     if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return res.status(400).json({ success: false, message: "No entry IDs provided" });
+      return res.status(400).json({ success: false, message: "No entries selected." });
     }
 
     const result = await Entry.deleteMany({ _id: { $in: ids } });
     res.json({
       success: true,
-      message: `${result.deletedCount} entries deleted successfully`,
+      message: `${result.deletedCount} entries deleted.`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
