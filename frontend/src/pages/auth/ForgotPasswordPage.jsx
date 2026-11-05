@@ -74,7 +74,7 @@ const ForgotPasswordPage = () => {
     <AuthLayout
       title="Reset Password"
       subtitle="Enter your email to receive password reset instructions"
-      maxWidth={520}
+      maxWidth={620}
     >
       {error && (
         <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }} onClose={() => setError('')}>

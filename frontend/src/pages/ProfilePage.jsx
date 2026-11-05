@@ -234,7 +234,7 @@ const ProfilePage = () => {
                   required
                   value={formData.fullName}
                   onChange={(e) => handleChange('fullName', e.target.value)}
-                  placeholder="e.g. Deep Bhimani"
+                  placeholder="e.g. John Doe"
                 />
               </Grid>
 
@@ -245,7 +245,7 @@ const ProfilePage = () => {
                   label="Username"
                   value={formData.username}
                   onChange={(e) => handleChange('username', e.target.value)}
-                  placeholder="e.g. deepBhimani"
+                  placeholder="e.g. johndoe"
                 />
               </Grid>
 
@@ -257,7 +257,7 @@ const ProfilePage = () => {
                   label="Email Address"
                   value={formData.email}
                   onChange={(e) => handleChange('email', e.target.value)}
-                  placeholder="e.g. deep.bhimani@shunyavkash.com"
+                  placeholder="e.g. john@example.com"
                 />
               </Grid>
 
@@ -268,7 +268,7 @@ const ProfilePage = () => {
                   label="Phone Number"
                   value={formData.phoneNumber}
                   onChange={(e) => handleChange('phoneNumber', e.target.value)}
-                  placeholder="e.g. +91 6359276907"
+                  placeholder="e.g. +91 9876543210"
                 />
               </Grid>
 

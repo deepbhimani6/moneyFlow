@@ -99,7 +99,7 @@ const LoginPage = () => {
     <AuthLayout
       title="Welcome Back"
       subtitle="Sign in to your MoneyFlow account to continue"
-      maxWidth={520}
+      maxWidth={620}
     >
       {error && (
         <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }} onClose={() => setError('')}>
@@ -119,7 +119,7 @@ const LoginPage = () => {
           fullWidth
           label="Email or Username"
           name="identifier"
-          placeholder="e.g. deep.bhimani@shunyavkash.com or deepBhimani"
+          placeholder="e.g. john@example.com or johndoe"
           value={formData.identifier}
           onChange={handleChange}
           inputRef={identifierRef}

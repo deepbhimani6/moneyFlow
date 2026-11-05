@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Card, CardContent, Typography, Container } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 
-const AuthLayout = ({ children, title, subtitle, maxWidth = 540 }) => {
+const AuthLayout = ({ children, title, subtitle, maxWidth = 620 }) => {
   return (
     <Box
       sx={{
@@ -101,6 +101,7 @@ const AuthLayout = ({ children, title, subtitle, maxWidth = 540 }) => {
         <Card
           elevation={0}
           sx={{
+            width: '100%',
             borderRadius: 3,
             border: '1px solid rgba(226, 232, 240, 0.9)',
             bgcolor: 'background.paper',

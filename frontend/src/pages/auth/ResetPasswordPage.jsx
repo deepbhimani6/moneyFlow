@@ -144,7 +144,7 @@ const ResetPasswordPage = () => {
     <AuthLayout
       title="Create New Password"
       subtitle={userEmail ? `Resetting password for ${userEmail}` : 'Enter your new credentials below'}
-      maxWidth={520}
+      maxWidth={620}
     >
       {verifying && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 4, gap: 1.5 }}>
