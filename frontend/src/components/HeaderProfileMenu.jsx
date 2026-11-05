@@ -10,7 +10,6 @@ import {
   Typography,
   Divider,
   Chip,
-  Tooltip,
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
@@ -37,76 +36,74 @@ const HeaderProfileMenu = () => {
 
   return (
     <>
-      <Tooltip title={`Profile - ${profile?.fullName || 'User'}`} arrow>
-        <Box
-          onClick={handleClick}
-          role="button"
-          tabIndex={0}
-          aria-label="Account profile menu"
-          aria-controls={open ? 'profile-menu' : undefined}
-          aria-haspopup="true"
-          aria-expanded={open ? 'true' : undefined}
+      <Box
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        aria-label="Account profile menu"
+        aria-controls={open ? 'profile-menu' : undefined}
+        aria-haspopup="true"
+        aria-expanded={open ? 'true' : undefined}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          cursor: 'pointer',
+          p: 0.5,
+          pl: 0.6,
+          pr: { xs: 0.6, md: 1.5 },
+          borderRadius: '24px',
+          transition: 'all 0.2s ease-in-out',
+          backgroundColor: open ? 'rgba(25, 118, 210, 0.13)' : 'rgba(25, 118, 210, 0.07)',
+          border: open ? '1px solid rgba(25, 118, 210, 0.32)' : '1px solid rgba(25, 118, 210, 0.18)',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+          '&:hover': {
+            backgroundColor: 'rgba(25, 118, 210, 0.14)',
+            borderColor: 'rgba(25, 118, 210, 0.36)',
+            boxShadow: '0 2px 8px rgba(25, 118, 210, 0.15)',
+          },
+          '&:focus-visible': {
+            outline: '2px solid #1976d2',
+          },
+        }}
+      >
+        <Avatar
+          src={profile?.avatarUrl || undefined}
+          alt={profile?.fullName || 'User'}
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-            cursor: 'pointer',
-            p: 0.5,
-            pl: 0.6,
-            pr: { xs: 0.6, md: 1.5 },
-            borderRadius: '24px',
-            transition: 'all 0.2s ease-in-out',
-            backgroundColor: open ? 'rgba(25, 118, 210, 0.13)' : 'rgba(25, 118, 210, 0.07)',
-            border: open ? '1px solid rgba(25, 118, 210, 0.32)' : '1px solid rgba(25, 118, 210, 0.18)',
-            boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-            '&:hover': {
-              backgroundColor: 'rgba(25, 118, 210, 0.14)',
-              borderColor: 'rgba(25, 118, 210, 0.36)',
-              boxShadow: '0 2px 8px rgba(25, 118, 210, 0.15)',
-            },
-            '&:focus-visible': {
-              outline: '2px solid #1976d2',
-            },
+            width: 36,
+            height: 36,
+            bgcolor: profile?.avatarColor || 'primary.main',
+            color: '#ffffff',
+            fontSize: '0.95rem',
+            fontWeight: 700,
+            boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
+            border: '2px solid #ffffff',
           }}
         >
-          <Avatar
-            src={profile?.avatarUrl || undefined}
-            alt={profile?.fullName || 'User'}
-            sx={{
-              width: 36,
-              height: 36,
-              bgcolor: profile?.avatarColor || 'primary.main',
-              color: '#ffffff',
-              fontSize: '0.95rem',
-              fontWeight: 700,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.12)',
-              border: '2px solid #ffffff',
-            }}
-          >
-            {initials}
-          </Avatar>
+          {initials}
+        </Avatar>
 
-          {/* Name & Role on medium screens and up */}
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'text.primary', maxWidth: 120 }} noWrap>
-              {profile?.fullName || 'Deep Bhimani'}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1 }}>
-              {profile?.role || 'Admin'}
-            </Typography>
-          </Box>
-
-          <ArrowDropDownIcon
-            sx={{
-              display: { xs: 'none', md: 'block' },
-              color: 'text.secondary',
-              fontSize: 20,
-              transition: 'transform 0.2s',
-              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
-            }}
-          />
+        {/* Name & Role on medium screens and up */}
+        <Box sx={{ display: { xs: 'none', md: 'flex' }, flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
+          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: 'text.primary', maxWidth: 120 }} noWrap>
+            {profile?.fullName || 'Deep Bhimani'}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.72rem', lineHeight: 1 }}>
+            {profile?.role || 'Admin'}
+          </Typography>
         </Box>
-      </Tooltip>
+
+        <ArrowDropDownIcon
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            color: 'text.secondary',
+            fontSize: 20,
+            transition: 'transform 0.2s',
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+          }}
+        />
+      </Box>
 
       {/* Profile Dropdown Menu */}
       <Menu
