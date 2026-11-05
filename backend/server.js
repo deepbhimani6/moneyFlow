@@ -25,7 +25,17 @@ app.use(express.json());
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString(), message: 'MoneyFlow API is running' });
+  res.json({
+    status: 'ok',
+    time: new Date().toISOString(),
+    message: 'MoneyFlow API is running',
+    emailConfig: {
+      hasBrevoApiKey: !!process.env.BREVO_API_KEY,
+      hasSmtpUser: !!process.env.SMTP_USER,
+      hasSmtpPass: !!process.env.SMTP_PASS,
+      hasResendApiKey: !!process.env.RESEND_API_KEY && process.env.RESEND_API_KEY !== 're_placeholder',
+    },
+  });
 });
 
 // Mount Routes
