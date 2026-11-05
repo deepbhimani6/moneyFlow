@@ -20,15 +20,52 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import AuthLayout from './AuthLayout';
 import { useAuth } from '../../context/AuthContext';
 
+const RESET_SESSION_KEY = 'moneyflow_reset_session';
+
+const getStoredResetSession = () => {
+  try {
+    const raw = sessionStorage.getItem(RESET_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+
+const setStoredResetSession = (data) => {
+  try {
+    sessionStorage.setItem(RESET_SESSION_KEY, JSON.stringify(data));
+  } catch {
+    // ignore
+  }
+};
+
+const clearStoredResetSession = () => {
+  try {
+    sessionStorage.removeItem(RESET_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+};
+
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
   const { token: paramToken } = useParams();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryToken = searchParams.get('token');
 
-  const initialToken = paramToken || queryToken || '';
+  const storedSession = getStoredResetSession();
+  const initialToken = paramToken || queryToken || storedSession?.token || '';
 
   const { verifyResetToken, resetPassword } = useAuth();
+
+  const isInitiallyVerified = Boolean(
+    storedSession?.tokenValid &&
+    storedSession?.token &&
+    initialToken &&
+    storedSession.token.trim() === initialToken.trim()
+  );
 
   const [token, setToken] = useState(initialToken);
   const [newPassword, setNewPassword] = useState('');
@@ -37,9 +74,10 @@ const ResetPasswordPage = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState({});
 
-  const [verifying, setVerifying] = useState(Boolean(initialToken));
-  const [tokenValid, setTokenValid] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
+  // If already verified from session storage, skip verifying spinner on refresh
+  const [verifying, setVerifying] = useState(Boolean(initialToken && !isInitiallyVerified));
+  const [tokenValid, setTokenValid] = useState(isInitiallyVerified);
+  const [userEmail, setUserEmail] = useState(storedSession?.userEmail || '');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -49,28 +87,39 @@ const ResetPasswordPage = () => {
   const newPasswordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
 
-  // Auto-verify token on mount if provided in URL parameter
+  // Auto-verify token on mount if provided in URL or if not yet verified
   useEffect(() => {
     let isMounted = true;
 
     if (initialToken) {
       const verify = async () => {
         try {
-          setVerifying(true);
+          if (!isInitiallyVerified) setVerifying(true);
           setError('');
           const res = await verifyResetToken(initialToken);
           if (isMounted) {
             if (res.success) {
               setTokenValid(true);
-              setUserEmail(res.email || '');
+              const email = res.email || '';
+              setUserEmail(email);
+              setStoredResetSession({
+                token: initialToken,
+                tokenValid: true,
+                userEmail: email,
+              });
+              if (!queryToken) {
+                setSearchParams({ token: initialToken }, { replace: true });
+              }
             } else {
               setTokenValid(false);
+              clearStoredResetSession();
               setError(res.message || 'Password reset link is invalid or has expired.');
             }
           }
         } catch (err) {
           if (isMounted) {
             setTokenValid(false);
+            clearStoredResetSession();
             setError(err.message || 'Failed to verify reset token.');
           }
         } finally {
@@ -84,7 +133,7 @@ const ResetPasswordPage = () => {
     return () => {
       isMounted = false;
     };
-  }, [initialToken, verifyResetToken]);
+  }, [initialToken, isInitiallyVerified, queryToken, setSearchParams, verifyResetToken]);
 
   // Step 1: Verify Code Handler
   const handleVerifyCode = async (e) => {
@@ -105,18 +154,32 @@ const ResetPasswordPage = () => {
 
       if (res.success) {
         setTokenValid(true);
-        setUserEmail(res.email || '');
+        const email = res.email || '';
+        setUserEmail(email);
         setErrors({});
+
+        // Persist verified session so refresh keeps the user on Create New Password
+        setStoredResetSession({
+          token: activeToken,
+          tokenValid: true,
+          userEmail: email,
+        });
+
+        // Sync URL parameter so browser refresh maintains state
+        setSearchParams({ token: activeToken }, { replace: true });
+
         setTimeout(() => {
           if (newPasswordRef.current) newPasswordRef.current.focus();
         }, 100);
       } else {
         setTokenValid(false);
+        clearStoredResetSession();
         setError(res.message || 'Password reset code is invalid or has expired. Please check your email or request a new one.');
         if (tokenRef.current) tokenRef.current.focus();
       }
     } catch (err) {
       setTokenValid(false);
+      clearStoredResetSession();
       setError(err.message || 'Failed to verify reset code. Please try again.');
     } finally {
       setVerifying(false);
@@ -162,6 +225,7 @@ const ResetPasswordPage = () => {
       const res = await resetPassword(activeToken, newPassword);
 
       if (res.success) {
+        clearStoredResetSession();
         setSuccessMsg('Your password has been reset successfully! Redirecting to sign in...');
         setTimeout(() => {
           navigate('/login', {
@@ -177,6 +241,10 @@ const ResetPasswordPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleBackToLogin = () => {
+    clearStoredResetSession();
   };
 
   return (
@@ -365,6 +433,7 @@ const ResetPasswordPage = () => {
         <Link
           component={RouterLink}
           to="/login"
+          onClick={handleBackToLogin}
           sx={{
             display: 'inline-flex',
             alignItems: 'center',
