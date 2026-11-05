@@ -89,6 +89,8 @@ function MainAppLayout() {
         sx={{
           flexGrow: 1,
           width: { sm: `calc(100% - ${drawerWidth}px)` },
+          maxWidth: '100%',
+          overflowX: 'hidden',
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',

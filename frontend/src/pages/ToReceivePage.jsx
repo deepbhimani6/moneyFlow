@@ -151,50 +151,6 @@ const ToReceivePage = () => {
   // Notification
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  // Viewport-visibility-based sticky header and footer
-  const tableContainerRef = useRef(null);
-  const footerWrapperRef = useRef(null);
-  const [isHeaderStuck, setIsHeaderStuck] = useState(false);
-  const [isFooterSticky, setIsFooterSticky] = useState(false);
-  const [tableBounds, setTableBounds] = useState({ left: 0, width: "100%" });
-
-  useEffect(() => {
-    let ticking = false;
-
-    const checkStickyStates = () => {
-      const navHeight = window.innerWidth < 600 ? 56 : 64;
-      const winHeight = window.innerHeight;
-
-      if (tableContainerRef.current) {
-        const rect = tableContainerRef.current.getBoundingClientRect();
-        setTableBounds({ left: rect.left, width: rect.width });
-        setIsHeaderStuck(rect.top <= navHeight + 1 && rect.bottom > navHeight + 80);
-      }
-
-      if (footerWrapperRef.current) {
-        const fRect = footerWrapperRef.current.getBoundingClientRect();
-        setIsFooterSticky(fRect.top > winHeight - 52);
-      }
-      ticking = false;
-    };
-
-    const onScrollOrResize = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(checkStickyStates);
-        ticking = true;
-      }
-    };
-
-    window.addEventListener("scroll", onScrollOrResize, { passive: true });
-    window.addEventListener("resize", onScrollOrResize, { passive: true });
-    checkStickyStates();
-
-    return () => {
-      window.removeEventListener("scroll", onScrollOrResize);
-      window.removeEventListener("resize", onScrollOrResize);
-    };
-  }, [entries, loading]);
-
   const fetchEntries = async () => {
     try {
       setLoading(true);
@@ -367,53 +323,58 @@ const ToReceivePage = () => {
         </Box>
       </Box>
 
-      {/* To Receive Data Table */}
-      <TableContainer
-        ref={tableContainerRef}
-        component={Paper}
+      {/* To Receive Data Table Card */}
+      <Paper
+        elevation={0}
         sx={{
           borderRadius: `${TABLE_RADIUS}px`,
           border: "1px solid #e2e8f0",
           boxShadow: "none",
-          overflow: "visible",
+          overflow: "hidden",
+          width: "100%",
+          maxWidth: "100%",
+          bgcolor: "background.paper",
         }}
       >
-        <Table sx={{ minWidth: 650 }}>
-          <TableHead
-            sx={{
-              bgcolor: "transparent",
-              position: "sticky",
-              top: { xs: 56, sm: 64 },
-              zIndex: 5,
-              "& tr": {
-                bgcolor: "transparent",
+        <TableContainer
+          sx={{
+            width: "100%",
+            overflowX: "auto",
+            WebkitOverflowScrolling: "touch",
+            "&::-webkit-scrollbar": {
+              height: "6px",
+            },
+            "&::-webkit-scrollbar-track": {
+              backgroundColor: "#f8fafc",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: "rgba(0, 0, 0, 0.18)",
+              borderRadius: "3px",
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.3)",
               },
-              "& th": {
+            },
+          }}
+        >
+          <Table sx={{ minWidth: 720 }}>
+            <TableHead
+              sx={{
                 bgcolor: "#f8fafc",
-                position: "sticky",
-                top: { xs: 56, sm: 64 },
-                zIndex: 5,
-                borderBottom: "1px solid #e2e8f0",
-                boxShadow: isHeaderStuck ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
-                transition: "box-shadow 0.2s",
-              },
-              "& th:first-of-type": {
-                borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
-              },
-              "& th:last-of-type": {
-                borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
-              },
-            }}
-          >
-            <TableRow>
-              <TableCell
-                padding="checkbox"
-                sx={{
-                  borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
-                }}
-              >
-                <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
-              </TableCell>
+                "& th": {
+                  bgcolor: "#f8fafc",
+                  borderBottom: "1px solid #e2e8f0",
+                  py: 1.5,
+                  fontWeight: 600,
+                  fontSize: "0.85rem",
+                  color: "#475467",
+                  whiteSpace: "nowrap",
+                },
+              }}
+            >
+              <TableRow>
+                <TableCell padding="checkbox">
+                  <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
+                </TableCell>
 
               <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "forFromName" ? order : false}>
                 <TableSortLabel
@@ -481,15 +442,9 @@ const ToReceivePage = () => {
                 </TableSortLabel>
               </TableCell>
 
-              <TableCell
-                sx={{
-                  fontWeight: 600,
-                  borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
-                }}
-                align="center"
-              >
-                Actions
-              </TableCell>
+                <TableCell align="center" sx={{ fontWeight: 600 }}>
+                  Actions
+                </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -555,62 +510,38 @@ const ToReceivePage = () => {
             )}
           </TableBody>
         </Table>
-
-        {/* Pagination Footer */}
-        <Box
-          ref={footerWrapperRef}
-          sx={{
-            minHeight: 52,
-            position: "relative",
-            borderBottomLeftRadius: `${TABLE_RADIUS - 1}px`,
-            borderBottomRightRadius: `${TABLE_RADIUS - 1}px`,
-            overflow: isFooterSticky ? "visible" : "hidden",
-          }}
-        >
-          <Box
-            sx={{
-              position: isFooterSticky ? "fixed" : "static",
-              bottom: 0,
-              left: isFooterSticky && tableBounds.left !== undefined ? `${tableBounds.left}px` : "auto",
-              width: isFooterSticky && tableBounds.width ? `${tableBounds.width}px` : "100%",
-              maxWidth: isFooterSticky && tableBounds.width ? `${tableBounds.width}px` : "none",
-              boxSizing: "border-box",
-              zIndex: 10,
-              bgcolor: "background.paper",
-              borderTop: "1px solid #e2e8f0",
-              borderLeft: isFooterSticky ? "1px solid #e2e8f0" : "none",
-              borderRight: isFooterSticky ? "1px solid #e2e8f0" : "none",
-              borderTopLeftRadius: isFooterSticky ? `${TABLE_RADIUS}px` : 0,
-              borderTopRightRadius: isFooterSticky ? `${TABLE_RADIUS}px` : 0,
-              borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-              borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-              boxShadow: isFooterSticky ? "0 -4px 16px rgba(0,0,0,0.10)" : "none",
-              transition: "box-shadow 0.2s, background-color 0.2s",
-            }}
-          >
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 20, 50, 100]}
-              component="div"
-              count={entries.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={(e, newPage) => setPage(newPage)}
-              onRowsPerPageChange={(e) => {
-                setRowsPerPage(parseInt(e.target.value, 10));
-                setPage(0);
-              }}
-              sx={{
-                borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-                borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-                "& .MuiTablePagination-toolbar": {
-                  borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-                  borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-                },
-              }}
-            />
-          </Box>
-        </Box>
       </TableContainer>
+
+      {/* Pagination Footer - Fixed to Card, Never scrolls horizontally */}
+      <Divider />
+      <Box sx={{ width: "100%", bgcolor: "background.paper" }}>
+        <TablePagination
+          rowsPerPageOptions={[5, 10, 20, 50, 100]}
+          component="div"
+          count={entries.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={(e, newPage) => setPage(newPage)}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+          sx={{
+            width: "100%",
+            "& .MuiTablePagination-toolbar": {
+              flexWrap: { xs: "wrap", sm: "nowrap" },
+              justifyContent: { xs: "center", sm: "flex-end" },
+              px: { xs: 1, sm: 2 },
+              gap: { xs: 0.5, sm: 0 },
+            },
+            "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+              fontSize: { xs: "0.78rem", sm: "0.875rem" },
+              my: 0.5,
+            },
+          }}
+        />
+      </Box>
+    </Paper>
 
       {/* Modals */}
       <AddEntryModal

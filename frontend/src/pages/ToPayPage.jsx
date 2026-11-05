@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -21,6 +21,7 @@ import {
   Snackbar,
   Alert,
   TableSortLabel,
+  Divider,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -148,49 +149,7 @@ const ToPayPage = () => {
   // Notification
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  // Viewport-visibility-based sticky header and footer
-  const tableContainerRef = useRef(null);
-  const footerWrapperRef = useRef(null);
-  const [isHeaderStuck, setIsHeaderStuck] = useState(false);
-  const [isFooterSticky, setIsFooterSticky] = useState(false);
-  const [tableBounds, setTableBounds] = useState({ left: 0, width: "100%" });
 
-  useEffect(() => {
-    let ticking = false;
-
-    const checkStickyStates = () => {
-      const navHeight = window.innerWidth < 600 ? 56 : 64;
-      const winHeight = window.innerHeight;
-
-      if (tableContainerRef.current) {
-        const rect = tableContainerRef.current.getBoundingClientRect();
-        setTableBounds({ left: rect.left, width: rect.width });
-        setIsHeaderStuck(rect.top <= navHeight + 1 && rect.bottom > navHeight + 80);
-      }
-
-      if (footerWrapperRef.current) {
-        const fRect = footerWrapperRef.current.getBoundingClientRect();
-        setIsFooterSticky(fRect.top > winHeight - 52);
-      }
-      ticking = false;
-    };
-
-    const onScrollOrResize = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(checkStickyStates);
-        ticking = true;
-      }
-    };
-
-    window.addEventListener("scroll", onScrollOrResize, { passive: true });
-    window.addEventListener("resize", onScrollOrResize, { passive: true });
-    checkStickyStates();
-
-    return () => {
-      window.removeEventListener("scroll", onScrollOrResize);
-      window.removeEventListener("resize", onScrollOrResize);
-    };
-  }, [entries, loading]);
 
   const fetchEntries = async () => {
     try {
@@ -364,250 +323,221 @@ const ToPayPage = () => {
         </Box>
       </Box>
 
-      {/* To Pay Data Table */}
-      <TableContainer
-        ref={tableContainerRef}
-        component={Paper}
+      {/* To Pay Data Table Card */}
+      <Paper
+        elevation={0}
         sx={{
           borderRadius: `${TABLE_RADIUS}px`,
           border: "1px solid #e2e8f0",
           boxShadow: "none",
-          overflow: "visible",
+          overflow: "hidden",
+          width: "100%",
+          maxWidth: "100%",
+          bgcolor: "background.paper",
         }}
       >
-        <Table sx={{ minWidth: 650 }}>
-          <TableHead
-            sx={{
-              bgcolor: "transparent",
-              position: "sticky",
-              top: { xs: 56, sm: 64 },
-              zIndex: 5,
-              "& tr": {
-                bgcolor: "transparent",
-              },
-              "& th": {
-                bgcolor: "#f8fafc",
-                position: "sticky",
-                top: { xs: 56, sm: 64 },
-                zIndex: 5,
-                borderBottom: "1px solid #e2e8f0",
-                boxShadow: isHeaderStuck ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
-                transition: "box-shadow 0.2s",
-              },
-              "& th:first-of-type": {
-                borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
-              },
-              "& th:last-of-type": {
-                borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
-              },
-            }}
-          >
-            <TableRow>
-              <TableCell
-                padding="checkbox"
-                sx={{
-                  borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
-                }}
-              >
-                <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "forFromName" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "forFromName"}
-                  direction={orderBy === "forFromName" ? order : "asc"}
-                  onClick={() => handleRequestSort("forFromName")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Member
-                </TableSortLabel>
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "date" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "date"}
-                  direction={orderBy === "date" ? order : "asc"}
-                  onClick={() => handleRequestSort("date")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Date
-                </TableSortLabel>
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "time" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "time"}
-                  direction={orderBy === "time" ? order : "asc"}
-                  onClick={() => handleRequestSort("time")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Time
-                </TableSortLabel>
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "type" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "type"}
-                  direction={orderBy === "type" ? order : "asc"}
-                  onClick={() => handleRequestSort("type")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Type
-                </TableSortLabel>
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "paymentStatus" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "paymentStatus"}
-                  direction={orderBy === "paymentStatus" ? order : "asc"}
-                  onClick={() => handleRequestSort("paymentStatus")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Status
-                </TableSortLabel>
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 600 }} align="right" sortDirection={orderBy === "amount" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "amount"}
-                  direction={orderBy === "amount" ? order : "asc"}
-                  onClick={() => handleRequestSort("amount")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Amount
-                </TableSortLabel>
-              </TableCell>
-
-              <TableCell
-                sx={{
-                  fontWeight: 600,
-                  borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
-                }}
-                align="center"
-              >
-                Actions
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
-                  <CircularProgress size={32} />
-                </TableCell>
-              </TableRow>
-            ) : entries.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
-                  No entries found. Click <strong>Add To Pay</strong> to create one.
-                </TableCell>
-              </TableRow>
-            ) : (
-              sortedEntries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                const isSelected = selectedIds.includes(row._id);
-                const rowType = row.type || (["Expense", "Loan"].includes(row.status) ? row.status : "Expense");
-
-                return (
-                  <TableRow key={row._id} hover selected={isSelected} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
-                    <TableCell padding="checkbox">
-                      <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>
-                      <Box sx={{ display: "flex", alignItems: "center" }}>
-                        {row.forFromName}
-                        {row.isSplit && <Chip label="Split group" size="small" variant="outlined" sx={{ ml: 1, fontSize: "0.65rem", height: 18 }} />}
-                      </Box>
-                      {row.description && (
-                        <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25, fontStyle: "italic" }}>
-                          {row.description}
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>{formatDate(row.date)}</TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>{formatTime(row.time)}</TableCell>
-                    <TableCell>{getTypeChip(rowType)}</TableCell>
-                    <TableCell>
-                      {getStatusChip(row.paymentStatus, () => handleToggleStatus(row))}
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>
-                      ₹ {formatAmount(row.amount)}
-                    </TableCell>
-                    <TableCell align="center">
-                      <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
-                        <Tooltip title={row.isSplit ? "Edit split group entry" : "Edit entry"}>
-                          <IconButton size="small" color="primary" onClick={() => setEditingEntry(row)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        <Tooltip title="Delete entry">
-                          <IconButton size="small" color="error" onClick={() => setItemToDelete(row._id)}>
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-
-        {/* Pagination Footer */}
-        <Box
-          ref={footerWrapperRef}
+        <TableContainer
           sx={{
-            minHeight: 52,
-            position: "relative",
-            borderBottomLeftRadius: `${TABLE_RADIUS - 1}px`,
-            borderBottomRightRadius: `${TABLE_RADIUS - 1}px`,
-            overflow: isFooterSticky ? "visible" : "hidden",
+            width: "100%",
+            overflowX: "auto",
+            WebkitOverflowScrolling: "touch",
+            "&::-webkit-scrollbar": {
+              height: "6px",
+            },
+            "&::-webkit-scrollbar-track": {
+              backgroundColor: "#f8fafc",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: "rgba(0, 0, 0, 0.18)",
+              borderRadius: "3px",
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.3)",
+              },
+            },
           }}
         >
-          <Box
-            sx={{
-              position: isFooterSticky ? "fixed" : "static",
-              bottom: 0,
-              left: isFooterSticky && tableBounds.left !== undefined ? `${tableBounds.left}px` : "auto",
-              width: isFooterSticky && tableBounds.width ? `${tableBounds.width}px` : "100%",
-              maxWidth: isFooterSticky && tableBounds.width ? `${tableBounds.width}px` : "none",
-              boxSizing: "border-box",
-              zIndex: 10,
-              bgcolor: "background.paper",
-              borderTop: "1px solid #e2e8f0",
-              borderLeft: isFooterSticky ? "1px solid #e2e8f0" : "none",
-              borderRight: isFooterSticky ? "1px solid #e2e8f0" : "none",
-              borderTopLeftRadius: isFooterSticky ? `${TABLE_RADIUS}px` : 0,
-              borderTopRightRadius: isFooterSticky ? `${TABLE_RADIUS}px` : 0,
-              borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-              borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-              boxShadow: isFooterSticky ? "0 -4px 16px rgba(0,0,0,0.10)" : "none",
-              transition: "box-shadow 0.2s, background-color 0.2s",
-            }}
-          >
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 20, 50, 100]}
-              component="div"
-              count={entries.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={(e, newPage) => setPage(newPage)}
-              onRowsPerPageChange={(e) => {
-                setRowsPerPage(parseInt(e.target.value, 10));
-                setPage(0);
-              }}
+          <Table sx={{ minWidth: 720 }}>
+            <TableHead
               sx={{
-                borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-                borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-                "& .MuiTablePagination-toolbar": {
-                  borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-                  borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+                bgcolor: "#f8fafc",
+                "& th": {
+                  bgcolor: "#f8fafc",
+                  borderBottom: "1px solid #e2e8f0",
+                  py: 1.5,
+                  fontWeight: 600,
+                  fontSize: "0.85rem",
+                  color: "#475467",
+                  whiteSpace: "nowrap",
                 },
               }}
-            />
-          </Box>
+            >
+              <TableRow>
+                <TableCell padding="checkbox">
+                  <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "forFromName" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "forFromName"}
+                    direction={orderBy === "forFromName" ? order : "asc"}
+                    onClick={() => handleRequestSort("forFromName")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Member
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "date" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "date"}
+                    direction={orderBy === "date" ? order : "asc"}
+                    onClick={() => handleRequestSort("date")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Date
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "time" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "time"}
+                    direction={orderBy === "time" ? order : "asc"}
+                    onClick={() => handleRequestSort("time")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Time
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "type" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "type"}
+                    direction={orderBy === "type" ? order : "asc"}
+                    onClick={() => handleRequestSort("type")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Type
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "paymentStatus" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "paymentStatus"}
+                    direction={orderBy === "paymentStatus" ? order : "asc"}
+                    onClick={() => handleRequestSort("paymentStatus")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Status
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} align="right" sortDirection={orderBy === "amount" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "amount"}
+                    direction={orderBy === "amount" ? order : "asc"}
+                    onClick={() => handleRequestSort("amount")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Amount
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell align="center" sx={{ fontWeight: 600 }}>
+                  Actions
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                    <CircularProgress size={32} />
+                  </TableCell>
+                </TableRow>
+              ) : entries.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                    No entries found. Click <strong>Add To Pay</strong> to create one.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sortedEntries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+                  const isSelected = selectedIds.includes(row._id);
+                  const rowType = row.type || (["Expense", "Loan"].includes(row.status) ? row.status : "Expense");
+
+                  return (
+                    <TableRow key={row._id} hover selected={isSelected} sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+                      <TableCell padding="checkbox">
+                        <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 500 }}>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          {row.forFromName}
+                          {row.isSplit && <Chip label="Split group" size="small" variant="outlined" sx={{ ml: 1, fontSize: "0.65rem", height: 18 }} />}
+                        </Box>
+                        {row.description && (
+                          <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25, fontStyle: "italic" }}>
+                            {row.description}
+                          </Typography>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>{formatDate(row.date)}</TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>{formatTime(row.time)}</TableCell>
+                      <TableCell>{getTypeChip(rowType)}</TableCell>
+                      <TableCell>
+                        {getStatusChip(row.paymentStatus, () => handleToggleStatus(row))}
+                      </TableCell>
+                      <TableCell align="right" sx={{ fontWeight: 700 }}>
+                        ₹ {formatAmount(row.amount)}
+                      </TableCell>
+                      <TableCell align="center">
+                        <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
+                          <Tooltip title={row.isSplit ? "Edit split group entry" : "Edit entry"}>
+                            <IconButton size="small" color="primary" onClick={() => setEditingEntry(row)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete entry">
+                            <IconButton size="small" color="error" onClick={() => setItemToDelete(row._id)}>
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Pagination Footer - Fixed to Card, Never scrolls horizontally */}
+        <Divider />
+        <Box sx={{ width: "100%", bgcolor: "background.paper" }}>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 20, 50, 100]}
+            component="div"
+            count={entries.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={(e, newPage) => setPage(newPage)}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            sx={{
+              width: "100%",
+              "& .MuiTablePagination-toolbar": {
+                flexWrap: { xs: "wrap", sm: "nowrap" },
+                justifyContent: { xs: "center", sm: "flex-end" },
+                px: { xs: 1, sm: 2 },
+                gap: { xs: 0.5, sm: 0 },
+              },
+            }}
+          />
         </Box>
-      </TableContainer>
+      </Paper>
 
       {/* Modals */}
       <AddToPayModal

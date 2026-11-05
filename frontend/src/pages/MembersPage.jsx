@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, IconButton, Menu, MenuItem, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TextField, InputAdornment, TableSortLabel, Dialog, DialogTitle, DialogContent, DialogActions } from "@mui/material";
+import React, { useState, useEffect, useMemo } from "react";
+import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, IconButton, Menu, MenuItem, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TextField, InputAdornment, TableSortLabel, Dialog, DialogTitle, DialogContent, DialogActions, Divider } from "@mui/material";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -94,12 +94,7 @@ const MembersPage = () => {
   // Snackbar
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  // Viewport-visibility-based sticky header and footer
-  const tableContainerRef = useRef(null);
-  const footerWrapperRef = useRef(null);
-  const [isHeaderStuck, setIsHeaderStuck] = useState(false);
-  const [isFooterSticky, setIsFooterSticky] = useState(false);
-  const [tableBounds, setTableBounds] = useState({ left: 0, width: "100%" });
+
 
   // Current Admin check: the logged-in admin profile can never delete their own account
   const isProfileAdmin = profile?.role === "Admin";
@@ -130,57 +125,7 @@ const MembersPage = () => {
     return otherAdminMembers.length === 0;
   };
 
-  useEffect(() => {
-    let ticking = false;
 
-    const checkStickyStates = () => {
-      const navHeight = window.innerWidth < 600 ? 56 : 64;
-      const winHeight = window.innerHeight;
-
-      if (tableContainerRef.current) {
-        const tableRect = tableContainerRef.current.getBoundingClientRect();
-
-        setTableBounds({
-          left: Math.round(tableRect.left),
-          width: Math.round(tableRect.width),
-        });
-
-        // 1. Table Head: sticky when the table top has scrolled past the app bar,
-        // and table rows are still in the viewport.
-        const headerStuck = tableRect.top <= navHeight && tableRect.bottom > navHeight + 80;
-        setIsHeaderStuck(headerStuck);
-
-        // 2. Table Footer: sticky when table is in view,
-        // BUT the natural bottom of the table (footer) is NOT seen in the viewport!
-        if (footerWrapperRef.current) {
-          const footerRect = footerWrapperRef.current.getBoundingClientRect();
-          const isTableInView = tableRect.top < winHeight - 60 && tableRect.bottom > 100;
-          const isFooterOutOfView = footerRect.top > winHeight - 52;
-
-          setIsFooterSticky(isTableInView && isFooterOutOfView);
-        }
-      }
-      ticking = false;
-    };
-
-    const onScrollOrResize = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(checkStickyStates);
-        ticking = true;
-      }
-    };
-
-    // Initial check
-    checkStickyStates();
-
-    window.addEventListener("scroll", onScrollOrResize, { passive: true });
-    window.addEventListener("resize", onScrollOrResize, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", onScrollOrResize);
-      window.removeEventListener("resize", onScrollOrResize);
-    };
-  }, [members, rowsPerPage, page, loading]);
 
   const fetchMembers = async () => {
     try {
@@ -528,303 +473,274 @@ const MembersPage = () => {
         </Box>
       </Box>
 
-      {/* Members Table */}
-      <TableContainer
-        ref={tableContainerRef}
-        component={Paper}
+      {/* Members Table Card */}
+      <Paper
+        elevation={0}
         sx={{
           borderRadius: `${TABLE_RADIUS}px`,
           border: "1px solid #e2e8f0",
           boxShadow: "none",
-          overflow: "visible",
+          overflow: "hidden",
+          width: "100%",
+          maxWidth: "100%",
+          bgcolor: "background.paper",
         }}
       >
-        <Table sx={{ minWidth: 650 }}>
-          <TableHead
-            sx={{
-              bgcolor: "transparent",
-              position: "sticky",
-              top: { xs: 56, sm: 64 },
-              zIndex: 5,
-              "& tr": {
-                bgcolor: "transparent",
-              },
-              "& th": {
-                bgcolor: "#f8fafc",
-                position: "sticky",
-                top: { xs: 56, sm: 64 },
-                zIndex: 5,
-                borderBottom: "1px solid #e2e8f0",
-                boxShadow: isHeaderStuck ? "0 2px 4px rgba(0,0,0,0.06)" : "none",
-                transition: "box-shadow 0.2s",
-              },
-              "& th:first-of-type": {
-                borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
-              },
-              "& th:last-of-type": {
-                borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
-              },
-            }}
-          >
-            <TableRow>
-              <TableCell
-                padding="checkbox"
-                sx={{
-                  borderTopLeftRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
-                }}
-              >
-                <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "fullName" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "fullName"}
-                  direction={orderBy === "fullName" ? order : "asc"}
-                  onClick={() => handleRequestSort("fullName")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Full Name
-                </TableSortLabel>
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "phoneNumber" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "phoneNumber"}
-                  direction={orderBy === "phoneNumber" ? order : "asc"}
-                  onClick={() => handleRequestSort("phoneNumber")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Phone Number
-                </TableSortLabel>
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "email" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "email"}
-                  direction={orderBy === "email" ? order : "asc"}
-                  onClick={() => handleRequestSort("email")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  E-mail
-                </TableSortLabel>
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "role" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "role"}
-                  direction={orderBy === "role" ? order : "asc"}
-                  onClick={() => handleRequestSort("role")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Role
-                </TableSortLabel>
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "joinDate" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "joinDate"}
-                  direction={orderBy === "joinDate" ? order : "asc"}
-                  onClick={() => handleRequestSort("joinDate")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Join Date
-                </TableSortLabel>
-              </TableCell>
-
-              <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "inviteSent" ? order : false}>
-                <TableSortLabel
-                  active={orderBy === "inviteSent"}
-                  direction={orderBy === "inviteSent" ? order : "asc"}
-                  onClick={() => handleRequestSort("inviteSent")}
-                  sx={{ fontWeight: 600 }}
-                >
-                  Invite Status
-                </TableSortLabel>
-              </TableCell>
-
-              <TableCell
-                sx={{
-                  fontWeight: 600,
-                  borderTopRightRadius: isHeaderStuck ? 0 : `${TABLE_RADIUS - 1}px`,
-                }}
-                align="center"
-              >
-                Actions
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {loading ? (
-              <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
-                  <CircularProgress size={32} />
-                </TableCell>
-              </TableRow>
-            ) : members.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
-                  No members registered. Click <strong>Invite Members +</strong> to add one.
-                </TableCell>
-              </TableRow>
-            ) : (
-              sortedMembers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                const isSelected = selectedIds.includes(row._id);
-                const formattedDate = formatDate(row.joinDate);
-                const isCurrent = isCurrentAdmin(row);
-                const isOnly = isOnlyAdmin(row);
-                const isMemberAdmin = row.role === 'Admin' || isCurrent;
-                const disableDelete = isCurrent || isOnly;
-                const deleteTooltip = isCurrent
-                  ? "You cannot delete your own logged-in Admin account"
-                  : isOnly
-                  ? "Cannot delete the only Admin in the system"
-                  : "Delete Member";
-
-                return (
-                  <TableRow
-                    key={row._id}
-                    hover
-                    selected={isSelected}
-                    sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-                  >
-                    <TableCell padding="checkbox">
-                      {isCurrent ? (
-                        <Tooltip title="Your own logged-in Admin account cannot be selected for deletion">
-                          <span>
-                            <Checkbox disabled checked={false} size="small" />
-                          </span>
-                        </Tooltip>
-                      ) : (
-                        <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
-                      )}
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>
-                      {row.fullName}
-                    </TableCell>
-                    <TableCell>{row.phoneNumber || "—"}</TableCell>
-                    <TableCell sx={{ color: row.email ? "text.primary" : "text.secondary" }}>
-                      {row.email || "—"}
-                    </TableCell>
-                    <TableCell>
-                      {isMemberAdmin ? (
-                        <Chip
-                          label={isCurrent ? "Admin (You)" : "Admin"}
-                          size="small"
-                          color="primary"
-                          sx={{ fontWeight: 600, height: 22, fontSize: "0.75rem" }}
-                        />
-                      ) : (
-                        <Chip
-                          label="Member"
-                          size="small"
-                          variant="outlined"
-                          sx={{ color: "text.secondary", borderColor: "#cbd5e1", height: 22, fontSize: "0.75rem" }}
-                        />
-                      )}
-                    </TableCell>
-                    <TableCell>{formattedDate}</TableCell>
-                    <TableCell>{row.inviteSent ? <Chip icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />} label="Invite Sent" size="small" color="success" variant="outlined" /> : <Chip label="Pending" size="small" variant="outlined" />}</TableCell>
-                    <TableCell align="center">
-                      <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
-                        <Tooltip title={row.email ? "Send App Invite Link" : "No email available to send invite"}>
-                          <span>
-                            <IconButton
-                              size="small"
-                              color="primary"
-                              onClick={() => handleSendInvite(row._id, row.email)}
-                              disabled={!row.email || sendingInviteId === row._id}
-                            >
-                              {sendingInviteId === row._id ? (
-                                <CircularProgress size={16} color="primary" />
-                              ) : (
-                                <SendIcon fontSize="small" />
-                              )}
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-
-                        <Tooltip title="Edit Member">
-                          <IconButton size="small" color="default" onClick={() => setEditingMember(row)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-
-                        <Tooltip title={deleteTooltip}>
-                          <span>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              disabled={disableDelete}
-                              onClick={() => handleOpenSingleDelete(row)}
-                            >
-                              <DeleteOutlineIcon fontSize="small" />
-                            </IconButton>
-                          </span>
-                        </Tooltip>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-
-        {/* Pagination Footer: Sticky when not seen in viewport, docked when seen */}
-        <Box
-          ref={footerWrapperRef}
+        <TableContainer
           sx={{
-            minHeight: 52,
-            position: "relative",
-            borderBottomLeftRadius: `${TABLE_RADIUS - 1}px`,
-            borderBottomRightRadius: `${TABLE_RADIUS - 1}px`,
-            overflow: isFooterSticky ? "visible" : "hidden",
+            width: "100%",
+            overflowX: "auto",
+            WebkitOverflowScrolling: "touch",
+            "&::-webkit-scrollbar": {
+              height: "6px",
+            },
+            "&::-webkit-scrollbar-track": {
+              backgroundColor: "#f8fafc",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: "rgba(0, 0, 0, 0.18)",
+              borderRadius: "3px",
+              "&:hover": {
+                backgroundColor: "rgba(0, 0, 0, 0.3)",
+              },
+            },
           }}
         >
-          <Box
-            sx={{
-              position: isFooterSticky ? "fixed" : "static",
-              bottom: 0,
-              left: isFooterSticky && tableBounds.left !== undefined ? `${tableBounds.left}px` : "auto",
-              width: isFooterSticky && tableBounds.width ? `${tableBounds.width}px` : "100%",
-              maxWidth: isFooterSticky && tableBounds.width ? `${tableBounds.width}px` : "none",
-              boxSizing: "border-box",
-              zIndex: 10,
-              bgcolor: "background.paper",
-              borderTop: "1px solid #e2e8f0",
-              borderLeft: isFooterSticky ? "1px solid #e2e8f0" : "none",
-              borderRight: isFooterSticky ? "1px solid #e2e8f0" : "none",
-              borderTopLeftRadius: isFooterSticky ? `${TABLE_RADIUS}px` : 0,
-              borderTopRightRadius: isFooterSticky ? `${TABLE_RADIUS}px` : 0,
-              borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-              borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-              boxShadow: isFooterSticky ? "0 -4px 16px rgba(0,0,0,0.10)" : "none",
-              transition: "box-shadow 0.2s, background-color 0.2s",
-            }}
-          >
-            <TablePagination
-              rowsPerPageOptions={[5, 10, 20, 50, 100]}
-              component="div"
-              count={members.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={(e, newPage) => setPage(newPage)}
-              onRowsPerPageChange={(e) => {
-                setRowsPerPage(parseInt(e.target.value, 10));
-                setPage(0);
-              }}
+          <Table sx={{ minWidth: 720 }}>
+            <TableHead
               sx={{
-                borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-                borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-                "& .MuiTablePagination-toolbar": {
-                  borderBottomLeftRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
-                  borderBottomRightRadius: isFooterSticky ? 0 : `${TABLE_RADIUS - 1}px`,
+                bgcolor: "#f8fafc",
+                "& th": {
+                  bgcolor: "#f8fafc",
+                  borderBottom: "1px solid #e2e8f0",
+                  py: 1.5,
+                  fontWeight: 600,
+                  fontSize: "0.85rem",
+                  color: "#475467",
+                  whiteSpace: "nowrap",
                 },
               }}
-            />
-          </Box>
+            >
+              <TableRow>
+                <TableCell padding="checkbox">
+                  <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "fullName" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "fullName"}
+                    direction={orderBy === "fullName" ? order : "asc"}
+                    onClick={() => handleRequestSort("fullName")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Full Name
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "phoneNumber" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "phoneNumber"}
+                    direction={orderBy === "phoneNumber" ? order : "asc"}
+                    onClick={() => handleRequestSort("phoneNumber")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Phone Number
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "email" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "email"}
+                    direction={orderBy === "email" ? order : "asc"}
+                    onClick={() => handleRequestSort("email")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    E-mail
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "role" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "role"}
+                    direction={orderBy === "role" ? order : "asc"}
+                    onClick={() => handleRequestSort("role")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Role
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "joinDate" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "joinDate"}
+                    direction={orderBy === "joinDate" ? order : "asc"}
+                    onClick={() => handleRequestSort("joinDate")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Join Date
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "inviteSent" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "inviteSent"}
+                    direction={orderBy === "inviteSent" ? order : "asc"}
+                    onClick={() => handleRequestSort("inviteSent")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Invite Status
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell align="center" sx={{ fontWeight: 600 }}>
+                  Actions
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                    <CircularProgress size={32} />
+                  </TableCell>
+                </TableRow>
+              ) : members.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                    No members registered. Click <strong>Invite Members +</strong> to add one.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                sortedMembers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+                  const isSelected = selectedIds.includes(row._id);
+                  const formattedDate = formatDate(row.joinDate);
+                  const isCurrent = isCurrentAdmin(row);
+                  const isOnly = isOnlyAdmin(row);
+                  const isMemberAdmin = row.role === 'Admin' || isCurrent;
+                  const disableDelete = isCurrent || isOnly;
+                  const deleteTooltip = isCurrent
+                    ? "You cannot delete your own logged-in Admin account"
+                    : isOnly
+                    ? "Cannot delete the only Admin in the system"
+                    : "Delete Member";
+
+                  return (
+                    <TableRow
+                      key={row._id}
+                      hover
+                      selected={isSelected}
+                      sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
+                    >
+                      <TableCell padding="checkbox">
+                        {isCurrent ? (
+                          <Tooltip title="Your own logged-in Admin account cannot be selected for deletion">
+                            <span>
+                              <Checkbox disabled checked={false} size="small" />
+                            </span>
+                          </Tooltip>
+                        ) : (
+                          <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ fontWeight: 500, whiteSpace: "nowrap" }}>
+                        {row.fullName}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>{row.phoneNumber || "—"}</TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap", color: row.email ? "text.primary" : "text.secondary" }}>
+                        {row.email || "—"}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        {isMemberAdmin ? (
+                          <Chip
+                            label={isCurrent ? "Admin (You)" : "Admin"}
+                            size="small"
+                            color="primary"
+                            sx={{ fontWeight: 600, height: 22, fontSize: "0.75rem" }}
+                          />
+                        ) : (
+                          <Chip
+                            label="Member"
+                            size="small"
+                            variant="outlined"
+                            sx={{ color: "text.secondary", borderColor: "#cbd5e1", height: 22, fontSize: "0.75rem" }}
+                          />
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>{formattedDate}</TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>{row.inviteSent ? <Chip icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />} label="Invite Sent" size="small" color="success" variant="outlined" /> : <Chip label="Pending" size="small" variant="outlined" />}</TableCell>
+                      <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
+                        <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
+                          <Tooltip title={row.email ? "Send App Invite Link" : "No email available to send invite"}>
+                            <span>
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleSendInvite(row._id, row.email)}
+                                disabled={!row.email || sendingInviteId === row._id}
+                              >
+                                {sendingInviteId === row._id ? (
+                                  <CircularProgress size={16} color="primary" />
+                                ) : (
+                                  <SendIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+
+                          <Tooltip title="Edit Member">
+                            <IconButton size="small" color="default" onClick={() => setEditingMember(row)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip title={deleteTooltip}>
+                            <span>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                disabled={disableDelete}
+                                onClick={() => handleOpenSingleDelete(row)}
+                              >
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Pagination Footer - Fixed to Card, Never scrolls horizontally */}
+        <Divider />
+        <Box sx={{ width: "100%", bgcolor: "background.paper" }}>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 20, 50, 100]}
+            component="div"
+            count={members.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={(e, newPage) => setPage(newPage)}
+            onRowsPerPageChange={(e) => {
+              setRowsPerPage(parseInt(e.target.value, 10));
+              setPage(0);
+            }}
+            sx={{
+              width: "100%",
+              "& .MuiTablePagination-toolbar": {
+                flexWrap: { xs: "wrap", sm: "nowrap" },
+                justifyContent: { xs: "center", sm: "flex-end" },
+                px: { xs: 1, sm: 2 },
+                gap: { xs: 0.5, sm: 0 },
+              },
+            }}
+          />
         </Box>
-      </TableContainer>
+      </Paper>
 
       {/* Modals */}
       <InviteMemberModal
