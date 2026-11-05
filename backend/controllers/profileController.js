@@ -57,13 +57,10 @@ const updateProfile = async (req, res) => {
     if (role !== undefined) {
       const targetRole = role.trim();
       if (profile.role === 'Admin' && targetRole === 'Member') {
-        const otherAdminCount = await Member.countDocuments({ role: 'Admin' });
-        if (otherAdminCount === 0) {
-          return res.status(400).json({
-            success: false,
-            message: 'Cannot demote the only Admin in the system. There must always be at least one Admin.',
-          });
-        }
+        return res.status(400).json({
+          success: false,
+          message: 'The current logged-in Admin account cannot be demoted.',
+        });
       }
       profile.role = targetRole;
     }

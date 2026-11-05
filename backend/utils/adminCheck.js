@@ -17,7 +17,9 @@ const getUniqueAdminCount = async () => {
 
   adminMembers.forEach((m) => {
     if (m.email) {
-      adminIdentifiers.add(m.email.toLowerCase());
+      adminIdentifiers.add(m.email.toLowerCase().trim());
+    } else if (m.username) {
+      adminIdentifiers.add(m.username.toLowerCase().trim());
     } else {
       adminIdentifiers.add(m._id.toString());
     }
@@ -26,6 +28,28 @@ const getUniqueAdminCount = async () => {
   return adminIdentifiers.size;
 };
 
+/**
+ * Checks if a member document/object matches the current logged-in profile (Admin)
+ */
+const isMemberCurrentAdmin = (member, profile) => {
+  if (!member || !profile) return false;
+
+  const profileEmail = (profile.email || '').toLowerCase().trim();
+  const memberEmail = (member.email || '').toLowerCase().trim();
+  if (profileEmail && memberEmail && profileEmail === memberEmail) return true;
+
+  const profileUsername = (profile.username || '').toLowerCase().trim();
+  const memberUsername = (member.username || '').toLowerCase().trim();
+  if (profileUsername && memberUsername && profileUsername === memberUsername) return true;
+
+  const profileName = (profile.fullName || '').toLowerCase().trim();
+  const memberName = (member.fullName || '').toLowerCase().trim();
+  if (profileName && memberName && profileName === memberName && (member.role === 'Admin' || profile.role === 'Admin')) return true;
+
+  return false;
+};
+
 module.exports = {
   getUniqueAdminCount,
+  isMemberCurrentAdmin,
 };

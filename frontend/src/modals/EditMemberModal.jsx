@@ -15,7 +15,7 @@ import {
 } from '@mui/material';
 import { memberService } from '../services/api';
 
-const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
+const EditMemberModal = ({ open, onClose, member, onMemberUpdated, isCurrentAdmin, isOnlyAdmin }) => {
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
@@ -152,7 +152,16 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
               onChange={handleChange}
             >
               <MenuItem value="Admin">Admin</MenuItem>
-              <MenuItem value="Member">Member</MenuItem>
+              <MenuItem
+                value="Member"
+                disabled={Boolean(isCurrentAdmin || (isOnlyAdmin && member?.role === 'Admin'))}
+              >
+                {isCurrentAdmin
+                  ? 'Member (Cannot demote current logged-in Admin)'
+                  : isOnlyAdmin && member?.role === 'Admin'
+                  ? 'Member (Cannot demote the only Admin)'
+                  : 'Member'}
+              </MenuItem>
             </Select>
           </FormControl>
         </DialogContent>

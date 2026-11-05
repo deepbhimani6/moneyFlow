@@ -101,8 +101,26 @@ const MembersPage = () => {
   const [isFooterSticky, setIsFooterSticky] = useState(false);
   const [tableBounds, setTableBounds] = useState({ left: 0, width: "100%" });
 
-  // Only Admin check: an admin cannot be deleted if they are the only admin in the system
+  // Current Admin check: the logged-in admin profile can never delete their own account
   const isProfileAdmin = profile?.role === "Admin";
+  const isCurrentAdmin = (member) => {
+    if (!member) return false;
+    const profileEmail = (profile?.email || "").toLowerCase().trim();
+    const memberEmail = (member.email || "").toLowerCase().trim();
+    if (profileEmail && memberEmail && profileEmail === memberEmail) return true;
+
+    const profileUsername = (profile?.username || "").toLowerCase().trim();
+    const memberUsername = (member.username || "").toLowerCase().trim();
+    if (profileUsername && memberUsername && profileUsername === memberUsername) return true;
+
+    const profileName = (profile?.fullName || "").toLowerCase().trim();
+    const memberName = (member.fullName || "").toLowerCase().trim();
+    if (profileName && memberName && profileName === memberName && (member.role === "Admin" || isProfileAdmin)) return true;
+
+    return false;
+  };
+
+  // Only Admin check: an admin cannot be deleted if they are the only admin in the system
   const isOnlyAdmin = (member) => {
     if (!member || member.role !== "Admin") return false;
     if (isProfileAdmin && profile?.email && member.email !== profile.email) {
@@ -183,20 +201,35 @@ const MembersPage = () => {
     fetchMembers();
   }, [search]);
 
+  const selectableMembers = useMemo(() => {
+    return members.filter((m) => !isCurrentAdmin(m));
+  }, [members, profile]);
+
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedIds(members.map((m) => m._id));
+      setSelectedIds(selectableMembers.map((m) => m._id));
     } else {
       setSelectedIds([]);
     }
   };
 
   const handleSelectOne = (id) => {
+    const targetMember = members.find((m) => m._id === id);
+    if (isCurrentAdmin(targetMember)) return;
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]));
   };
 
   // Open single member delete confirmation modal and fetch entry details
   const handleOpenSingleDelete = async (member) => {
+    if (isCurrentAdmin(member)) {
+      setSnackbar({
+        open: true,
+        message: "You cannot delete your own logged-in Admin account.",
+        severity: "error",
+      });
+      return;
+    }
+
     if (isOnlyAdmin(member)) {
       setSnackbar({
         open: true,
@@ -269,6 +302,18 @@ const MembersPage = () => {
     if (selectedIds.length === 0) return;
 
     const selectedMembers = members.filter((m) => selectedIds.includes(m._id));
+
+    // Current logged-in admin self-deletion protection
+    const currentAdminSelected = selectedMembers.some((m) => isCurrentAdmin(m));
+    if (currentAdminSelected) {
+      setSnackbar({
+        open: true,
+        message: "You cannot delete your own logged-in Admin account. Please deselect it before deleting.",
+        severity: "error",
+      });
+      return;
+    }
+
     const adminSelected = selectedMembers.filter((m) => isOnlyAdmin(m));
     if (adminSelected.length > 0) {
       setSnackbar({
@@ -428,8 +473,8 @@ const MembersPage = () => {
     });
   };
 
-  const isAllSelected = members.length > 0 && selectedIds.length === members.length;
-  const isIndeterminate = selectedIds.length > 0 && selectedIds.length < members.length;
+  const isAllSelected = selectableMembers.length > 0 && selectableMembers.every((m) => selectedIds.includes(m._id));
+  const isIndeterminate = selectedIds.length > 0 && !isAllSelected;
 
   return (
     <Box sx={{ p: { xs: 2, sm: 3 } }}>
@@ -625,7 +670,15 @@ const MembersPage = () => {
               sortedMembers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                 const isSelected = selectedIds.includes(row._id);
                 const formattedDate = formatDate(row.joinDate);
-                const isMemberAdmin = row.role === 'Admin' || row.email === 'deep.bhimani@shunyavkash.com';
+                const isCurrent = isCurrentAdmin(row);
+                const isOnly = isOnlyAdmin(row);
+                const isMemberAdmin = row.role === 'Admin' || isCurrent;
+                const disableDelete = isCurrent || isOnly;
+                const deleteTooltip = isCurrent
+                  ? "You cannot delete your own logged-in Admin account"
+                  : isOnly
+                  ? "Cannot delete the only Admin in the system"
+                  : "Delete Member";
 
                 return (
                   <TableRow
@@ -635,7 +688,15 @@ const MembersPage = () => {
                     sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
                   >
                     <TableCell padding="checkbox">
-                      <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
+                      {isCurrent ? (
+                        <Tooltip title="Your own logged-in Admin account cannot be selected for deletion">
+                          <span>
+                            <Checkbox disabled checked={false} size="small" />
+                          </span>
+                        </Tooltip>
+                      ) : (
+                        <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
+                      )}
                     </TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>
                       {row.fullName}
@@ -647,7 +708,7 @@ const MembersPage = () => {
                     <TableCell>
                       {isMemberAdmin ? (
                         <Chip
-                          label="Admin"
+                          label={isCurrent ? "Admin (You)" : "Admin"}
                           size="small"
                           color="primary"
                           sx={{ fontWeight: 600, height: 22, fontSize: "0.75rem" }}
@@ -688,12 +749,12 @@ const MembersPage = () => {
                           </IconButton>
                         </Tooltip>
 
-                        <Tooltip title={isOnlyAdmin(row) ? "Cannot delete the only Admin in the system" : "Delete Member"}>
+                        <Tooltip title={deleteTooltip}>
                           <span>
                             <IconButton
                               size="small"
                               color="error"
-                              disabled={isOnlyAdmin(row)}
+                              disabled={disableDelete}
                               onClick={() => handleOpenSingleDelete(row)}
                             >
                               <DeleteOutlineIcon fontSize="small" />
@@ -782,6 +843,8 @@ const MembersPage = () => {
       <EditMemberModal
         open={Boolean(editingMember)}
         member={editingMember}
+        isCurrentAdmin={isCurrentAdmin(editingMember)}
+        isOnlyAdmin={isOnlyAdmin(editingMember)}
         onClose={() => setEditingMember(null)}
         onMemberUpdated={() => {
           fetchMembers();
