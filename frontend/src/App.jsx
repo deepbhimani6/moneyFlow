@@ -13,15 +13,17 @@ import {
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import GetAppIcon from '@mui/icons-material/GetApp';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import theme from './theme';
 import Sidebar from './components/Sidebar';
 import OnlineDetector from './components/OnlineDetector';
+import HeaderProfileMenu from './components/HeaderProfileMenu';
+import { ProfileProvider } from './context/ProfileContext';
 import DashboardPage from './pages/DashboardPage';
 import ForSelfPage from './pages/ForSelfPage';
 import ToReceivePage from './pages/ToReceivePage';
 import ToPayPage from './pages/ToPayPage';
 import MembersPage from './pages/MembersPage';
+import ProfilePage from './pages/ProfilePage';
 
 const drawerWidth = 240;
 
@@ -32,6 +34,7 @@ function App() {
 
   // Dynamically determine current active page title from URL
   const getPageTitle = () => {
+    if (location.pathname.startsWith('/profile')) return 'Profile';
     if (location.pathname.startsWith('/for-self')) return 'For Self';
     if (location.pathname.startsWith('/to-receive') || location.pathname.startsWith('/entries')) return 'To Receive';
     if (location.pathname.startsWith('/to-pay') || location.pathname.startsWith('/topay')) return 'To Pay';
@@ -64,97 +67,94 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline />
+      <ProfileProvider>
+        <CssBaseline />
 
-      {/* Online only alert indicator */}
-      <OnlineDetector />
+        {/* Online only alert indicator */}
+        <OnlineDetector />
 
-      <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-        {/* Navigation Sidebar with URL Route Sync */}
-        <Sidebar
-          mobileOpen={mobileOpen}
-          onMobileClose={() => setMobileOpen(false)}
-        />
+        <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+          {/* Navigation Sidebar with URL Route Sync */}
+          <Sidebar
+            mobileOpen={mobileOpen}
+            onMobileClose={() => setMobileOpen(false)}
+          />
 
-        {/* Main Content Area */}
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            width: { sm: `calc(100% - ${drawerWidth}px)` },
-            minHeight: '100vh',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          {/* Top Header Bar */}
-          <AppBar
-            position="sticky"
-            elevation={0}
+          {/* Main Content Area */}
+          <Box
+            component="main"
             sx={{
-              bgcolor: 'background.paper',
-              color: 'text.primary',
-              borderBottom: '1px solid #e2e8f0',
+              flexGrow: 1,
+              width: { sm: `calc(100% - ${drawerWidth}px)` },
+              minHeight: '100vh',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
-            <Toolbar sx={{ justifyContent: 'space-between' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <IconButton
-                  color="inherit"
-                  aria-label="open drawer"
-                  edge="start"
-                  onClick={handleDrawerToggle}
-                  sx={{ mr: 2, display: { sm: 'none' } }}
-                >
-                  <MenuIcon />
-                </IconButton>
-                <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
-                  {getPageTitle()}
-                </Typography>
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                {/* Online PWA status badge */}
-                <Chip
-                  icon={<CheckCircleIcon sx={{ '&&': { color: '#2e7d32', fontSize: 16 } }} />}
-                  label="MongoDB Online"
-                  size="small"
-                  variant="outlined"
-                  sx={{ borderColor: '#a5d6a7', bgcolor: '#f1f8e9', display: { xs: 'none', sm: 'inline-flex' } }}
-                />
-
-                {/* PWA Install Button if available */}
-                {installPrompt && (
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<GetAppIcon />}
-                    onClick={handleInstallClick}
-                    sx={{ textTransform: 'none' }}
+            {/* Top Header Bar */}
+            <AppBar
+              position="sticky"
+              elevation={0}
+              sx={{
+                bgcolor: 'background.paper',
+                color: 'text.primary',
+                borderBottom: '1px solid #e2e8f0',
+              }}
+            >
+              <Toolbar sx={{ justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <IconButton
+                    color="inherit"
+                    aria-label="open drawer"
+                    edge="start"
+                    onClick={handleDrawerToggle}
+                    sx={{ mr: 2, display: { sm: 'none' } }}
                   >
-                    Install PWA
-                  </Button>
-                )}
-              </Box>
-            </Toolbar>
-          </AppBar>
+                    <MenuIcon />
+                  </IconButton>
+                  <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
+                    {getPageTitle()}
+                  </Typography>
+                </Box>
 
-          {/* Active Screen Routes */}
-          <Box sx={{ flexGrow: 1 }}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/for-self" element={<ForSelfPage />} />
-              <Route path="/to-receive" element={<ToReceivePage />} />
-              <Route path="/entries" element={<Navigate to="/to-receive" replace />} />
-              <Route path="/to-pay" element={<ToPayPage />} />
-              <Route path="/borrowed" element={<Navigate to="/to-pay" replace />} />
-              <Route path="/members" element={<MembersPage />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  {/* PWA Install Button if available */}
+                  {installPrompt && (
+                    <Button
+                      variant="contained"
+                      size="small"
+                      startIcon={<GetAppIcon />}
+                      onClick={handleInstallClick}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Install PWA
+                    </Button>
+                  )}
+
+                  {/* Header Right Profile Icon & Menu */}
+                  <HeaderProfileMenu />
+                </Box>
+              </Toolbar>
+            </AppBar>
+
+            {/* Active Screen Routes */}
+            <Box sx={{ flexGrow: 1 }}>
+              <Routes>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/for-self" element={<ForSelfPage />} />
+                <Route path="/to-receive" element={<ToReceivePage />} />
+                <Route path="/entries" element={<Navigate to="/to-receive" replace />} />
+                <Route path="/to-pay" element={<ToPayPage />} />
+                <Route path="/borrowed" element={<Navigate to="/to-pay" replace />} />
+                <Route path="/members" element={<MembersPage />} />
+                <Route path="/profile" element={<ProfilePage />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </Box>
           </Box>
         </Box>
-      </Box>
+      </ProfileProvider>
     </ThemeProvider>
   );
 }

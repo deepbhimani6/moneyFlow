@@ -12,6 +12,7 @@ const entryRoutes = require('./routes/entryRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const toPayRoutes = require('./routes/toPayRoutes');
 const forSelfRoutes = require('./routes/forSelfRoutes');
+const profileRoutes = require('./routes/profileRoutes');
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use('/api/entries', entryRoutes);
 app.use('/api/to-pay', toPayRoutes);
 app.use('/api/for-self', forSelfRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/profile', profileRoutes);
 
 // Serve Frontend in production
 const frontendDist = path.join(__dirname, '../frontend/dist');

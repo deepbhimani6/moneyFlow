@@ -10,6 +10,7 @@ import {
   ListItemText,
   Typography,
   Divider,
+  Avatar,
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -17,6 +18,8 @@ import CallReceivedIcon from '@mui/icons-material/CallReceived';
 import PaymentIcon from '@mui/icons-material/Payment';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import PersonIcon from '@mui/icons-material/Person';
+import { useProfile } from '../context/ProfileContext';
 
 const drawerWidth = 240;
 
@@ -26,12 +29,14 @@ const menuItems = [
   { id: 'to-receive', path: '/to-receive', label: 'To Receive', icon: <CallReceivedIcon /> },
   { id: 'to-pay', path: '/to-pay', label: 'To Pay', icon: <PaymentIcon /> },
   { id: 'members', path: '/members', label: 'Members', icon: <PeopleAltIcon /> },
+  { id: 'profile', path: '/profile', label: 'Profile', icon: <PersonIcon /> },
 ];
 
 const Sidebar = ({ mobileOpen, onMobileClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
+  const { profile, initials } = useProfile();
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -95,6 +100,52 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
           );
         })}
       </List>
+
+      {/* User Profile Mini Footer */}
+      <Box sx={{ mt: 'auto', p: 1.5, borderTop: '1px solid #e2e8f0' }}>
+        <ListItemButton
+          selected={currentPath === '/profile'}
+          onClick={() => {
+            navigate('/profile');
+            if (onMobileClose) onMobileClose();
+          }}
+          sx={{
+            borderRadius: 2,
+            p: 1,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
+            border: currentPath === '/profile' ? '1.5px solid #1976d2' : '1.5px solid transparent',
+            backgroundColor: currentPath === '/profile' ? 'rgba(25, 118, 210, 0.08) !important' : 'transparent',
+            '&:hover': {
+              backgroundColor: 'rgba(25, 118, 210, 0.04)',
+            },
+          }}
+        >
+          <Avatar
+            src={profile?.avatarUrl || undefined}
+            alt={profile?.fullName || 'User'}
+            sx={{
+              width: 36,
+              height: 36,
+              bgcolor: profile?.avatarColor || 'primary.main',
+              color: '#ffffff',
+              fontSize: '0.875rem',
+              fontWeight: 700,
+            }}
+          >
+            {initials}
+          </Avatar>
+          <Box sx={{ overflow: 'hidden' }}>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.2 }} noWrap>
+              {profile?.fullName || 'Deep Bhimani'}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.72rem' }} noWrap>
+              {profile?.role || 'Account Owner'}
+            </Typography>
+          </Box>
+        </ListItemButton>
+      </Box>
     </Box>
   );
 
