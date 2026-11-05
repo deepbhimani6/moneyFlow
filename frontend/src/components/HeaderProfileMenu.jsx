@@ -14,6 +14,7 @@ import {
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { useProfile } from '../context/ProfileContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -59,8 +60,8 @@ const HeaderProfileMenu = () => {
           gap: 1,
           cursor: 'pointer',
           p: 0.5,
-          pl: 0.6,
-          pr: { xs: 0.6, md: 1.5 },
+          pl: 0.75,
+          pr: { xs: 0.75, md: 1.25 },
           borderRadius: '24px',
           transition: 'all 0.2s ease-in-out',
           backgroundColor: open ? 'rgba(25, 118, 210, 0.13)' : 'rgba(25, 118, 210, 0.07)',
@@ -125,7 +126,7 @@ const HeaderProfileMenu = () => {
           elevation: 6,
           sx: {
             mt: 1.2,
-            minWidth: 260,
+            width: 260,
             borderRadius: 2.5,
             border: '1px solid #e2e8f0',
             boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
@@ -148,24 +149,25 @@ const HeaderProfileMenu = () => {
           <Avatar
             alt={profile?.fullName || 'User'}
             sx={{
-              width: 48,
-              height: 48,
+              width: 44,
+              height: 44,
               bgcolor: profile?.avatarColor || 'primary.main',
               color: '#ffffff',
-              fontSize: '1.15rem',
+              fontSize: '1.05rem',
               fontWeight: 700,
               boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
               border: '2px solid #ffffff',
+              flexShrink: 0,
             }}
           >
             {initials}
           </Avatar>
-          <Box sx={{ overflow: 'hidden' }}>
+          <Box sx={{ overflow: 'hidden', flex: 1, minWidth: 0 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
-              {profile?.fullName || 'Deep Bhimani'}
+              {profile?.fullName || 'User'}
             </Typography>
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }} noWrap>
-              {profile?.email || 'deep.bhimani@shunyavkash.com'}
+              {profile?.email || 'user@example.com'}
             </Typography>
             <Chip
               label={profile?.role || 'Admin'}
@@ -189,18 +191,25 @@ const HeaderProfileMenu = () => {
           sx={{
             py: 1.2,
             px: 2,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             '&:hover': { bgcolor: 'rgba(25, 118, 210, 0.08)' },
           }}
         >
-          <ListItemIcon sx={{ color: 'primary.main', minWidth: 36 }}>
-            <PersonIcon fontSize="small" />
-          </ListItemIcon>
-          <ListItemText
-            primary="My Profile"
-            secondary="Manage account & profile"
-            primaryTypographyProps={{ fontWeight: 600, fontSize: '0.9rem' }}
-            secondaryTypographyProps={{ fontSize: '0.75rem' }}
-          />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1, minWidth: 0 }}>
+            <ListItemIcon sx={{ color: 'primary.main', minWidth: 'auto' }}>
+              <PersonIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText
+              primary="My Profile"
+              secondary="Manage account & profile"
+              primaryTypographyProps={{ fontWeight: 600, fontSize: '0.9rem' }}
+              secondaryTypographyProps={{ fontSize: '0.75rem' }}
+              sx={{ m: 0 }}
+            />
+          </Box>
+          <ChevronRightIcon sx={{ color: 'text.secondary', fontSize: 18, ml: 1, flexShrink: 0 }} />
         </MenuItem>
 
         <Divider />
@@ -210,16 +219,20 @@ const HeaderProfileMenu = () => {
           sx={{
             py: 1.2,
             px: 2,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.5,
             color: 'error.main',
             '&:hover': { bgcolor: 'rgba(211, 47, 47, 0.08)' },
           }}
         >
-          <ListItemIcon sx={{ color: 'error.main', minWidth: 36 }}>
+          <ListItemIcon sx={{ color: 'error.main', minWidth: 'auto' }}>
             <LogoutIcon fontSize="small" />
           </ListItemIcon>
           <ListItemText
             primary="Sign Out"
             primaryTypographyProps={{ fontWeight: 600, fontSize: '0.9rem', color: 'error.main' }}
+            sx={{ m: 0 }}
           />
         </MenuItem>
       </Menu>
