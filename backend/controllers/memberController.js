@@ -82,17 +82,25 @@ const getMembers = async (req, res) => {
     }
 
     const members = await Member.find({ $and: andConditions }).sort({ createdAt: -1 });
-    // Auto-heal and capitalize any member whose name in DB is not capitalized
-    for (const m of members) {
-      if (m.fullName) {
-        const capitalized = capitalizeName(m.fullName);
-        if (m.fullName !== capitalized) {
-          m.fullName = capitalized;
-          Member.updateOne({ _id: m._id }, { $set: { fullName: capitalized } }).exec();
-        }
+    const customNames = currentUser && currentUser.memberCustomNames ? currentUser.memberCustomNames : null;
+
+    const formattedMembers = members.map((m) => {
+      const mObj = m.toObject ? m.toObject() : { ...m };
+      let customName = null;
+      if (customNames) {
+        customName = typeof customNames.get === 'function'
+          ? customNames.get(m._id.toString())
+          : customNames[m._id.toString()];
       }
-    }
-    res.json({ success: true, count: members.length, data: members });
+      if (customName) {
+        mObj.fullName = capitalizeName(customName);
+      } else {
+        mObj.fullName = capitalizeName(mObj.fullName);
+      }
+      return mObj;
+    });
+
+    res.json({ success: true, count: formattedMembers.length, data: formattedMembers });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -146,9 +154,15 @@ const createMember = async (req, res) => {
       }
 
       // 2. Member already exists in app -> directly add to current user's members directory
-      await Member.findByIdAndUpdate(req.user._id, {
-        $addToSet: { members: existingMember._id },
-      });
+      const mIdStr = existingMember._id.toString();
+      if (!currentUser.members) currentUser.members = [];
+      if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
+      if (!currentUser.members.some((id) => String(id) === mIdStr)) {
+        currentUser.members.push(existingMember._id);
+      }
+      currentUser.memberCustomNames.set(mIdStr, formattedFullName);
+      await currentUser.save();
+
       // Reciprocal link so both members can see and split with each other
       await Member.findByIdAndUpdate(existingMember._id, {
         $addToSet: { members: req.user._id },
@@ -220,9 +234,17 @@ const createMember = async (req, res) => {
 
     // Automatically add newly created/invited member to current user's members directory
     if (req.user && req.user._id) {
-      await Member.findByIdAndUpdate(req.user._id, {
-        $addToSet: { members: member._id },
-      });
+      const currentUser = await Member.findById(req.user._id);
+      if (currentUser) {
+        if (!currentUser.members) currentUser.members = [];
+        if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
+        const newIdStr = member._id.toString();
+        if (!currentUser.members.some((id) => String(id) === newIdStr)) {
+          currentUser.members.push(member._id);
+        }
+        currentUser.memberCustomNames.set(newIdStr, formattedFullName);
+        await currentUser.save();
+      }
     }
 
     res.status(201).json({
@@ -255,7 +277,15 @@ const updateMember = async (req, res) => {
       });
     }
 
-    if (fullName !== undefined) member.fullName = capitalizeName(fullName);
+    if (fullName !== undefined) {
+      member.fullName = capitalizeName(fullName);
+      const currentUser = await Member.findById(req.user._id);
+      if (currentUser) {
+        if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
+        currentUser.memberCustomNames.set(member._id.toString(), capitalizeName(fullName));
+        await currentUser.save();
+      }
+    }
     if (phoneNumber !== undefined) member.phoneNumber = phoneNumber ? phoneNumber.trim() : '';
     if (email !== undefined) {
       const cleanEmail = email.trim().toLowerCase();

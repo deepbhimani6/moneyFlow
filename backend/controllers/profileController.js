@@ -80,22 +80,7 @@ const updateProfile = async (req, res) => {
 
     if (member) {
       if (fullName !== undefined) member.fullName = capitalizeName(fullName);
-      if (email !== undefined) {
-        const cleanEmail = email.trim().toLowerCase();
-        if (cleanEmail && cleanEmail !== (member.email || '').toLowerCase()) {
-          const existingEmail = await Member.findOne({
-            email: cleanEmail,
-            _id: { $ne: member._id },
-          });
-          if (existingEmail) {
-            return res.status(400).json({
-              success: false,
-              message: 'This email address already exists.',
-            });
-          }
-          member.email = cleanEmail;
-        }
-      }
+      // Personal email cannot be changed in profile page
       if (phoneNumber !== undefined) member.phoneNumber = phoneNumber.trim();
       if (username !== undefined) {
         const cleanUsername = username.trim();

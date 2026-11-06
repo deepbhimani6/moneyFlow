@@ -96,6 +96,12 @@ const memberSchema = new mongoose.Schema(
         ref: 'Member',
       },
     ],
+    // Custom names assigned to members in this user's personal member directory
+    memberCustomNames: {
+      type: Map,
+      of: String,
+      default: {},
+    },
   },
   { timestamps: true }
 );

@@ -103,13 +103,6 @@ const ProfilePage = () => {
       newErrors.fullName = 'Full name is required.';
     }
 
-    if (formData.email && formData.email.trim()) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email.trim())) {
-        newErrors.email = 'Please enter a valid email address.';
-      }
-    }
-
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -293,10 +286,12 @@ const ProfilePage = () => {
                   type="email"
                   label="Email Address"
                   value={formData.email}
-                  error={Boolean(errors.email)}
-                  helperText={errors.email || ''}
-                  onChange={(e) => handleChange('email', e.target.value)}
+                  disabled
+                  helperText="Personal email cannot be changed"
                   placeholder="e.g. john@example.com"
+                  InputProps={{
+                    readOnly: true,
+                  }}
                 />
               </Grid>
 
