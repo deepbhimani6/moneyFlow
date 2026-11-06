@@ -92,6 +92,7 @@ const register = async (req, res) => {
       password,
       avatarColor: '#1976d2',
       joinDate: new Date(),
+      hasLoggedIn: true,
     });
 
     await newMember.save();
@@ -193,6 +194,15 @@ const login = async (req, res) => {
         }
       }
       user.inviterLinked = true;
+      await user.save();
+    }
+
+    // When a member logs in for the first time, record their joinDate and mark as logged in
+    if (!user.hasLoggedIn || !user.joinDate) {
+      user.hasLoggedIn = true;
+      if (!user.joinDate) {
+        user.joinDate = new Date();
+      }
       await user.save();
     }
 

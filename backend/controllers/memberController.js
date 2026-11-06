@@ -156,7 +156,8 @@ const createMember = async (req, res) => {
       password: temporaryPassword, // pre-save hook in Member will hash it with bcrypt
       invitedBy: req.user ? req.user._id : null,
       createdBy: req.user ? req.user._id : null,
-      joinDate: new Date(),
+      joinDate: null,
+      hasLoggedIn: false,
     });
 
     // Check if invite link checkbox was checked
@@ -174,6 +175,9 @@ const createMember = async (req, res) => {
         member.inviteSent = true;
         member.lastInviteSentAt = new Date();
       }
+    } else {
+      member.inviteSent = false;
+      member.lastInviteSentAt = null;
     }
 
     await member.save();
@@ -447,6 +451,14 @@ const sendInviteToMember = async (req, res) => {
       });
     }
 
+    // Do not send invite if member has already joined the app
+    if (member.hasLoggedIn || member.joinDate) {
+      return res.status(400).json({
+        success: false,
+        message: `${member.fullName} has already joined the app.`,
+      });
+    }
+
     const appUrl = getAppUrl(req);
     let temporaryPassword = member.password;
     if (!temporaryPassword || temporaryPassword.startsWith('$2a$') || temporaryPassword.startsWith('$2b$')) {
@@ -488,15 +500,26 @@ const bulkInviteMembers = async (req, res) => {
     const members = await Member.find({ _id: { $in: ids } });
     const appUrl = getAppUrl(req);
     const missingEmailMembers = members.filter((m) => !m.email || !m.email.trim()).map((m) => m.fullName);
-    const validMembers = members.filter((m) => m.email && m.email.trim());
+    const alreadyJoinedMembers = members.filter((m) => m.hasLoggedIn || m.joinDate).map((m) => m.fullName);
+    const validMembers = members.filter((m) => m.email && m.email.trim() && !m.hasLoggedIn && !m.joinDate);
 
     if (validMembers.length === 0) {
+      if (alreadyJoinedMembers.length > 0 && missingEmailMembers.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Selected member(s) have already joined the app.',
+          sentCount: 0,
+          failedCount: 0,
+          alreadyJoinedMembers,
+        });
+      }
       return res.status(400).json({
         success: false,
-        message: 'Selected members do not have an email address.',
+        message: 'Selected members do not have an email address or have already joined.',
         sentCount: 0,
         failedCount: 0,
         missingEmailMembers,
+        alreadyJoinedMembers,
       });
     }
 

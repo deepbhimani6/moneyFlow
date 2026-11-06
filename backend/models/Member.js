@@ -44,7 +44,11 @@ const memberSchema = new mongoose.Schema(
     },
     joinDate: {
       type: Date,
-      default: Date.now,
+      default: null,
+    },
+    hasLoggedIn: {
+      type: Boolean,
+      default: false,
     },
     inviteSent: {
       type: Boolean,
@@ -52,6 +56,7 @@ const memberSchema = new mongoose.Schema(
     },
     lastInviteSentAt: {
       type: Date,
+      default: null,
     },
     resetPasswordToken: {
       type: String,

@@ -43,7 +43,8 @@ const resolveOrCreateMember = async (item, user) => {
       username: memberName.toLowerCase().replace(/[^a-z0-9]/g, ""),
       password: "",
       createdBy: user ? user._id : null,
-      joinDate: new Date(),
+      joinDate: null,
+      hasLoggedIn: false,
       inviteSent: false,
     });
   }

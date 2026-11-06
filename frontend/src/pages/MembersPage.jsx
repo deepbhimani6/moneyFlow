@@ -81,12 +81,14 @@ const MembersPage = () => {
       let aVal = a[orderBy];
       let bVal = b[orderBy];
 
-      if (orderBy === "joinDate" || orderBy === "createdAt") {
+      if (orderBy === "joinDate" || orderBy === "createdAt" || orderBy === "lastInviteSentAt") {
         aVal = new Date(a[orderBy] || 0).getTime();
         bVal = new Date(b[orderBy] || 0).getTime();
       } else if (orderBy === "inviteSent") {
-        aVal = a.inviteSent ? 1 : 0;
-        bVal = b.inviteSent ? 1 : 0;
+        const aStatus = (a.hasLoggedIn || a.joinDate) ? 2 : a.inviteSent ? 1 : 0;
+        const bStatus = (b.hasLoggedIn || b.joinDate) ? 2 : b.inviteSent ? 1 : 0;
+        aVal = aStatus;
+        bVal = bStatus;
       } else if (typeof aVal === "string") {
         aVal = (aVal || "").toLowerCase();
         bVal = (bVal || "").toLowerCase();
@@ -347,15 +349,26 @@ const MembersPage = () => {
     if (selectedIds.length === 0) return;
 
     const selectedMembers = members.filter((m) => selectedIds.includes(m._id));
-    const missingEmailMembers = selectedMembers.filter((m) => !m.email || !m.email.trim());
-    const validEmailMembers = selectedMembers.filter((m) => m.email && m.email.trim());
+    const alreadyJoinedMembers = selectedMembers.filter((m) => m.hasLoggedIn || m.joinDate);
+    const pendingMembers = selectedMembers.filter((m) => !m.hasLoggedIn && !m.joinDate);
+    const missingEmailMembers = pendingMembers.filter((m) => !m.email || !m.email.trim());
+    const validEmailMembers = pendingMembers.filter((m) => m.email && m.email.trim());
 
-    // Case 1: ALL selected members have no email set -> show prominent error popup
+    if (alreadyJoinedMembers.length > 0 && pendingMembers.length === 0) {
+      setSnackbar({
+        open: true,
+        message: "Selected member(s) have already joined the app.",
+        severity: "info",
+      });
+      return;
+    }
+
+    // Case 1: ALL selected pending members have no email set -> show prominent error popup
     if (missingEmailMembers.length > 0 && validEmailMembers.length === 0) {
       setInviteErrorDialog({
         open: true,
         title: "Cannot Send Invite Links",
-        message: `Invite links could not be sent because none of the ${selectedMembers.length} selected member(s) have an E-mail address set.`,
+        message: `Invite links could not be sent because none of the ${pendingMembers.length} selected pending member(s) have an E-mail address set.`,
         missingMembers: missingEmailMembers,
         validMembers: [],
         severity: "error",
@@ -368,7 +381,7 @@ const MembersPage = () => {
       setInviteErrorDialog({
         open: true,
         title: "Missing E-mail Warning",
-        message: `${missingEmailMembers.length} of the ${selectedMembers.length} selected member(s) do not have an E-mail address set and will be skipped.`,
+        message: `${missingEmailMembers.length} of the ${pendingMembers.length} selected member(s) do not have an E-mail address set and will be skipped.`,
         missingMembers: missingEmailMembers,
         validMembers: validEmailMembers,
         severity: "warning",
@@ -524,6 +537,17 @@ const MembersPage = () => {
                   </TableSortLabel>
                 </TableCell>
 
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "lastInviteSentAt" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "lastInviteSentAt"}
+                    direction={orderBy === "lastInviteSentAt" ? order : "asc"}
+                    onClick={() => handleRequestSort("lastInviteSentAt")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Invite Sent Date
+                  </TableSortLabel>
+                </TableCell>
+
                 <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "joinDate" ? order : false}>
                   <TableSortLabel
                     active={orderBy === "joinDate"}
@@ -554,25 +578,34 @@ const MembersPage = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                     <CircularProgress size={32} />
                   </TableCell>
                 </TableRow>
               ) : displayedMembers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
                     No members registered. Click <strong>Invite Members +</strong> to add one.
                   </TableCell>
                 </TableRow>
               ) : (
                 sortedMembers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                   const isSelected = selectedIds.includes(row._id);
-                  const formattedDate = formatDate(row.joinDate);
+                  const formattedInviteDate = row.lastInviteSentAt ? formatDate(row.lastInviteSentAt) : "—";
+                  const hasJoined = Boolean(row.hasLoggedIn || row.joinDate);
+                  const formattedJoinDate = hasJoined && row.joinDate ? formatDate(row.joinDate) : "—";
                   const isCurrent = isCurrentLoggedInUser(row, profile, user);
                   const disableDelete = isCurrent;
                   const deleteTooltip = isCurrent
                     ? "You cannot delete your own logged-in account"
                     : "Delete Member";
+
+                  const disableInvite = !row.email || sendingInviteId === row._id || hasJoined;
+                  const inviteTooltip = hasJoined
+                    ? "Member has already joined the app"
+                    : !row.email
+                    ? "No email available to send invite"
+                    : "Send App Invite Link";
 
                   return (
                     <TableRow
@@ -599,17 +632,38 @@ const MembersPage = () => {
                       <TableCell sx={{ whiteSpace: "nowrap", color: row.email ? "text.primary" : "text.secondary" }}>
                         {row.email || "—"}
                       </TableCell>
-                      <TableCell sx={{ whiteSpace: "nowrap" }}>{formattedDate}</TableCell>
-                      <TableCell sx={{ whiteSpace: "nowrap" }}>{row.inviteSent ? <Chip icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />} label="Invite Sent" size="small" color="success" variant="outlined" /> : <Chip label="Pending" size="small" variant="outlined" />}</TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>{formattedInviteDate}</TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>{formattedJoinDate}</TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        {hasJoined ? (
+                          <Chip
+                            icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />}
+                            label="Joined"
+                            size="small"
+                            color="success"
+                            variant="filled"
+                          />
+                        ) : row.inviteSent ? (
+                          <Chip
+                            icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />}
+                            label="Invite Sent"
+                            size="small"
+                            color="success"
+                            variant="outlined"
+                          />
+                        ) : (
+                          <Chip label="Pending" size="small" variant="outlined" />
+                        )}
+                      </TableCell>
                       <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
                         <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
-                          <Tooltip title={row.email ? "Send App Invite Link" : "No email available to send invite"}>
+                          <Tooltip title={inviteTooltip}>
                             <span>
                               <IconButton
                                 size="small"
                                 color="primary"
                                 onClick={() => handleSendInvite(row._id, row.email)}
-                                disabled={!row.email || sendingInviteId === row._id}
+                                disabled={disableInvite}
                               >
                                 {sendingInviteId === row._id ? (
                                   <CircularProgress size={16} color="primary" />
