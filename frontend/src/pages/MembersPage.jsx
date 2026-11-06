@@ -5,6 +5,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SendIcon from "@mui/icons-material/Send";
 import SearchIcon from "@mui/icons-material/Search";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
@@ -14,17 +15,31 @@ import { useAuth } from "../context/AuthContext";
 import InviteMemberModal from "../modals/InviteMemberModal";
 import EditMemberModal from "../modals/EditMemberModal";
 import DeleteConfirmModal from "../modals/DeleteConfirmModal";
+import MemberFilterModal from "../modals/MemberFilterModal";
 import { formatDate, formatAmount, capitalizeName, isCurrentLoggedInUser } from "../utils/formatters";
 
 const TABLE_RADIUS = 10;
+
+const initialFilters = {
+  selectedIds: [],
+  status: "All",
+  keyword: "",
+  inviteStartDate: "",
+  inviteEndDate: "",
+  joinStartDate: "",
+  joinEndDate: "",
+};
 
 const MembersPage = () => {
   const { profile } = useProfile();
   const { user } = useAuth();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
+
+  // Filter State
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState(initialFilters);
 
   // Modals
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -76,8 +91,75 @@ const MembersPage = () => {
     return members.filter((m) => !isCurrentLoggedInUser(m, profile, user));
   }, [members, profile, user]);
 
+  // Active filters count
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.selectedIds && filters.selectedIds.length > 0) count++;
+    if (filters.status && filters.status !== "All") count++;
+    if (filters.keyword && filters.keyword.trim()) count++;
+    if (filters.inviteStartDate || filters.inviteEndDate) count++;
+    if (filters.joinStartDate || filters.joinEndDate) count++;
+    return count;
+  }, [filters]);
+
+  // Filtered members by member dropdown, status, keyword, and date ranges
+  const filteredMembers = useMemo(() => {
+    return displayedMembers.filter((m) => {
+      // 1. Specific Members selection
+      if (filters.selectedIds && filters.selectedIds.length > 0) {
+        if (!filters.selectedIds.includes(m._id)) return false;
+      }
+      // 2. Status filter
+      if (filters.status && filters.status !== "All") {
+        const hasJoined = Boolean(m.hasLoggedIn || m.joinDate);
+        if (filters.status === "Joined" && !hasJoined) return false;
+        if (filters.status === "Invite Sent" && (hasJoined || !m.inviteSent)) return false;
+        if (filters.status === "Pending" && (hasJoined || m.inviteSent)) return false;
+      }
+      // 3. Keyword filter
+      if (filters.keyword && filters.keyword.trim()) {
+        const kw = filters.keyword.trim().toLowerCase();
+        const matches =
+          (m.fullName || "").toLowerCase().includes(kw) ||
+          (m.email || "").toLowerCase().includes(kw) ||
+          (m.phoneNumber || "").toLowerCase().includes(kw) ||
+          (m.username || "").toLowerCase().includes(kw);
+        if (!matches) return false;
+      }
+      // 4. Invite Sent Date range
+      if (filters.inviteStartDate) {
+        if (!m.lastInviteSentAt) return false;
+        const d = new Date(m.lastInviteSentAt).setHours(0, 0, 0, 0);
+        const start = new Date(filters.inviteStartDate).setHours(0, 0, 0, 0);
+        if (d < start) return false;
+      }
+      if (filters.inviteEndDate) {
+        if (!m.lastInviteSentAt) return false;
+        const d = new Date(m.lastInviteSentAt).setHours(23, 59, 59, 999);
+        const end = new Date(filters.inviteEndDate).setHours(23, 59, 59, 999);
+        if (d > end) return false;
+      }
+      // 5. Join Date range (First Login)
+      if (filters.joinStartDate) {
+        const hasJoined = Boolean(m.hasLoggedIn || m.joinDate);
+        if (!hasJoined || !m.joinDate) return false;
+        const d = new Date(m.joinDate).setHours(0, 0, 0, 0);
+        const start = new Date(filters.joinStartDate).setHours(0, 0, 0, 0);
+        if (d < start) return false;
+      }
+      if (filters.joinEndDate) {
+        const hasJoined = Boolean(m.hasLoggedIn || m.joinDate);
+        if (!hasJoined || !m.joinDate) return false;
+        const d = new Date(m.joinDate).setHours(23, 59, 59, 999);
+        const end = new Date(filters.joinEndDate).setHours(23, 59, 59, 999);
+        if (d > end) return false;
+      }
+      return true;
+    });
+  }, [displayedMembers, filters]);
+
   const sortedMembers = useMemo(() => {
-    return [...displayedMembers].sort((a, b) => {
+    return [...filteredMembers].sort((a, b) => {
       let aVal = a[orderBy];
       let bVal = b[orderBy];
 
@@ -98,7 +180,7 @@ const MembersPage = () => {
       if (aVal > bVal) return order === "asc" ? 1 : -1;
       return 0;
     });
-  }, [displayedMembers, order, orderBy]);
+  }, [filteredMembers, order, orderBy]);
 
   // Snackbar
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
@@ -106,7 +188,7 @@ const MembersPage = () => {
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      const res = await memberService.getMembers(search);
+      const res = await memberService.getMembers();
       if (res.success) {
         setMembers(res.data);
       }
@@ -120,17 +202,17 @@ const MembersPage = () => {
 
   useEffect(() => {
     fetchMembers();
-  }, [search]);
+  }, []);
 
   useEffect(() => {
-    if (page > 0 && page * rowsPerPage >= displayedMembers.length) {
-      setPage(Math.max(0, Math.ceil(displayedMembers.length / rowsPerPage) - 1));
+    if (page > 0 && page * rowsPerPage >= filteredMembers.length) {
+      setPage(Math.max(0, Math.ceil(filteredMembers.length / rowsPerPage) - 1));
     }
-  }, [displayedMembers.length, page, rowsPerPage]);
+  }, [filteredMembers.length, page, rowsPerPage]);
 
   const selectableMembers = useMemo(() => {
-    return displayedMembers;
-  }, [displayedMembers]);
+    return filteredMembers;
+  }, [filteredMembers]);
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
@@ -417,27 +499,64 @@ const MembersPage = () => {
         </Typography>
 
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
-          <TextField
+          {/* Filter Button */}
+          <Button
+            variant="outlined"
+            startIcon={<FilterListIcon />}
+            onClick={() => setIsFilterOpen(true)}
             size="small"
-            placeholder="Search members..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              borderRadius: 2,
+              px: 2,
+              py: 0.8,
+              borderColor: activeFiltersCount > 0 ? "primary.main" : "#d0d5dd",
+              color: activeFiltersCount > 0 ? "primary.main" : "#344054",
+              bgcolor: activeFiltersCount > 0 ? "rgba(25, 118, 210, 0.08)" : "transparent",
             }}
-          />
+          >
+            Filter{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}
+          </Button>
 
           {/* Invite Members Button */}
-          <Button variant="contained" startIcon={<PersonAddIcon />} onClick={() => setIsInviteOpen(true)} size="small">
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<PersonAddIcon />}
+            onClick={() => setIsInviteOpen(true)}
+            size="small"
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              borderRadius: 2,
+              px: 2,
+              py: 0.8,
+              boxShadow: "none",
+              whiteSpace: "nowrap",
+            }}
+          >
             Invite Members
           </Button>
 
           {/* Bulk Actions Button */}
-          <Button variant="outlined" color="secondary" disabled={selectedIds.length === 0} onClick={(e) => setBulkAnchorEl(e.currentTarget)} size="small">
+          <Button
+            variant="outlined"
+            color="inherit"
+            disabled={selectedIds.length === 0}
+            onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+            size="small"
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              borderRadius: 2,
+              px: 2,
+              py: 0.8,
+              borderColor: "#d0d5dd",
+              color: "#344054",
+              whiteSpace: "nowrap",
+            }}
+          >
             Bulk Actions ({selectedIds.length})
           </Button>
 
@@ -582,10 +701,14 @@ const MembersPage = () => {
                     <CircularProgress size={32} />
                   </TableCell>
                 </TableRow>
-              ) : displayedMembers.length === 0 ? (
+              ) : filteredMembers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
-                    No members registered. Click <strong>Invite Members +</strong> to add one.
+                    {displayedMembers.length === 0 ? (
+                      <span>No members registered. Click <strong>Invite Members +</strong> to add one.</span>
+                    ) : (
+                      "No members match the selected filter criteria."
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -708,7 +831,7 @@ const MembersPage = () => {
           <TablePagination
             rowsPerPageOptions={[5, 10, 20, 50, 100]}
             component="div"
-            count={displayedMembers.length}
+            count={filteredMembers.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={(e, newPage) => setPage(newPage)}
@@ -730,6 +853,17 @@ const MembersPage = () => {
       </Paper>
 
       {/* Modals */}
+      <MemberFilterModal
+        open={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        title="Filter Members"
+        entityLabel="Members"
+        items={displayedMembers}
+        currentFilters={filters}
+        onApplyFilters={(newFilters) => setFilters(newFilters)}
+        onResetFilters={() => setFilters(initialFilters)}
+      />
+
       <InviteMemberModal
         open={isInviteOpen}
         existingMembers={members}

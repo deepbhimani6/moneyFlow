@@ -34,11 +34,10 @@ import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import SendIcon from "@mui/icons-material/Send";
-import SearchIcon from "@mui/icons-material/Search";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 
 import { userService } from "../services/api";
 import { useProfile } from "../context/ProfileContext";
@@ -46,9 +45,20 @@ import { useAuth } from "../context/AuthContext";
 import InviteMemberModal from "../modals/InviteMemberModal";
 import EditMemberModal from "../modals/EditMemberModal";
 import DeleteConfirmModal from "../modals/DeleteConfirmModal";
+import MemberFilterModal from "../modals/MemberFilterModal";
 import { formatDate, formatAmount, capitalizeName, isCurrentLoggedInUser } from "../utils/formatters";
 
 const TABLE_RADIUS = 10;
+
+const initialFilters = {
+  selectedIds: [],
+  status: "All",
+  keyword: "",
+  inviteStartDate: "",
+  inviteEndDate: "",
+  joinStartDate: "",
+  joinEndDate: "",
+};
 
 const UsersPage = () => {
   const { profile } = useProfile();
@@ -60,8 +70,11 @@ const UsersPage = () => {
   // State
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
   const [selectedIds, setSelectedIds] = useState([]);
+
+  // Filter State
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState(initialFilters);
 
   // Modals
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -114,8 +127,75 @@ const UsersPage = () => {
     return users.filter((u) => !isCurrentLoggedInUser(u, profile, user));
   }, [users, profile, user]);
 
+  // Active filters count
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.selectedIds && filters.selectedIds.length > 0) count++;
+    if (filters.status && filters.status !== "All") count++;
+    if (filters.keyword && filters.keyword.trim()) count++;
+    if (filters.inviteStartDate || filters.inviteEndDate) count++;
+    if (filters.joinStartDate || filters.joinEndDate) count++;
+    return count;
+  }, [filters]);
+
+  // Filtered users by user dropdown, status, keyword, and date ranges
+  const filteredUsers = useMemo(() => {
+    return displayedUsers.filter((u) => {
+      // 1. Specific Users selection
+      if (filters.selectedIds && filters.selectedIds.length > 0) {
+        if (!filters.selectedIds.includes(u._id)) return false;
+      }
+      // 2. Status filter
+      if (filters.status && filters.status !== "All") {
+        const hasJoined = Boolean(u.hasLoggedIn || u.joinDate);
+        if (filters.status === "Joined" && !hasJoined) return false;
+        if (filters.status === "Invite Sent" && (hasJoined || !u.inviteSent)) return false;
+        if (filters.status === "Pending" && (hasJoined || u.inviteSent)) return false;
+      }
+      // 3. Keyword filter
+      if (filters.keyword && filters.keyword.trim()) {
+        const kw = filters.keyword.trim().toLowerCase();
+        const matches =
+          (u.fullName || "").toLowerCase().includes(kw) ||
+          (u.email || "").toLowerCase().includes(kw) ||
+          (u.phoneNumber || "").toLowerCase().includes(kw) ||
+          (u.username || "").toLowerCase().includes(kw);
+        if (!matches) return false;
+      }
+      // 4. Invite Sent Date range
+      if (filters.inviteStartDate) {
+        if (!u.lastInviteSentAt) return false;
+        const d = new Date(u.lastInviteSentAt).setHours(0, 0, 0, 0);
+        const start = new Date(filters.inviteStartDate).setHours(0, 0, 0, 0);
+        if (d < start) return false;
+      }
+      if (filters.inviteEndDate) {
+        if (!u.lastInviteSentAt) return false;
+        const d = new Date(u.lastInviteSentAt).setHours(23, 59, 59, 999);
+        const end = new Date(filters.inviteEndDate).setHours(23, 59, 59, 999);
+        if (d > end) return false;
+      }
+      // 5. Join Date range (First Login)
+      if (filters.joinStartDate) {
+        const hasJoined = Boolean(u.hasLoggedIn || u.joinDate);
+        if (!hasJoined || !u.joinDate) return false;
+        const d = new Date(u.joinDate).setHours(0, 0, 0, 0);
+        const start = new Date(filters.joinStartDate).setHours(0, 0, 0, 0);
+        if (d < start) return false;
+      }
+      if (filters.joinEndDate) {
+        const hasJoined = Boolean(u.hasLoggedIn || u.joinDate);
+        if (!hasJoined || !u.joinDate) return false;
+        const d = new Date(u.joinDate).setHours(23, 59, 59, 999);
+        const end = new Date(filters.joinEndDate).setHours(23, 59, 59, 999);
+        if (d > end) return false;
+      }
+      return true;
+    });
+  }, [displayedUsers, filters]);
+
   const sortedUsers = useMemo(() => {
-    return [...displayedUsers].sort((a, b) => {
+    return [...filteredUsers].sort((a, b) => {
       let aVal = a[orderBy];
       let bVal = b[orderBy];
 
@@ -136,7 +216,7 @@ const UsersPage = () => {
       if (aVal > bVal) return order === "asc" ? 1 : -1;
       return 0;
     });
-  }, [displayedUsers, order, orderBy]);
+  }, [filteredUsers, order, orderBy]);
 
   // Snackbar
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
@@ -144,7 +224,7 @@ const UsersPage = () => {
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const res = await userService.getUsers(search);
+      const res = await userService.getUsers();
       if (res.success) {
         setUsers(res.data);
       }
@@ -160,17 +240,17 @@ const UsersPage = () => {
     if (isAdmin) {
       fetchUsers();
     }
-  }, [search, isAdmin]);
+  }, [isAdmin]);
 
   useEffect(() => {
-    if (page > 0 && page * rowsPerPage >= displayedUsers.length) {
-      setPage(Math.max(0, Math.ceil(displayedUsers.length / rowsPerPage) - 1));
+    if (page > 0 && page * rowsPerPage >= filteredUsers.length) {
+      setPage(Math.max(0, Math.ceil(filteredUsers.length / rowsPerPage) - 1));
     }
-  }, [displayedUsers.length, page, rowsPerPage]);
+  }, [filteredUsers.length, page, rowsPerPage]);
 
   const selectableUsers = useMemo(() => {
-    return displayedUsers;
-  }, [displayedUsers]);
+    return filteredUsers;
+  }, [filteredUsers]);
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
@@ -448,59 +528,35 @@ const UsersPage = () => {
           display: "flex",
           flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
-          alignItems: { xs: "stretch", sm: "center" },
+          alignItems: { xs: "flex-start", sm: "center" },
           gap: 2,
           mb: 3,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Box
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+          Users
+        </Typography>
+
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
+          {/* Filter Button */}
+          <Button
+            variant="outlined"
+            startIcon={<FilterListIcon />}
+            onClick={() => setIsFilterOpen(true)}
+            size="small"
             sx={{
-              width: 40,
-              height: 40,
+              textTransform: "none",
+              fontWeight: 600,
               borderRadius: 2,
-              bgcolor: "primary.main",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#ffffff",
-              boxShadow: "0 2px 8px rgba(25, 118, 210, 0.28)",
+              px: 2,
+              py: 0.8,
+              borderColor: activeFiltersCount > 0 ? "primary.main" : "#d0d5dd",
+              color: activeFiltersCount > 0 ? "primary.main" : "#344054",
+              bgcolor: activeFiltersCount > 0 ? "rgba(25, 118, 210, 0.08)" : "transparent",
             }}
           >
-            <AdminPanelSettingsIcon sx={{ fontSize: 24 }} />
-          </Box>
-          <Box>
-            <Typography variant="h5" sx={{ fontWeight: 700, letterSpacing: "-0.5px" }}>
-              Users
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Admin Portal • Manage all registered accounts and app access
-            </Typography>
-          </Box>
-        </Box>
-
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
-          {/* Search Field */}
-          <TextField
-            size="small"
-            placeholder="Search users..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" sx={{ color: "text.secondary" }} />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              width: { xs: "100%", sm: 240 },
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 2,
-                backgroundColor: "background.paper",
-              },
-            }}
-          />
+            Filter{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}
+          </Button>
 
           {/* Invite User Button */}
           <Button
@@ -508,6 +564,7 @@ const UsersPage = () => {
             color="primary"
             startIcon={<PersonAddIcon />}
             onClick={() => setIsInviteOpen(true)}
+            size="small"
             sx={{
               textTransform: "none",
               fontWeight: 600,
@@ -527,6 +584,7 @@ const UsersPage = () => {
             color="inherit"
             disabled={selectedIds.length === 0}
             onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+            size="small"
             sx={{
               textTransform: "none",
               fontWeight: 600,
@@ -684,10 +742,14 @@ const UsersPage = () => {
                     <CircularProgress size={32} />
                   </TableCell>
                 </TableRow>
-              ) : displayedUsers.length === 0 ? (
+              ) : filteredUsers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
-                    No users registered. Click <strong>Invite Users +</strong> to add one.
+                    {displayedUsers.length === 0 ? (
+                      <span>No users registered. Click <strong>Invite Users +</strong> to add one.</span>
+                    ) : (
+                      "No users match the selected filter criteria."
+                    )}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -810,7 +872,7 @@ const UsersPage = () => {
           <TablePagination
             rowsPerPageOptions={[5, 10, 20, 50, 100]}
             component="div"
-            count={displayedUsers.length}
+            count={filteredUsers.length}
             rowsPerPage={rowsPerPage}
             page={page}
             onPageChange={(e, newPage) => setPage(newPage)}
@@ -832,6 +894,17 @@ const UsersPage = () => {
       </Paper>
 
       {/* Modals */}
+      <MemberFilterModal
+        open={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        title="Filter Users"
+        entityLabel="Users"
+        items={displayedUsers}
+        currentFilters={filters}
+        onApplyFilters={(newFilters) => setFilters(newFilters)}
+        onResetFilters={() => setFilters(initialFilters)}
+      />
+
       <InviteMemberModal
         open={isInviteOpen}
         onClose={() => setIsInviteOpen(false)}
