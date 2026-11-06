@@ -34,6 +34,7 @@ const MemberFilterModal = ({
   entityLabel = "Members",
   items = [],
   currentFilters = defaultFilters,
+  hideInviteDate = false,
   onApplyFilters,
   onResetFilters,
 }) => {
@@ -109,11 +110,11 @@ const MemberFilterModal = ({
 
         {/* 2. Status Filter */}
         <FormControl fullWidth>
-          <InputLabel id="filter-status-label">Invite Status</InputLabel>
+          <InputLabel id="filter-status-label">{entityLabel === "Users" ? "Status" : "Invite Status"}</InputLabel>
           <Select
             labelId="filter-status-label"
             value={filters.status || "All"}
-            label="Invite Status"
+            label={entityLabel === "Users" ? "Status" : "Invite Status"}
             onChange={(e) => handleChange("status", e.target.value)}
           >
             <MenuItem value="All">All Statuses</MenuItem>
@@ -133,29 +134,31 @@ const MemberFilterModal = ({
         />
 
         {/* 4. Invite Sent Date Range */}
-        <Box>
-          <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5, display: "block" }}>
-            Invite Sent Date Range
-          </Typography>
-          <Box sx={{ display: "flex", gap: 1.5 }}>
-            <TextField
-              label="From Date"
-              type="date"
-              value={filters.inviteStartDate || ""}
-              onChange={(e) => handleChange("inviteStartDate", e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-            />
-            <TextField
-              label="To Date"
-              type="date"
-              value={filters.inviteEndDate || ""}
-              onChange={(e) => handleChange("inviteEndDate", e.target.value)}
-              InputLabelProps={{ shrink: true }}
-              fullWidth
-            />
+        {!hideInviteDate && (
+          <Box>
+            <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5, display: "block" }}>
+              Invite Sent Date Range
+            </Typography>
+            <Box sx={{ display: "flex", gap: 1.5 }}>
+              <TextField
+                label="From Date"
+                type="date"
+                value={filters.inviteStartDate || ""}
+                onChange={(e) => handleChange("inviteStartDate", e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+              <TextField
+                label="To Date"
+                type="date"
+                value={filters.inviteEndDate || ""}
+                onChange={(e) => handleChange("inviteEndDate", e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+              />
+            </Box>
           </Box>
-        </Box>
+        )}
 
         {/* 5. Join Date Range */}
         <Box>

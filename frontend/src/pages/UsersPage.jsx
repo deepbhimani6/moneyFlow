@@ -112,7 +112,6 @@ const UsersPage = () => {
     if (filters.selectedIds && filters.selectedIds.length > 0) count++;
     if (filters.status && filters.status !== "All") count++;
     if (filters.keyword && filters.keyword.trim()) count++;
-    if (filters.inviteStartDate || filters.inviteEndDate) count++;
     if (filters.joinStartDate || filters.joinEndDate) count++;
     return count;
   }, [filters]);
@@ -141,20 +140,7 @@ const UsersPage = () => {
           (u.username || "").toLowerCase().includes(kw);
         if (!matches) return false;
       }
-      // 4. Invite Sent Date range
-      if (filters.inviteStartDate) {
-        if (!u.lastInviteSentAt) return false;
-        const d = new Date(u.lastInviteSentAt).setHours(0, 0, 0, 0);
-        const start = new Date(filters.inviteStartDate).setHours(0, 0, 0, 0);
-        if (d < start) return false;
-      }
-      if (filters.inviteEndDate) {
-        if (!u.lastInviteSentAt) return false;
-        const d = new Date(u.lastInviteSentAt).setHours(23, 59, 59, 999);
-        const end = new Date(filters.inviteEndDate).setHours(23, 59, 59, 999);
-        if (d > end) return false;
-      }
-      // 5. Join Date range (First Login)
+      // 4. Join Date range (First Login)
       if (filters.joinStartDate) {
         const hasJoined = Boolean(u.hasLoggedIn || u.joinDate);
         if (!hasJoined || !u.joinDate) return false;
@@ -178,7 +164,7 @@ const UsersPage = () => {
       let aVal = a[orderBy];
       let bVal = b[orderBy];
 
-      if (orderBy === "joinDate" || orderBy === "createdAt" || orderBy === "lastInviteSentAt") {
+      if (orderBy === "joinDate" || orderBy === "createdAt") {
         aVal = new Date(a[orderBy] || 0).getTime();
         bVal = new Date(b[orderBy] || 0).getTime();
       } else if (orderBy === "inviteSent") {
@@ -517,17 +503,6 @@ const UsersPage = () => {
                   </TableSortLabel>
                 </TableCell>
 
-                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "lastInviteSentAt" ? order : false}>
-                  <TableSortLabel
-                    active={orderBy === "lastInviteSentAt"}
-                    direction={orderBy === "lastInviteSentAt" ? order : "asc"}
-                    onClick={() => handleRequestSort("lastInviteSentAt")}
-                    sx={{ fontWeight: 600 }}
-                  >
-                    Invite Sent Date
-                  </TableSortLabel>
-                </TableCell>
-
                 <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "joinDate" ? order : false}>
                   <TableSortLabel
                     active={orderBy === "joinDate"}
@@ -559,13 +534,13 @@ const UsersPage = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                     <CircularProgress size={32} />
                   </TableCell>
                 </TableRow>
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
                     {displayedUsers.length === 0 ? (
                       "No users registered."
                     ) : (
@@ -576,7 +551,6 @@ const UsersPage = () => {
               ) : (
                 sortedUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                   const isSelected = selectedIds.includes(row._id);
-                  const formattedInviteDate = row.lastInviteSentAt ? formatDate(row.lastInviteSentAt) : "—";
                   const hasJoined = Boolean(row.hasLoggedIn || row.joinDate);
                   const formattedJoinDate = hasJoined && row.joinDate ? formatDate(row.joinDate) : "—";
                   const isCurrent = isCurrentLoggedInUser(row, profile, user);
@@ -610,7 +584,6 @@ const UsersPage = () => {
                       <TableCell sx={{ whiteSpace: "nowrap", color: row.email ? "text.primary" : "text.secondary" }}>
                         {row.email || "—"}
                       </TableCell>
-                      <TableCell sx={{ whiteSpace: "nowrap" }}>{formattedInviteDate}</TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>{formattedJoinDate}</TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>
                         {hasJoined ? (
@@ -698,6 +671,7 @@ const UsersPage = () => {
         entityLabel="Users"
         items={displayedUsers}
         currentFilters={filters}
+        hideInviteDate={true}
         onApplyFilters={(newFilters) => setFilters(newFilters)}
         onResetFilters={() => setFilters(initialFilters)}
       />

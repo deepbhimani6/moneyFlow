@@ -103,7 +103,7 @@ const getMembers = async (req, res) => {
         mObj.fullName = capitalizeName(mObj.fullName);
       }
 
-      // 2. Invite Sent Date: only show if the CURRENT USER actually invited this member
+      // 2. Invite Sent Date: only show if the CURRENT USER actually invited this member in this relationship
       let callerInviteDate = null;
       if (inviteDates) {
         callerInviteDate = typeof inviteDates.get === 'function'
@@ -111,14 +111,9 @@ const getMembers = async (req, res) => {
           : inviteDates[mIdStr];
       }
 
-      const wasInvitedByCaller = Boolean(m.invitedBy && m.invitedBy.toString() === currentUserIdStr);
-
       if (callerInviteDate) {
         mObj.lastInviteSentAt = callerInviteDate;
         mObj.inviteSent = true;
-      } else if (wasInvitedByCaller && m.lastInviteSentAt) {
-        mObj.lastInviteSentAt = m.lastInviteSentAt;
-        mObj.inviteSent = Boolean(m.inviteSent);
       } else {
         // Current user did NOT send an invite to this member -> do not show invite sent date
         mObj.lastInviteSentAt = null;
@@ -191,6 +186,14 @@ const createMember = async (req, res) => {
         currentUser.members.push(existingMember._id);
       }
       currentUser.memberCustomNames.set(mIdStr, formattedFullName);
+      // Ensure any stale invite date for this member is wiped for this user
+      if (currentUser.memberInviteDates) {
+        if (typeof currentUser.memberInviteDates.delete === 'function') {
+          currentUser.memberInviteDates.delete(mIdStr);
+        } else {
+          delete currentUser.memberInviteDates[mIdStr];
+        }
+      }
       await currentUser.save();
 
       // Reciprocal link so both members can see and split with each other
@@ -477,9 +480,19 @@ const deleteMember = async (req, res) => {
     const hasLoggedInAtLeastOnce = Boolean(member.hasLoggedIn || member.joinDate);
 
     // Only remove from this specific user's members directory (does not delete full user account)
-    await Member.findByIdAndUpdate(req.user._id, {
-      $pull: { members: member._id },
-    });
+    const currentUser = await Member.findById(req.user._id);
+    if (currentUser) {
+      if (currentUser.members) {
+        currentUser.members = currentUser.members.filter((id) => String(id) !== String(member._id));
+      }
+      if (currentUser.memberCustomNames && typeof currentUser.memberCustomNames.delete === 'function') {
+        currentUser.memberCustomNames.delete(String(member._id));
+      }
+      if (currentUser.memberInviteDates && typeof currentUser.memberInviteDates.delete === 'function') {
+        currentUser.memberInviteDates.delete(String(member._id));
+      }
+      await currentUser.save();
+    }
 
     res.json({
       success: true,
@@ -509,9 +522,22 @@ const bulkDeleteMembers = async (req, res) => {
     );
 
     // Only remove from this specific user's members list (does not delete full user account)
-    await Member.findByIdAndUpdate(req.user._id, {
-      $pull: { members: { $in: validIds } },
-    });
+    const currentUser = await Member.findById(req.user._id);
+    if (currentUser) {
+      const validStrSet = new Set(validIds.map((id) => String(id)));
+      if (currentUser.members) {
+        currentUser.members = currentUser.members.filter((id) => !validStrSet.has(String(id)));
+      }
+      validStrSet.forEach((vId) => {
+        if (currentUser.memberCustomNames && typeof currentUser.memberCustomNames.delete === 'function') {
+          currentUser.memberCustomNames.delete(vId);
+        }
+        if (currentUser.memberInviteDates && typeof currentUser.memberInviteDates.delete === 'function') {
+          currentUser.memberInviteDates.delete(vId);
+        }
+      });
+      await currentUser.save();
+    }
 
     res.json({
       success: true,
