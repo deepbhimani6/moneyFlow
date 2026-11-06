@@ -8,6 +8,8 @@ import {
   Toolbar,
   Typography,
   Button,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import GetAppIcon from '@mui/icons-material/GetApp';
@@ -91,7 +93,13 @@ function MainAppLayout() {
             borderBottom: '1px solid #e2e8f0',
           }}
         >
-          <Toolbar sx={{ justifyContent: 'space-between' }}>
+          <Toolbar
+            sx={{
+              justifyContent: 'space-between',
+              px: { xs: 1.5, sm: 2.5 },
+              minHeight: { xs: 56, sm: 64 },
+            }}
+          >
             {/* Logo on responsive (where page name used to be) */}
             <Box
               onClick={() => navigate('/dashboard')}
@@ -101,6 +109,8 @@ function MainAppLayout() {
                 gap: 1.25,
                 cursor: 'pointer',
                 userSelect: 'none',
+                minWidth: 0,
+                flexShrink: 0,
               }}
             >
               <Box
@@ -124,8 +134,9 @@ function MainAppLayout() {
                 sx={{
                   fontWeight: 800,
                   letterSpacing: '-0.5px',
-                  fontSize: '1.15rem',
+                  fontSize: { xs: '1.05rem', sm: '1.15rem' },
                   color: '#1e293b',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 MoneyFlow
@@ -135,18 +146,51 @@ function MainAppLayout() {
             {/* Desktop spacer: page title removed on all pages */}
             <Box sx={{ display: { xs: 'none', lg: 'block' } }} />
 
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 }, flexShrink: 0 }}>
               {/* PWA Install Button if available */}
               {installPrompt && (
-                <Button
-                  variant="contained"
-                  size="small"
-                  startIcon={<GetAppIcon />}
-                  onClick={handleInstallClick}
-                  sx={{ textTransform: 'none' }}
-                >
-                  Install PWA
-                </Button>
+                <>
+                  {/* Mobile Compact Icon Button */}
+                  <Tooltip title="Install App">
+                    <IconButton
+                      color="primary"
+                      onClick={handleInstallClick}
+                      aria-label="Install App"
+                      sx={{
+                        display: { xs: 'inline-flex', sm: 'none' },
+                        bgcolor: 'primary.main',
+                        color: '#ffffff',
+                        width: 36,
+                        height: 36,
+                        borderRadius: 2,
+                        '&:hover': { bgcolor: 'primary.dark' },
+                        boxShadow: '0 2px 6px rgba(25, 118, 210, 0.28)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      <GetAppIcon sx={{ fontSize: 20 }} />
+                    </IconButton>
+                  </Tooltip>
+
+                  {/* Tablet & Desktop Button with Text */}
+                  <Button
+                    variant="contained"
+                    size="small"
+                    startIcon={<GetAppIcon />}
+                    onClick={handleInstallClick}
+                    sx={{
+                      display: { xs: 'none', sm: 'inline-flex' },
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      whiteSpace: 'nowrap',
+                      borderRadius: 2,
+                      boxShadow: '0 2px 6px rgba(25, 118, 210, 0.28)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    Install App
+                  </Button>
+                </>
               )}
 
               {/* Notification Bell */}
