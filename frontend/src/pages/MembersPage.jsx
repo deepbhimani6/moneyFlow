@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, IconButton, Menu, MenuItem, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TableSortLabel, Dialog, DialogTitle, DialogContent, DialogActions, Divider, Fab, Stack, Avatar } from "@mui/material";
+import { Box, Typography, Button, Paper, Checkbox, Chip, IconButton, Menu, MenuItem, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Divider, Fab, Stack, Avatar } from "@mui/material";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -541,14 +541,45 @@ const MembersPage = () => {
           bgcolor: "background.paper",
         }}
       >
-        {/* Mobile-First Card View (Screens < 768px) */}
-        <Box sx={{ display: { xs: "block", md: "none" } }}>
+        {/* Card UI for All Screens */}
+        <Box>
+          {/* Subheader Toolbar with Select All */}
+          <Box
+            sx={{
+              px: { xs: 2, sm: 2.5 },
+              py: 1.5,
+              bgcolor: "#f8fafc",
+              borderBottom: "1px solid #e2e8f0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Checkbox
+                indeterminate={isIndeterminate}
+                checked={isAllSelected}
+                onChange={handleSelectAll}
+                size="small"
+                sx={{ p: 0.25 }}
+              />
+              <Typography variant="body2" sx={{ fontWeight: 600, color: "#475467" }}>
+                Select All ({selectableMembers.length})
+              </Typography>
+            </Box>
+            {selectedIds.length > 0 && (
+              <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main" }}>
+                {selectedIds.length} selected
+              </Typography>
+            )}
+          </Box>
+
           {loading ? (
             <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
               <CircularProgress size={32} />
             </Box>
           ) : filteredMembers.length === 0 ? (
-            <Box sx={{ p: 4, textAlign: "center" }}>
+            <Box sx={{ p: 6, textAlign: "center" }}>
               <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
                 No members found
               </Typography>
@@ -557,7 +588,7 @@ const MembersPage = () => {
               </Typography>
             </Box>
           ) : (
-            <Stack spacing={1.5} sx={{ p: 1.5 }}>
+            <Stack spacing={1.5} sx={{ p: { xs: 1.5, sm: 2 } }}>
               {sortedMembers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
                 const isSelected = selectedIds.includes(row._id);
                 const formattedInviteDate = row.lastInviteSentAt ? formatDate(row.lastInviteSentAt) : "—";
@@ -568,18 +599,22 @@ const MembersPage = () => {
                 const deleteTooltip = isCurrent ? "You cannot delete your own logged-in account" : "Delete Member";
                 const disableInvite = !row.email || sendingInviteId === row._id || hasJoined;
                 const inviteTooltip = hasJoined ? "Member has already joined the app" : !row.email ? "No email available to send invite" : "Send App Invite Link";
+                const totalMoney = Math.abs((row.pendingReceiveAmount || 0) - (row.pendingPayAmount || 0));
 
                 return (
                   <Paper
                     key={row._id}
                     elevation={0}
                     sx={{
-                      p: 2,
+                      p: { xs: 2, sm: 2.25 },
                       borderRadius: 3,
                       border: isSelected ? "2px solid #1976d2" : "1px solid #e2e8f0",
                       bgcolor: isSelected ? "rgba(25, 118, 210, 0.03)" : "#ffffff",
                       transition: "all 0.15s ease",
                       boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                      "&:hover": {
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                      },
                     }}
                   >
                     <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 1 }}>
@@ -592,7 +627,7 @@ const MembersPage = () => {
                             sx={{ p: 0.25 }}
                           />
                         )}
-                        <Avatar sx={{ width: 34, height: 34, bgcolor: "#1976d2", fontSize: "0.85rem", fontWeight: 700, flexShrink: 0 }}>
+                        <Avatar sx={{ width: 36, height: 36, bgcolor: "#1976d2", fontSize: "0.9rem", fontWeight: 700, flexShrink: 0 }}>
                           {(row.fullName || "M")[0].toUpperCase()}
                         </Avatar>
                         <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
@@ -651,14 +686,14 @@ const MembersPage = () => {
                       )}
                     </Box>
 
-                    {/* Financial pending balances */}
+                    {/* Financial pending balances & Total Money */}
                     <Box
                       onClick={() => navigate(`/members/${row._id}`)}
                       sx={{
                         display: "grid",
-                        gridTemplateColumns: "1fr 1fr",
+                        gridTemplateColumns: "repeat(3, 1fr)",
                         gap: 1,
-                        my: 1,
+                        my: 1.25,
                         p: 1.25,
                         bgcolor: "#f8fafc",
                         borderRadius: 2,
@@ -683,16 +718,29 @@ const MembersPage = () => {
                           ₹ {formatAmount(row.pendingPayAmount || 0)}
                         </Typography>
                       </Box>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: "#16a34a", fontSize: "0.7rem", fontWeight: 700, display: "block" }}>
+                          Total Money
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: totalMoney > 0 ? "#16a34a" : "#475569" }}>
+                          ₹ {formatAmount(totalMoney)}
+                        </Typography>
+                      </Box>
                     </Box>
 
                     {/* Contact & Date info */}
-                    <Box sx={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 1, my: 1, bgcolor: "#f8fafc", p: 1, borderRadius: 2 }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1, my: 1, bgcolor: "#f8fafc", p: 1, borderRadius: 2 }}>
                       <Typography variant="caption" sx={{ color: "#64748b" }}>
                         <strong>Invite:</strong> {formattedInviteDate}
                       </Typography>
                       <Typography variant="caption" sx={{ color: "#64748b" }}>
                         <strong>Joined:</strong> {formattedJoinDate}
                       </Typography>
+                      {row.phoneNumber && (
+                        <Typography variant="caption" sx={{ color: "#64748b" }}>
+                          <strong>Phone:</strong> {row.phoneNumber}
+                        </Typography>
+                      )}
                     </Box>
 
                     {/* Actions */}
@@ -743,317 +791,6 @@ const MembersPage = () => {
             </Stack>
           )}
         </Box>
-
-        {/* Desktop Data Table (Screens >= 768px) */}
-        <TableContainer
-          sx={{
-            display: { xs: "none", md: "block" },
-            width: "100%",
-            overflowX: "auto",
-            WebkitOverflowScrolling: "touch",
-            "&::-webkit-scrollbar": {
-              height: "6px",
-            },
-            "&::-webkit-scrollbar-track": {
-              backgroundColor: "#f8fafc",
-            },
-            "&::-webkit-scrollbar-thumb": {
-              backgroundColor: "rgba(0, 0, 0, 0.18)",
-              borderRadius: "3px",
-              "&:hover": {
-                backgroundColor: "rgba(0, 0, 0, 0.3)",
-              },
-            },
-          }}
-        >
-          <Table sx={{ minWidth: 720 }}>
-            <TableHead
-              sx={{
-                bgcolor: "#f8fafc",
-                "& th": {
-                  bgcolor: "#f8fafc",
-                  borderBottom: "1px solid #e2e8f0",
-                  py: 1.5,
-                  fontWeight: 600,
-                  fontSize: "0.85rem",
-                  color: "#475467",
-                  whiteSpace: "nowrap",
-                },
-              }}
-            >
-              <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox indeterminate={isIndeterminate} checked={isAllSelected} onChange={handleSelectAll} size="small" />
-                </TableCell>
-
-                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "fullName" ? order : false}>
-                  <TableSortLabel
-                    active={orderBy === "fullName"}
-                    direction={orderBy === "fullName" ? order : "asc"}
-                    onClick={() => handleRequestSort("fullName")}
-                    sx={{ fontWeight: 600 }}
-                  >
-                    Full Name
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "phoneNumber" ? order : false}>
-                  <TableSortLabel
-                    active={orderBy === "phoneNumber"}
-                    direction={orderBy === "phoneNumber" ? order : "asc"}
-                    onClick={() => handleRequestSort("phoneNumber")}
-                    sx={{ fontWeight: 600 }}
-                  >
-                    Phone Number
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "email" ? order : false}>
-                  <TableSortLabel
-                    active={orderBy === "email"}
-                    direction={orderBy === "email" ? order : "asc"}
-                    onClick={() => handleRequestSort("email")}
-                    sx={{ fontWeight: 600 }}
-                  >
-                    E-mail
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "pendingReceiveAmount" ? order : false}>
-                  <TableSortLabel
-                    active={orderBy === "pendingReceiveAmount"}
-                    direction={orderBy === "pendingReceiveAmount" ? order : "asc"}
-                    onClick={() => handleRequestSort("pendingReceiveAmount")}
-                    sx={{ fontWeight: 600 }}
-                  >
-                    Pending Receive
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "pendingPayAmount" ? order : false}>
-                  <TableSortLabel
-                    active={orderBy === "pendingPayAmount"}
-                    direction={orderBy === "pendingPayAmount" ? order : "asc"}
-                    onClick={() => handleRequestSort("pendingPayAmount")}
-                    sx={{ fontWeight: 600 }}
-                  >
-                    Pending Pay
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "lastInviteSentAt" ? order : false}>
-                  <TableSortLabel
-                    active={orderBy === "lastInviteSentAt"}
-                    direction={orderBy === "lastInviteSentAt" ? order : "asc"}
-                    onClick={() => handleRequestSort("lastInviteSentAt")}
-                    sx={{ fontWeight: 600 }}
-                  >
-                    Invite Date
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "joinDate" ? order : false}>
-                  <TableSortLabel
-                    active={orderBy === "joinDate"}
-                    direction={orderBy === "joinDate" ? order : "asc"}
-                    onClick={() => handleRequestSort("joinDate")}
-                    sx={{ fontWeight: 600 }}
-                  >
-                    Join Date
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "inviteSent" ? order : false}>
-                  <TableSortLabel
-                    active={orderBy === "inviteSent"}
-                    direction={orderBy === "inviteSent" ? order : "asc"}
-                    onClick={() => handleRequestSort("inviteSent")}
-                    sx={{ fontWeight: 600 }}
-                  >
-                    Invite Status
-                  </TableSortLabel>
-                </TableCell>
-
-                <TableCell align="center" sx={{ fontWeight: 600 }}>
-                  Actions
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 6 }}>
-                    <CircularProgress size={32} />
-                  </TableCell>
-                </TableRow>
-              ) : filteredMembers.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center" sx={{ py: 6, color: "text.secondary" }}>
-                    <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
-                      No members found
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      Try adjusting your filters or invite a new member
-                    </Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                sortedMembers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
-                  const isSelected = selectedIds.includes(row._id);
-                  const formattedInviteDate = row.lastInviteSentAt ? formatDate(row.lastInviteSentAt) : "—";
-                  const hasJoined = Boolean(row.hasLoggedIn || row.joinDate);
-                  const formattedJoinDate = hasJoined && row.joinDate ? formatDate(row.joinDate) : "—";
-                  const isCurrent = isCurrentLoggedInUser(row, profile, user);
-                  const disableDelete = isCurrent;
-                  const deleteTooltip = isCurrent
-                    ? "You cannot delete your own logged-in account"
-                    : "Delete Member";
-
-                  const disableInvite = !row.email || sendingInviteId === row._id || hasJoined;
-                  const inviteTooltip = hasJoined
-                    ? "Member has already joined the app"
-                    : !row.email
-                    ? "No email available to send invite"
-                    : "Send App Invite Link";
-
-                  return (
-                    <TableRow
-                      key={row._id}
-                      hover
-                      selected={isSelected}
-                      sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-                    >
-                      <TableCell padding="checkbox">
-                        {isCurrent ? (
-                          <Tooltip title="Your own logged-in account cannot be selected for deletion">
-                            <span>
-                              <Checkbox disabled checked={false} size="small" />
-                            </span>
-                          </Tooltip>
-                        ) : (
-                          <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
-                        )}
-                      </TableCell>
-                      <TableCell sx={{ fontWeight: 600, whiteSpace: "nowrap", textTransform: "capitalize" }}>
-                        <Typography
-                          component="span"
-                          onClick={() => navigate(`/members/${row._id}`)}
-                          sx={{
-                            fontWeight: 600,
-                            cursor: "pointer",
-                            color: "primary.main",
-                            transition: "all 0.15s ease",
-                            "&:hover": {
-                              textDecoration: "underline",
-                              color: "primary.dark",
-                            },
-                          }}
-                        >
-                          {capitalizeName(row.fullName)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: "nowrap" }}>{row.phoneNumber || "—"}</TableCell>
-                      <TableCell sx={{ whiteSpace: "nowrap", color: row.email ? "text.primary" : "text.secondary" }}>
-                        {row.email || "—"}
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: "nowrap" }}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 700,
-                            color: (row.pendingReceiveAmount || 0) > 0 ? "#0284c7" : "#475467",
-                          }}
-                        >
-                          ₹ {formatAmount(row.pendingReceiveAmount || 0)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: "nowrap" }}>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 700,
-                            color: (row.pendingPayAmount || 0) > 0 ? "#ea580c" : "#475467",
-                          }}
-                        >
-                          ₹ {formatAmount(row.pendingPayAmount || 0)}
-                        </Typography>
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: "nowrap" }}>{formattedInviteDate}</TableCell>
-                      <TableCell sx={{ whiteSpace: "nowrap" }}>{formattedJoinDate}</TableCell>
-                      <TableCell sx={{ whiteSpace: "nowrap" }}>
-                        {hasJoined ? (
-                          <Chip
-                            icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />}
-                            label="Joined"
-                            size="small"
-                            color="success"
-                            variant="filled"
-                          />
-                        ) : row.inviteSent ? (
-                          <Chip
-                            icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />}
-                            label="Invite Sent"
-                            size="small"
-                            color="success"
-                            variant="outlined"
-                          />
-                        ) : (
-                          <Chip label="Pending" size="small" variant="outlined" />
-                        )}
-                      </TableCell>
-                      <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
-                        <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
-                          <Tooltip title={inviteTooltip}>
-                            <span>
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleSendInvite(row._id, row.email)}
-                                disabled={disableInvite}
-                              >
-                                {sendingInviteId === row._id ? (
-                                  <CircularProgress size={16} color="primary" />
-                                ) : (
-                                  <SendIcon fontSize="small" />
-                                )}
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-
-                          <Tooltip title={hasJoined ? "Member has joined the app and cannot be edited" : "Edit Member"}>
-                            <span>
-                              <IconButton
-                                size="small"
-                                color="default"
-                                disabled={hasJoined}
-                                onClick={() => setEditingMember(row)}
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-
-                          <Tooltip title={deleteTooltip}>
-                            <span>
-                              <IconButton
-                                size="small"
-                                color="error"
-                                disabled={disableDelete}
-                                onClick={() => handleOpenSingleDelete(row)}
-                              >
-                                <DeleteOutlineIcon fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
 
         {/* Pagination Footer - Fixed to Card, Never scrolls horizontally */}
         <Divider />
