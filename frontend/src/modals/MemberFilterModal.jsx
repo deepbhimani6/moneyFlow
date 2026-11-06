@@ -133,11 +133,11 @@ const MemberFilterModal = ({
           fullWidth
         />
 
-        {/* 4. Invite Sent Date Range */}
+        {/* 4. Invite Date Range */}
         {!hideInviteDate && (
           <Box>
             <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5, display: "block" }}>
-              Invite Sent Date Range
+              Invite Date Range
             </Typography>
             <Box sx={{ display: "flex", gap: 1.5 }}>
               <TextField

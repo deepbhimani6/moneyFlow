@@ -125,7 +125,7 @@ const MembersPage = () => {
           (m.username || "").toLowerCase().includes(kw);
         if (!matches) return false;
       }
-      // 4. Invite Sent Date range
+      // 4. Invite Date range
       if (filters.inviteStartDate) {
         if (!m.lastInviteSentAt) return false;
         const d = new Date(m.lastInviteSentAt).setHours(0, 0, 0, 0);
@@ -616,7 +616,7 @@ const MembersPage = () => {
                     onClick={() => handleRequestSort("lastInviteSentAt")}
                     sx={{ fontWeight: 600 }}
                   >
-                    Invite Sent Date
+                    Invite Date
                   </TableSortLabel>
                 </TableCell>
 

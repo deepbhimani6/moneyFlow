@@ -102,7 +102,7 @@ const getMembers = async (req, res) => {
         mObj.fullName = capitalizeName(mObj.fullName);
       }
 
-      // 2. Invite Sent Date: only show if the CURRENT USER actually invited this member in this relationship
+      // 2. Invite Date: only show if the CURRENT USER actually invited this member in this relationship
       let callerInviteDate = null;
       if (inviteDates) {
         callerInviteDate = typeof inviteDates.get === 'function'
@@ -114,7 +114,7 @@ const getMembers = async (req, res) => {
         mObj.lastInviteSentAt = callerInviteDate;
         mObj.inviteSent = true;
       } else {
-        // Current user did NOT send an invite to this member -> do not show invite sent date
+        // Current user did NOT send an invite to this member -> do not show invite date
         mObj.lastInviteSentAt = null;
         mObj.inviteSent = false;
       }
