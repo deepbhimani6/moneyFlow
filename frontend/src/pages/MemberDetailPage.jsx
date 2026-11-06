@@ -1,6 +1,36 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Box, Typography, Button, Paper, Chip, Avatar, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, TablePagination, Stack, CircularProgress, TextField, InputAdornment, Card, CardContent, Breadcrumbs, Link, Divider } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Button,
+  Paper,
+  Chip,
+  Avatar,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableContainer,
+  TablePagination,
+  Stack,
+  CircularProgress,
+  TextField,
+  InputAdornment,
+  Card,
+  CardContent,
+  Breadcrumbs,
+  Link,
+  Divider,
+  Checkbox,
+  Tooltip,
+  IconButton,
+  Menu,
+  MenuItem,
+  Snackbar,
+  Alert,
+} from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -11,7 +41,8 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
-import { memberService } from "../services/api";
+import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
+import { memberService, entryService, toPayService } from "../services/api";
 import { formatDate, formatAmount, capitalizeName } from "../utils/formatters";
 import MemberDetailFilterModal, { defaultMemberDetailFilters } from "../modals/MemberDetailFilterModal";
 
@@ -28,6 +59,156 @@ const MemberDetailPage = () => {
   // Pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Selection & Bulk Status
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkAnchorEl, setBulkAnchorEl] = useState(null);
+  const [statusMenuAnchorEl, setStatusMenuAnchorEl] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(filteredEntries.map((e) => e._id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (entryId) => {
+    setSelectedIds((prev) =>
+      prev.includes(entryId) ? prev.filter((i) => i !== entryId) : [...prev, entryId]
+    );
+  };
+
+  const handleToggleStatus = async (entry) => {
+    if (entry.canEdit === false) {
+      setSnackbar({
+        open: true,
+        message: "Only the creator of this entry can change the status.",
+        severity: "warning",
+      });
+      return;
+    }
+
+    const isReceive = entry.directionType === "receive";
+    const current = entry.paymentStatus;
+    let nextStatus;
+    if (isReceive) {
+      nextStatus = current === "Received" ? "Pending" : "Received";
+    } else {
+      nextStatus = current === "Paid" ? "Pending" : "Paid";
+    }
+
+    try {
+      if (isReceive) {
+        await entryService.updateEntry(entry._id, { paymentStatus: nextStatus });
+      } else {
+        await toPayService.updateToPayEntry(entry._id, { paymentStatus: nextStatus });
+      }
+
+      setSnackbar({
+        open: true,
+        message: `Status updated to ${nextStatus}.`,
+        severity: "success",
+      });
+
+      fetchMemberDetail();
+    } catch (err) {
+      console.error(err);
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Failed to update status.",
+        severity: "error",
+      });
+    }
+  };
+
+  const handleBulkChangeStatus = async (target) => {
+    setStatusMenuAnchorEl(null);
+    setBulkAnchorEl(null);
+
+    const selectedEntries = entries.filter((e) => selectedIds.includes(e._id));
+    const editableEntries = selectedEntries.filter((e) => e.canEdit !== false);
+
+    if (editableEntries.length === 0) {
+      setSnackbar({
+        open: true,
+        message: "None of the selected entries can be updated because you are not their creator.",
+        severity: "warning",
+      });
+      return;
+    }
+
+    const receiveIds = [];
+    const payIds = [];
+    for (const e of editableEntries) {
+      if (e.directionType === "receive") {
+        receiveIds.push(e._id);
+      } else {
+        payIds.push(e._id);
+      }
+    }
+
+    try {
+      let updatedCount = 0;
+      if (receiveIds.length > 0) {
+        const statusVal = target === "Settled" ? "Received" : "Pending";
+        const res = await entryService.bulkUpdateStatus(receiveIds, statusVal);
+        updatedCount += res.updatedCount || receiveIds.length;
+      }
+      if (payIds.length > 0) {
+        const statusVal = target === "Settled" ? "Paid" : "Pending";
+        const res = await toPayService.bulkUpdateStatus(payIds, statusVal);
+        updatedCount += res.updatedCount || payIds.length;
+      }
+
+      setSnackbar({
+        open: true,
+        message: `Updated status for ${updatedCount} entries to ${target === "Settled" ? "Settled" : "Pending"}.`,
+        severity: "success",
+      });
+      setSelectedIds([]);
+      fetchMemberDetail();
+    } catch (err) {
+      console.error(err);
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Failed bulk status update.",
+        severity: "error",
+      });
+    }
+  };
+
+  const renderStatusChip = (entry) => {
+    const isReceive = entry.directionType === "receive";
+    const isPending = entry.paymentStatus === "Pending";
+    const targetNext = isReceive ? (isPending ? "Received" : "Pending") : (isPending ? "Paid" : "Pending");
+    const canEdit = entry.canEdit !== false;
+
+    return (
+      <Tooltip title={canEdit ? `Click to mark as ${targetNext}` : "Only the creator of this entry can change the status"}>
+        <span>
+          <Chip
+            label={entry.paymentStatus}
+            size="small"
+            color={isPending ? "warning" : "success"}
+            variant={isPending ? "outlined" : "filled"}
+            clickable={canEdit}
+            onClick={canEdit ? (e) => { e.stopPropagation(); handleToggleStatus(entry); } : undefined}
+            sx={{
+              height: 24,
+              fontSize: "0.72rem",
+              fontWeight: 700,
+              cursor: canEdit ? "pointer" : "not-allowed",
+              opacity: canEdit ? 1 : 0.75,
+              transition: "all 0.15s ease",
+              "&:hover": canEdit ? { transform: "scale(1.05)" } : {},
+            }}
+          />
+        </span>
+      </Tooltip>
+    );
+  };
 
   const activeFiltersCount = useMemo(() => {
     let count = 0;
@@ -415,6 +596,52 @@ const MemberDetailPage = () => {
               >
                 Filter{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}
               </Button>
+
+              {/* Bulk Actions Button */}
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                disabled={selectedIds.length === 0}
+                onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Bulk Actions ({selectedIds.length})
+              </Button>
+
+              {/* Bulk Actions Menu */}
+              <Menu
+                anchorEl={bulkAnchorEl}
+                open={Boolean(bulkAnchorEl)}
+                onClose={() => setBulkAnchorEl(null)}
+              >
+                <MenuItem
+                  onClick={(e) => {
+                    setBulkAnchorEl(null);
+                    setStatusMenuAnchorEl(e.currentTarget);
+                  }}
+                >
+                  Change Status
+                </MenuItem>
+              </Menu>
+
+              {/* Status Submenu */}
+              <Menu
+                anchorEl={statusMenuAnchorEl}
+                open={Boolean(statusMenuAnchorEl)}
+                onClose={() => setStatusMenuAnchorEl(null)}
+              >
+                <MenuItem onClick={() => handleBulkChangeStatus("Settled")}>
+                  Set Received / Paid
+                </MenuItem>
+                <MenuItem onClick={() => handleBulkChangeStatus("Pending")}>
+                  Set Pending
+                </MenuItem>
+              </Menu>
             </Box>
 
             {/* Search Input */}
@@ -477,12 +704,18 @@ const MemberDetailPage = () => {
                     >
                       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                          <Checkbox
+                            size="small"
+                            checked={selectedIds.includes(entry._id)}
+                            onChange={() => handleSelectOne(entry._id)}
+                            sx={{ p: 0.25 }}
+                          />
                           <Chip label={entry.direction} size="small" color={isReceive ? "primary" : "warning"} sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700 }} />
                           <Chip label={entry.type} size="small" variant="outlined" sx={{ height: 22, fontSize: "0.7rem" }} />
                           {entry.isSplit && <Chip icon={<CallSplitIcon sx={{ "&&": { fontSize: 13 } }} />} label="Split" size="small" sx={{ height: 22, fontSize: "0.68rem" }} />}
                         </Box>
 
-                        <Chip label={entry.paymentStatus} size="small" color={isPending ? "warning" : "success"} variant={isPending ? "outlined" : "filled"} sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700 }} />
+                        {renderStatusChip(entry)}
                       </Box>
 
                       <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", my: 1 }}>
@@ -506,11 +739,24 @@ const MemberDetailPage = () => {
                         <Typography variant="caption" sx={{ color: "#64748b" }}>
                           Source: <strong>{entry.creatorName}</strong>
                         </Typography>
-                        {entry.description && (
-                          <Typography variant="caption" sx={{ color: "#64748b", fontStyle: "italic", maxWidth: "60%" }} noWrap>
-                            {entry.description}
-                          </Typography>
-                        )}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          {entry.description && (
+                            <Typography variant="caption" sx={{ color: "#64748b", fontStyle: "italic", maxWidth: 120 }} noWrap>
+                              {entry.description}
+                            </Typography>
+                          )}
+                          {entry.canEdit !== false && (
+                            <Button
+                              size="small"
+                              variant="text"
+                              startIcon={<SwapHorizIcon sx={{ fontSize: 14 }} />}
+                              onClick={() => handleToggleStatus(entry)}
+                              sx={{ textTransform: "none", fontSize: "0.72rem", py: 0.2, px: 0.75 }}
+                            >
+                              Toggle
+                            </Button>
+                          )}
+                        </Box>
                       </Box>
                     </Paper>
                   );
@@ -525,6 +771,14 @@ const MemberDetailPage = () => {
               <Table sx={{ minWidth: 700 }}>
                 <TableHead sx={{ bgcolor: "#f8fafc" }}>
                   <TableRow>
+                    <TableCell padding="checkbox">
+                      <Checkbox
+                        size="small"
+                        indeterminate={selectedIds.length > 0 && selectedIds.length < filteredEntries.length}
+                        checked={filteredEntries.length > 0 && selectedIds.length === filteredEntries.length}
+                        onChange={handleSelectAll}
+                      />
+                    </TableCell>
                     <TableCell sx={{ fontWeight: 600, color: "#475467" }}>Category</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: "#475467" }}>Type</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: "#475467" }}>Date & Time</TableCell>
@@ -534,12 +788,15 @@ const MemberDetailPage = () => {
                     <TableCell align="right" sx={{ fontWeight: 600, color: "#475467" }}>
                       Amount
                     </TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600, color: "#475467" }}>
+                      Action
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filteredEntries.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                      <TableCell colSpan={9} align="center" sx={{ py: 6, color: "text.secondary" }}>
                         <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
                           No entries found
                         </Typography>
@@ -554,6 +811,13 @@ const MemberDetailPage = () => {
                       const isPending = entry.paymentStatus === "Pending";
                       return (
                         <TableRow key={entry._id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
+                          <TableCell padding="checkbox">
+                            <Checkbox
+                              size="small"
+                              checked={selectedIds.includes(entry._id)}
+                              onChange={() => handleSelectOne(entry._id)}
+                            />
+                          </TableCell>
                           <TableCell>
                             <Chip label={entry.direction} size="small" color={isReceive ? "primary" : "warning"} sx={{ height: 24, fontSize: "0.75rem", fontWeight: 700 }} />
                           </TableCell>
@@ -593,7 +857,7 @@ const MemberDetailPage = () => {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Chip label={entry.paymentStatus} size="small" color={isPending ? "warning" : "success"} variant={isPending ? "outlined" : "filled"} sx={{ height: 22, fontSize: "0.72rem", fontWeight: 700 }} />
+                            {renderStatusChip(entry)}
                           </TableCell>
                           <TableCell align="right">
                             <Typography
@@ -605,6 +869,21 @@ const MemberDetailPage = () => {
                             >
                               ₹ {formatAmount(entry.amount)}
                             </Typography>
+                          </TableCell>
+                          <TableCell align="center">
+                            <Tooltip title={entry.canEdit !== false ? `Change status to ${isReceive ? (isPending ? 'Received' : 'Pending') : (isPending ? 'Paid' : 'Pending')}` : "Only creator can change status"}>
+                              <span>
+                                <IconButton
+                                  size="small"
+                                  disabled={entry.canEdit === false}
+                                  onClick={() => handleToggleStatus(entry)}
+                                  color={isPending ? "primary" : "default"}
+                                  sx={{ border: "1px solid #e2e8f0", p: 0.5 }}
+                                >
+                                  <SwapHorizIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
                           </TableCell>
                         </TableRow>
                       );
@@ -633,6 +912,22 @@ const MemberDetailPage = () => {
           setPage(0);
         }}
       />
+
+      {/* Feedback Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      >
+        <Alert
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+          severity={snackbar.severity}
+          sx={{ width: "100%", borderRadius: 2 }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

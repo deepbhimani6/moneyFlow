@@ -878,6 +878,18 @@ const bulkUpdateStatus = async (req, res) => {
       }
     }
 
+    // Also handle regular reciprocal entries with memberId
+    const regularEntries = validEntries.filter((e) => !e.splitGroupId && e.memberId);
+    if (regularEntries.length > 0 && status) {
+      const reciprocalStatus = status === "Paid" ? "Received" : "Pending";
+      for (const reg of regularEntries) {
+        await Entry.updateMany(
+          { userId: reg.memberId, memberId: req.user._id, amount: reg.amount, date: reg.date },
+          { $set: { paymentStatus: reciprocalStatus, status: reciprocalStatus } }
+        );
+      }
+    }
+
     res.json({
       success: true,
       updatedCount: validEntries.length,
