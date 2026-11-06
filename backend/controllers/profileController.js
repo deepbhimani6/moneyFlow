@@ -76,6 +76,8 @@ const updateProfile = async (req, res) => {
       username,
       bio,
       avatarColor,
+      password,
+      newPassword,
     } = req.body;
 
     if (member) {
@@ -100,6 +102,18 @@ const updateProfile = async (req, res) => {
       }
       if (bio !== undefined) member.bio = bio.trim();
       if (avatarColor !== undefined) member.avatarColor = avatarColor;
+
+      const passwordToSet = password || newPassword;
+      if (passwordToSet && typeof passwordToSet === 'string' && passwordToSet.trim()) {
+        const cleanPassword = passwordToSet.trim();
+        if (cleanPassword.length < 6) {
+          return res.status(400).json({
+            success: false,
+            message: 'Password must be at least 6 characters.',
+          });
+        }
+        member.password = cleanPassword; // Member pre-save hook hashes it with bcrypt
+      }
 
       await member.save();
 

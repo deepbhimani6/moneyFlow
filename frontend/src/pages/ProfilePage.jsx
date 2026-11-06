@@ -16,10 +16,14 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
+  InputAdornment,
+  IconButton,
 } from '@mui/material';
 import PersonIcon from '@mui/icons-material/Person';
 import SaveIcon from '@mui/icons-material/Save';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useProfile } from '../context/ProfileContext';
 import { capitalizeName, capitalizeWordsInput } from '../utils/formatters';
 
@@ -44,9 +48,14 @@ const ProfilePage = () => {
     email: '',
     phoneNumber: '',
     username: '',
+    password: '',
+    confirmPassword: '',
     bio: '',
     avatarColor: '#1976d2',
   });
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
@@ -59,14 +68,16 @@ const ProfilePage = () => {
   // Sync state when context profile changes
   useEffect(() => {
     if (profile) {
-      setFormData({
+      setFormData((prev) => ({
         fullName: profile.fullName || '',
         email: profile.email || '',
         phoneNumber: profile.phoneNumber || '',
         username: profile.username || '',
+        password: '',
+        confirmPassword: '',
         bio: profile.bio || '',
         avatarColor: profile.avatarColor || '#1976d2',
-      });
+      }));
     }
   }, [profile]);
 
@@ -103,6 +114,19 @@ const ProfilePage = () => {
       newErrors.fullName = 'Full name is required.';
     }
 
+    if (formData.password && formData.password.trim()) {
+      if (formData.password.trim().length < 6) {
+        newErrors.password = 'Password must be at least 6 characters.';
+      }
+      if (!formData.confirmPassword || !formData.confirmPassword.trim()) {
+        newErrors.confirmPassword = 'Please confirm your new password.';
+      } else if (formData.password.trim() !== formData.confirmPassword.trim()) {
+        newErrors.confirmPassword = 'Passwords do not match.';
+      }
+    } else if (formData.confirmPassword && formData.confirmPassword.trim()) {
+      newErrors.password = 'Please enter a new password.';
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
@@ -110,14 +134,30 @@ const ProfilePage = () => {
 
     try {
       setSaving(true);
-      const res = await updateProfile({
-        ...formData,
+      const payload = {
         fullName: formattedFullName,
-      });
+        email: formData.email,
+        phoneNumber: formData.phoneNumber,
+        username: formData.username,
+        bio: formData.bio,
+        avatarColor: formData.avatarColor,
+      };
+      if (formData.password && formData.password.trim()) {
+        payload.password = formData.password.trim();
+      }
+
+      const res = await updateProfile(payload);
       if (res.success) {
+        setFormData((prev) => ({
+          ...prev,
+          password: '',
+          confirmPassword: '',
+        }));
         setSnackbar({
           open: true,
-          message: 'Profile updated successfully.',
+          message: payload.password
+            ? 'Profile and password updated successfully.'
+            : 'Profile updated successfully.',
           severity: 'success',
         });
       } else {
@@ -129,6 +169,8 @@ const ProfilePage = () => {
           setErrors({ username: msg });
         } else if (lower.includes('name')) {
           setErrors({ fullName: msg });
+        } else if (lower.includes('password')) {
+          setErrors({ password: msg });
         } else if (lower.includes('phone') || lower.includes('mobile')) {
           setErrors({ phoneNumber: msg });
         } else {
@@ -148,6 +190,8 @@ const ProfilePage = () => {
         setErrors({ username: msg });
       } else if (lower.includes('name')) {
         setErrors({ fullName: msg });
+      } else if (lower.includes('password')) {
+        setErrors({ password: msg });
       } else if (lower.includes('phone') || lower.includes('mobile')) {
         setErrors({ phoneNumber: msg });
       } else {
@@ -169,6 +213,8 @@ const ProfilePage = () => {
         email: profile.email || '',
         phoneNumber: profile.phoneNumber || '',
         username: profile.username || '',
+        password: '',
+        confirmPassword: '',
         bio: profile.bio || '',
         avatarColor: profile.avatarColor || '#1976d2',
       });
@@ -305,6 +351,64 @@ const ProfilePage = () => {
                   helperText={errors.phoneNumber || ''}
                   onChange={(e) => handleChange('phoneNumber', e.target.value)}
                   placeholder="e.g. +91 9876543210"
+                />
+              </Grid>
+
+              {/* Change Password */}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type={showPassword ? 'text' : 'password'}
+                  label="Change Password"
+                  value={formData.password}
+                  error={Boolean(errors.password)}
+                  helperText={errors.password || 'Leave blank to keep current password'}
+                  onChange={(e) => handleChange('password', e.target.value)}
+                  placeholder="Enter new password (min. 6 characters)"
+                  autoComplete="new-password"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle password visibility"
+                          onClick={() => setShowPassword((prev) => !prev)}
+                          edge="end"
+                          size="small"
+                        >
+                          {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+
+              {/* Confirm Password */}
+              <Grid item xs={12} sm={6}>
+                <TextField
+                  fullWidth
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  label="Confirm Password"
+                  value={formData.confirmPassword}
+                  error={Boolean(errors.confirmPassword)}
+                  helperText={errors.confirmPassword || (formData.password ? 'Re-enter new password to confirm' : '')}
+                  onChange={(e) => handleChange('confirmPassword', e.target.value)}
+                  placeholder="Re-enter new password"
+                  autoComplete="new-password"
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          aria-label="toggle confirm password visibility"
+                          onClick={() => setShowConfirmPassword((prev) => !prev)}
+                          edge="end"
+                          size="small"
+                        >
+                          {showConfirmPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
               </Grid>
 
