@@ -69,43 +69,58 @@ const InviteMemberModal = ({
 
   // Real-time check if email belongs to an existing member of MoneyFlow
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      setCheckingEmail(false);
+      return;
+    }
+
     const clean = (formData.email || '').trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-    if (!clean || !emailRegex.test(clean)) {
-      if (existingMemberInfo) {
-        setFormData((prev) => ({
-          ...prev,
-          fullName: '',
-          phoneNumber: '',
-          username: '',
-        }));
-      }
+    // 1. If email is empty, immediately clear checking state and reset auto-filled data
+    if (!clean) {
+      setCheckingEmail(false);
+      setExistingMemberInfo(null);
+      setFormData((prev) => ({
+        ...prev,
+        fullName: '',
+        phoneNumber: '',
+        username: '',
+      }));
+      return;
+    }
+
+    // 2. If email is not yet in valid format, turn off loading spinner
+    if (!emailRegex.test(clean)) {
+      setCheckingEmail(false);
       setExistingMemberInfo(null);
       return;
     }
 
+    // 3. Prevent inviting own logged-in email
     if (currentUserEmail && clean === currentUserEmail.trim().toLowerCase()) {
+      setCheckingEmail(false);
       setErrors((prev) => ({ ...prev, email: 'You cannot invite your own email address.' }));
       setExistingMemberInfo(null);
       return;
     }
 
-    // Check if already in the caller's directory from props
+    // 4. Check if already in the caller's directory from props
     const isAlreadyInLocalList = existingMembers.some(
       (m) => (m.email || '').trim().toLowerCase() === clean
     );
     if (isAlreadyInLocalList) {
+      setCheckingEmail(false);
       setErrors((prev) => ({ ...prev, email: 'This member is already in your members list.' }));
       setExistingMemberInfo({ exists: true, isAlreadyInDirectory: true });
       return;
     }
 
     let isCancelled = false;
+    setCheckingEmail(true);
+
     const timer = setTimeout(async () => {
       try {
-        setCheckingEmail(true);
         const res = await memberService.checkEmail(clean);
         if (isCancelled) return;
 
@@ -130,28 +145,25 @@ const InviteMemberModal = ({
           }));
           setErrors((prev) => ({ ...prev, email: '' }));
         } else {
-          if (existingMemberInfo) {
-            setFormData((prev) => ({
-              ...prev,
-              fullName: '',
-              phoneNumber: '',
-              username: '',
-            }));
-          }
           setExistingMemberInfo(null);
         }
       } catch (err) {
-        console.error('Error checking email:', err);
+        if (!isCancelled) {
+          console.error('Error checking email:', err);
+        }
       } finally {
-        if (!isCancelled) setCheckingEmail(false);
+        if (!isCancelled) {
+          setCheckingEmail(false);
+        }
       }
     }, 400);
 
     return () => {
       isCancelled = true;
       clearTimeout(timer);
+      setCheckingEmail(false);
     };
-  }, [formData.email, open, currentUserEmail, existingMembers, existingMemberInfo]);
+  }, [formData.email, open, currentUserEmail, existingMembers]);
 
   const validateEmailValue = (rawEmail) => {
     const clean = (rawEmail || '').trim().toLowerCase();
@@ -183,6 +195,7 @@ const InviteMemberModal = ({
     if (name === 'email') {
       // If user clears the email field, immediately reset existingMemberInfo and clean all details
       if (!value || !value.trim()) {
+        setCheckingEmail(false);
         setExistingMemberInfo(null);
         setFormData((prev) => ({
           ...prev,
