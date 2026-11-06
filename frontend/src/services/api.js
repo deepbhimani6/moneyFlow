@@ -89,6 +89,10 @@ export const entryService = {
 };
 
 export const memberService = {
+  checkEmail: async (email) => {
+    const res = await api.get('/members/check-email', { params: { email } });
+    return res.data;
+  },
   getMembers: async (search = '') => {
     const res = await api.get('/members', { params: { search } });
     return res.data;

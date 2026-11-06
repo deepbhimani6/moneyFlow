@@ -10,10 +10,13 @@ const {
   bulkDeleteMembers,
   sendInviteToMember,
   bulkInviteMembers,
+  checkMemberEmail,
 } = require('../controllers/memberController');
 const { protect } = require('../middleware/authMiddleware');
 
 router.use(protect);
+
+router.get('/check-email', checkMemberEmail);
 
 router.route('/')
   .get(getMembers)

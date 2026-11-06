@@ -114,22 +114,53 @@ const createMember = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please enter a valid email address.' });
     }
 
-    // Duplicate email check across all members (case-insensitive)
-    const existingMember = await Member.findOne({
-      email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
-    });
-    if (existingMember) {
-      return res.status(400).json({
-        success: false,
-        message: 'This email address already exists.',
-      });
-    }
-
     // Prevent inviting own logged-in email
     if (req.user && req.user.email && req.user.email.toLowerCase().trim() === cleanEmail) {
       return res.status(400).json({
         success: false,
         message: 'You cannot invite your own email address.',
+      });
+    }
+
+    // Check if member already exists in the system
+    const existingMember = await Member.findOne({
+      email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+    });
+
+    if (existingMember) {
+      // 1. Is this member already in the current user's members directory?
+      const currentUser = await Member.findById(req.user._id);
+      const isAlreadyInDirectory = currentUser && currentUser.members && currentUser.members.some(
+        (mId) => String(mId) === String(existingMember._id)
+      );
+
+      if (isAlreadyInDirectory) {
+        return res.status(400).json({
+          success: false,
+          message: 'This member is already in your members list.',
+        });
+      }
+
+      // 2. Member already exists in app -> directly add to current user's members directory
+      await Member.findByIdAndUpdate(req.user._id, {
+        $addToSet: { members: existingMember._id },
+      });
+      // Reciprocal link so both members can see and split with each other
+      await Member.findByIdAndUpdate(existingMember._id, {
+        $addToSet: { members: req.user._id },
+      });
+
+      // If existing member had no phone number and one was provided, populate it
+      if (!existingMember.phoneNumber && phoneNumber && phoneNumber.trim()) {
+        existingMember.phoneNumber = phoneNumber.trim();
+        await existingMember.save();
+      }
+
+      return res.status(200).json({
+        success: true,
+        data: existingMember,
+        alreadyRegistered: true,
+        message: `Member '${existingMember.fullName}' is already registered and was added to your list.`,
       });
     }
 
@@ -598,6 +629,66 @@ const bulkInviteMembers = async (req, res) => {
   }
 };
 
+// @desc    Check if an email already belongs to a registered member
+// @route   GET /api/members/check-email
+const checkMemberEmail = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email || !email.trim()) {
+      return res.json({ success: true, exists: false });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const currentUserId = req.user ? req.user._id : null;
+
+    if (req.user && req.user.email && req.user.email.toLowerCase().trim() === cleanEmail) {
+      return res.json({
+        success: true,
+        exists: true,
+        isOwnEmail: true,
+        message: 'You cannot add your own email address.',
+      });
+    }
+
+    const existingMember = await Member.findOne({
+      email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+    });
+
+    if (!existingMember) {
+      return res.json({ success: true, exists: false });
+    }
+
+    let isAlreadyInDirectory = false;
+    if (currentUserId) {
+      const currentUser = await Member.findById(currentUserId);
+      if (currentUser && currentUser.members) {
+        isAlreadyInDirectory = currentUser.members.some(
+          (mId) => String(mId) === String(existingMember._id)
+        );
+      }
+    }
+
+    return res.json({
+      success: true,
+      exists: true,
+      isAlreadyInDirectory,
+      member: {
+        _id: existingMember._id,
+        fullName: existingMember.fullName,
+        phoneNumber: existingMember.phoneNumber || '',
+        username: existingMember.username || '',
+        email: existingMember.email,
+        hasLoggedIn: Boolean(existingMember.hasLoggedIn || existingMember.joinDate),
+      },
+      message: isAlreadyInDirectory
+        ? 'This member is already in your members list.'
+        : 'This member is already registered on MoneyFlow.',
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getMembers,
   getMemberEntriesSummary,
@@ -608,4 +699,5 @@ module.exports = {
   bulkDeleteMembers,
   sendInviteToMember,
   bulkInviteMembers,
+  checkMemberEmail,
 };

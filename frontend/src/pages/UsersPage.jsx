@@ -21,8 +21,6 @@ import {
   Tooltip,
   Snackbar,
   Alert,
-  TextField,
-  InputAdornment,
   TableSortLabel,
   Dialog,
   DialogTitle,
@@ -30,21 +28,15 @@ import {
   DialogActions,
   Divider,
 } from "@mui/material";
-import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import SendIcon from "@mui/icons-material/Send";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
-import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 
 import { userService } from "../services/api";
 import { useProfile } from "../context/ProfileContext";
 import { useAuth } from "../context/AuthContext";
-import InviteMemberModal from "../modals/InviteMemberModal";
 import EditMemberModal from "../modals/EditMemberModal";
-import DeleteConfirmModal from "../modals/DeleteConfirmModal";
 import MemberFilterModal from "../modals/MemberFilterModal";
 import { formatDate, formatAmount, capitalizeName, isCurrentLoggedInUser } from "../utils/formatters";
 
@@ -77,7 +69,6 @@ const UsersPage = () => {
   const [filters, setFilters] = useState(initialFilters);
 
   // Modals
-  const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [singleDeleteState, setSingleDeleteState] = useState({
     open: false,
@@ -95,18 +86,6 @@ const UsersPage = () => {
   // Bulk actions menu
   const [bulkAnchorEl, setBulkAnchorEl] = useState(null);
   const isBulkMenuOpen = Boolean(bulkAnchorEl);
-
-  // Invite error & warning dialog
-  const [inviteErrorDialog, setInviteErrorDialog] = useState({
-    open: false,
-    title: "",
-    message: "",
-    missingUsers: [],
-    validUsers: [],
-    severity: "error",
-  });
-  const [confirmBulkInvite, setConfirmBulkInvite] = useState({ open: false, users: [] });
-  const [sendingInviteId, setSendingInviteId] = useState(null);
 
   // Pagination
   const [page, setPage] = useState(0);
@@ -411,107 +390,6 @@ const UsersPage = () => {
     }
   };
 
-  // Send single invite link
-  const handleSendInvite = async (id, userEmail) => {
-    try {
-      setSendingInviteId(id);
-      const res = await userService.sendInvite(id);
-      if (res.success) {
-        setSnackbar({ open: true, message: `Invite sent to ${userEmail}.`, severity: "success" });
-        fetchUsers();
-      } else {
-        setSnackbar({ open: true, message: res.message || "Failed to send invite.", severity: "error" });
-      }
-    } catch (err) {
-      setSnackbar({ open: true, message: err.response?.data?.message || err.message, severity: "error" });
-    } finally {
-      setSendingInviteId(null);
-    }
-  };
-
-  // Execute actual bulk invite API call
-  const executeBulkSendInvites = async (idsToSend) => {
-    try {
-      setActionLoading(true);
-      const res = await userService.bulkInvite(idsToSend);
-      if (res.sentCount > 0) {
-        setSnackbar({
-          open: true,
-          message: `Invites sent to ${res.sentCount} user(s).`,
-          severity: "success",
-        });
-      } else {
-        setSnackbar({
-          open: true,
-          message: res.message || "No invites were sent.",
-          severity: res.failedCount > 0 ? "error" : "info",
-        });
-      }
-      setSelectedIds([]);
-      fetchUsers();
-    } catch (err) {
-      setSnackbar({
-        open: true,
-        message: err.response?.data?.message || "Failed to send invites.",
-        severity: "error",
-      });
-    } finally {
-      setActionLoading(false);
-      setConfirmBulkInvite({ open: false, users: [] });
-      setInviteErrorDialog((prev) => ({ ...prev, open: false }));
-    }
-  };
-
-  // Bulk send invite links
-  const handleBulkSendInvites = () => {
-    setBulkAnchorEl(null);
-    if (selectedIds.length === 0) return;
-
-    const selectedUsers = users.filter((u) => selectedIds.includes(u._id));
-    const alreadyJoinedUsers = selectedUsers.filter((u) => u.hasLoggedIn || u.joinDate);
-    const pendingUsers = selectedUsers.filter((u) => !u.hasLoggedIn && !u.joinDate);
-    const missingEmailUsers = pendingUsers.filter((u) => !u.email || !u.email.trim());
-    const validEmailUsers = pendingUsers.filter((u) => u.email && u.email.trim());
-
-    if (alreadyJoinedUsers.length > 0 && pendingUsers.length === 0) {
-      setSnackbar({
-        open: true,
-        message: "Selected user(s) have already joined the app.",
-        severity: "info",
-      });
-      return;
-    }
-
-    if (missingEmailUsers.length > 0 && validEmailUsers.length === 0) {
-      setInviteErrorDialog({
-        open: true,
-        title: "Cannot Send Invite Links",
-        message: `Invite links could not be sent because none of the ${pendingUsers.length} selected pending user(s) have an E-mail address set.`,
-        missingUsers: missingEmailUsers,
-        validUsers: [],
-        severity: "error",
-      });
-      return;
-    }
-
-    if (missingEmailUsers.length > 0 && validEmailUsers.length > 0) {
-      setInviteErrorDialog({
-        open: true,
-        title: "Missing E-mail Warning",
-        message: `${missingEmailUsers.length} of the ${pendingUsers.length} selected user(s) do not have an E-mail address set and will be skipped.`,
-        missingUsers: missingEmailUsers,
-        validUsers: validEmailUsers,
-        severity: "warning",
-      });
-      return;
-    }
-
-    setConfirmBulkInvite({
-      open: true,
-      users: validEmailUsers,
-    });
-  };
-
   // Restrict access: only visible and accessible to deepbhimani6@gmail.com
   if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
@@ -543,11 +421,6 @@ const UsersPage = () => {
             Filter{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}
           </Button>
 
-          {/* Invite User Button */}
-          <Button variant="contained" startIcon={<PersonAddIcon />} onClick={() => setIsInviteOpen(true)} size="small">
-            Invite Users
-          </Button>
-
           {/* Bulk Actions Menu Button */}
           <Button variant="outlined" color="secondary" disabled={selectedIds.length === 0} onClick={(e) => setBulkAnchorEl(e.currentTarget)} size="small">
             Bulk Actions ({selectedIds.length})
@@ -566,12 +439,6 @@ const UsersPage = () => {
               },
             }}
           >
-            <MenuItem onClick={handleBulkSendInvites} sx={{ gap: 1.5, py: 1 }}>
-              <SendIcon fontSize="small" color="primary" />
-              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                Send Invite Links
-              </Typography>
-            </MenuItem>
             <MenuItem onClick={handleOpenBulkDelete} sx={{ gap: 1.5, py: 1, color: "error.main" }}>
               <DeleteOutlineIcon fontSize="small" />
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -679,7 +546,7 @@ const UsersPage = () => {
                     onClick={() => handleRequestSort("inviteSent")}
                     sx={{ fontWeight: 600 }}
                   >
-                    Invite Status
+                    Status
                   </TableSortLabel>
                 </TableCell>
 
@@ -700,7 +567,7 @@ const UsersPage = () => {
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
                     {displayedUsers.length === 0 ? (
-                      <span>No users registered. Click <strong>Invite Users +</strong> to add one.</span>
+                      "No users registered."
                     ) : (
                       "No users match the selected filter criteria."
                     )}
@@ -717,13 +584,6 @@ const UsersPage = () => {
                   const deleteTooltip = isCurrent
                     ? "You cannot delete your own logged-in account"
                     : "Delete User";
-
-                  const disableInvite = !row.email || sendingInviteId === row._id || hasJoined;
-                  const inviteTooltip = hasJoined
-                    ? "User has already joined the app"
-                    : !row.email
-                    ? "No email available to send invite"
-                    : "Send App Invite Link";
 
                   return (
                     <TableRow
@@ -775,23 +635,6 @@ const UsersPage = () => {
                       </TableCell>
                       <TableCell align="center" sx={{ whiteSpace: "nowrap" }}>
                         <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
-                          <Tooltip title={inviteTooltip}>
-                            <span>
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleSendInvite(row._id, row.email)}
-                                disabled={disableInvite}
-                              >
-                                {sendingInviteId === row._id ? (
-                                  <CircularProgress size={16} color="primary" />
-                                ) : (
-                                  <SendIcon fontSize="small" />
-                                )}
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-
                           <Tooltip title="Edit User">
                             <IconButton size="small" color="default" onClick={() => setEditingUser(row)}>
                               <EditIcon fontSize="small" />
@@ -857,19 +700,6 @@ const UsersPage = () => {
         currentFilters={filters}
         onApplyFilters={(newFilters) => setFilters(newFilters)}
         onResetFilters={() => setFilters(initialFilters)}
-      />
-
-      <InviteMemberModal
-        open={isInviteOpen}
-        onClose={() => setIsInviteOpen(false)}
-        title="Invite New User"
-        createFunction={userService.createUser}
-        onMemberCreated={() => {
-          fetchUsers();
-          setSnackbar({ open: true, message: "User created & invited successfully.", severity: "success" });
-        }}
-        existingMembers={users}
-        currentUserEmail={currentEmail}
       />
 
       {editingUser && (
@@ -1004,62 +834,6 @@ const UsersPage = () => {
           >
             {actionLoading ? "Deleting..." : `Delete ${selectedIds.length} Users`}
           </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Bulk Invite Confirmation Dialog */}
-      <DeleteConfirmModal
-        open={confirmBulkInvite.open}
-        onClose={() => setConfirmBulkInvite({ open: false, users: [] })}
-        onConfirm={() => executeBulkSendInvites(confirmBulkInvite.users.map((u) => u._id))}
-        title="Confirm Send Invite Links"
-        message={`Are you sure you want to send invite links to ${confirmBulkInvite.users.length} selected user(s)?`}
-        confirmText="Send Invites"
-        confirmColor="primary"
-        loading={actionLoading}
-      />
-
-      {/* Missing Email Dialog */}
-      <Dialog
-        open={inviteErrorDialog.open}
-        onClose={() => setInviteErrorDialog((prev) => ({ ...prev, open: false }))}
-        maxWidth="xs"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
-      >
-        <DialogTitle sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
-          {inviteErrorDialog.severity === "error" ? (
-            <ErrorOutlineIcon color="error" />
-          ) : (
-            <WarningAmberIcon color="warning" />
-          )}
-          {inviteErrorDialog.title}
-        </DialogTitle>
-        <DialogContent dividers>
-          <Typography variant="body2" sx={{ mb: 2 }}>
-            {inviteErrorDialog.message}
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button
-            onClick={() => setInviteErrorDialog((prev) => ({ ...prev, open: false }))}
-            sx={{ textTransform: "none" }}
-          >
-            Cancel
-          </Button>
-          {inviteErrorDialog.validUsers?.length > 0 && (
-            <Button
-              variant="contained"
-              onClick={() => {
-                const ids = inviteErrorDialog.validUsers.map((u) => u._id);
-                setInviteErrorDialog((prev) => ({ ...prev, open: false }));
-                executeBulkSendInvites(ids);
-              }}
-              sx={{ textTransform: "none" }}
-            >
-              Send to Remaining ({inviteErrorDialog.validUsers.length})
-            </Button>
-          )}
         </DialogActions>
       </Dialog>
 

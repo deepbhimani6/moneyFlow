@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,10 +12,12 @@ import {
   Alert,
   CircularProgress,
   Typography,
+  InputAdornment,
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { memberService } from '../services/api';
 import { capitalizeName, capitalizeWordsInput } from '../utils/formatters';
 
@@ -38,9 +40,103 @@ const InviteMemberModal = ({
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [existingMemberInfo, setExistingMemberInfo] = useState(null);
 
   const fullNameRef = useRef(null);
   const emailRef = useRef(null);
+
+  const isExistingAppMember = Boolean(
+    existingMemberInfo?.exists && !existingMemberInfo?.isAlreadyInDirectory
+  );
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (open) {
+      setFormData({
+        fullName: '',
+        phoneNumber: '',
+        email: '',
+        username: '',
+        sendLink: true,
+      });
+      setErrors({});
+      setError('');
+      setCheckingEmail(false);
+      setExistingMemberInfo(null);
+    }
+  }, [open]);
+
+  // Real-time check if email belongs to an existing member of MoneyFlow
+  useEffect(() => {
+    if (!open) return;
+    const clean = (formData.email || '').trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!clean || !emailRegex.test(clean)) {
+      setExistingMemberInfo(null);
+      return;
+    }
+
+    if (currentUserEmail && clean === currentUserEmail.trim().toLowerCase()) {
+      setErrors((prev) => ({ ...prev, email: 'You cannot invite your own email address.' }));
+      setExistingMemberInfo(null);
+      return;
+    }
+
+    // Check if already in the caller's directory from props
+    const isAlreadyInLocalList = existingMembers.some(
+      (m) => (m.email || '').trim().toLowerCase() === clean
+    );
+    if (isAlreadyInLocalList) {
+      setErrors((prev) => ({ ...prev, email: 'This member is already in your members list.' }));
+      setExistingMemberInfo({ exists: true, isAlreadyInDirectory: true });
+      return;
+    }
+
+    let isCancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        setCheckingEmail(true);
+        const res = await memberService.checkEmail(clean);
+        if (isCancelled) return;
+
+        if (res.isOwnEmail) {
+          setErrors((prev) => ({ ...prev, email: res.message || 'You cannot add your own email address.' }));
+          setExistingMemberInfo(null);
+        } else if (res.isAlreadyInDirectory) {
+          setErrors((prev) => ({ ...prev, email: 'This member is already in your members list.' }));
+          setExistingMemberInfo({ exists: true, isAlreadyInDirectory: true });
+        } else if (res.exists && res.member) {
+          setExistingMemberInfo({
+            exists: true,
+            isAlreadyInDirectory: false,
+            member: res.member,
+          });
+          // Auto-fill member details
+          setFormData((prev) => ({
+            ...prev,
+            fullName: prev.fullName || res.member.fullName || '',
+            phoneNumber: prev.phoneNumber || res.member.phoneNumber || '',
+            username: prev.username || res.member.username || '',
+            sendLink: false,
+          }));
+          setErrors((prev) => ({ ...prev, email: '' }));
+        } else {
+          setExistingMemberInfo(null);
+        }
+      } catch (err) {
+        console.error('Error checking email:', err);
+      } finally {
+        if (!isCancelled) setCheckingEmail(false);
+      }
+    }, 400);
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timer);
+    };
+  }, [formData.email, open, currentUserEmail, existingMembers]);
 
   const validateEmailValue = (rawEmail) => {
     const clean = (rawEmail || '').trim().toLowerCase();
@@ -58,8 +154,8 @@ const InviteMemberModal = ({
     const isDuplicate = existingMembers.some(
       (m) => (m.email || '').trim().toLowerCase() === clean
     );
-    if (isDuplicate) {
-      return 'This email address already exists.';
+    if (isDuplicate || existingMemberInfo?.isAlreadyInDirectory) {
+      return 'This member is already in your members list.';
     }
     return '';
   };
@@ -130,11 +226,15 @@ const InviteMemberModal = ({
         phoneNumber: formData.phoneNumber.trim(),
         email: formData.email.trim().toLowerCase(),
         username: formData.username.trim(),
-        sendLink: formData.sendLink,
+        sendLink: isExistingAppMember ? false : formData.sendLink,
       });
 
       if (res.success) {
-        onMemberCreated(res.data, formData.sendLink);
+        onMemberCreated(
+          res.data,
+          isExistingAppMember ? false : formData.sendLink,
+          Boolean(res.alreadyRegistered || isExistingAppMember)
+        );
         onClose();
         // Reset form
         setFormData({
@@ -145,6 +245,7 @@ const InviteMemberModal = ({
           sendLink: true,
         });
         setErrors({});
+        setExistingMemberInfo(null);
       } else {
         const msg = res.message || 'Failed to create member.';
         const lower = msg.toLowerCase();
@@ -183,12 +284,35 @@ const InviteMemberModal = ({
     }
   };
 
+  const dialogTitle = isExistingAppMember ? 'Add Member' : title;
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit} noValidate>
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>{title}</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>{dialogTitle}</DialogTitle>
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
+
+          {/* Alert when member is already working in this app */}
+          {isExistingAppMember && (
+            <Alert
+              severity="info"
+              icon={<CheckCircleOutlineIcon sx={{ color: '#0284c7' }} />}
+              sx={{
+                borderRadius: 2,
+                bgcolor: '#f0f9ff',
+                border: '1px solid #bae6fd',
+                '& .MuiAlert-message': { width: '100%' },
+              }}
+            >
+              <Typography variant="body2" sx={{ fontWeight: 600, color: '#0369a1' }}>
+                This member is already working on this app
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#0c4a6e', display: 'block', mt: 0.5 }}>
+                They already have a registered MoneyFlow account. You can add them directly to your members list without sending an invite link or password.
+              </Typography>
+            </Alert>
+          )}
 
           {/* 1. Full Name */}
           <TextField
@@ -226,12 +350,28 @@ const InviteMemberModal = ({
             value={formData.email}
             inputRef={emailRef}
             error={Boolean(errors.email)}
-            helperText={errors.email || 'A temporary password will be sent to this email.'}
+            helperText={
+              errors.email ||
+              (isExistingAppMember
+                ? 'Member is already registered on this app.'
+                : 'A temporary password will be sent to this email.')
+            }
             onChange={handleChange}
             onBlur={handleBlur}
             fullWidth
             required
             placeholder="e.g. john@example.com"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  {checkingEmail ? (
+                    <CircularProgress size={18} />
+                  ) : isExistingAppMember ? (
+                    <CheckCircleOutlineIcon color="primary" fontSize="small" />
+                  ) : null}
+                </InputAdornment>
+              ),
+            }}
           />
 
           {/* 4. Username */}
@@ -246,52 +386,57 @@ const InviteMemberModal = ({
             placeholder="e.g. johndoe (defaults to email username)"
           />
 
-          {/* Info Card: Automatic Random Password & Invite Link */}
-          <Box
-            sx={{
-              p: 1.75,
-              bgcolor: '#f8fafc',
-              borderRadius: 2,
-              border: '1px solid #e2e8f0',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-            }}
-          >
-            <VpnKeyOutlinedIcon sx={{ color: 'primary.main', fontSize: 24, flexShrink: 0 }} />
-            <Box>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                Secure Random Password
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                A strong, secure password is automatically generated according to password validation standards and included in the invitation email.
-              </Typography>
-            </Box>
-          </Box>
-
-          {/* 5. Checkbox Send Link */}
-          <Box sx={{ p: 1.5, bgcolor: '#f0fdf4', borderRadius: 2, border: '1px solid #bbf7d0' }}>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  name="sendLink"
-                  checked={formData.sendLink}
-                  onChange={handleChange}
-                  color="primary"
-                />
-              }
-              label={
+          {/* When member is already registered in app, hide invite options and password generation */}
+          {!isExistingAppMember && (
+            <>
+              {/* Info Card: Automatic Random Password & Invite Link */}
+              <Box
+                sx={{
+                  p: 1.75,
+                  bgcolor: '#f8fafc',
+                  borderRadius: 2,
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
+                }}
+              >
+                <VpnKeyOutlinedIcon sx={{ color: 'primary.main', fontSize: 24, flexShrink: 0 }} />
                 <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                    Send invite email immediately
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                    Secure Random Password
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    Member will receive an invitation email with their temporary password and app access link.
+                    A strong, secure password is automatically generated according to password validation standards and included in the invitation email.
                   </Typography>
                 </Box>
-              }
-            />
-          </Box>
+              </Box>
+
+              {/* Checkbox Send Link */}
+              <Box sx={{ p: 1.5, bgcolor: '#f0fdf4', borderRadius: 2, border: '1px solid #bbf7d0' }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      name="sendLink"
+                      checked={formData.sendLink}
+                      onChange={handleChange}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Box>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        Send invite email immediately
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Member will receive an invitation email with their temporary password and app access link.
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </Box>
+            </>
+          )}
         </DialogContent>
 
         <DialogActions sx={{ p: 2 }}>
@@ -301,10 +446,12 @@ const InviteMemberModal = ({
           <Button
             type="submit"
             variant="contained"
-            disabled={submitting}
+            disabled={submitting || checkingEmail || Boolean(errors.email)}
             startIcon={
               submitting ? (
                 <CircularProgress size={18} />
+              ) : isExistingAppMember ? (
+                <PersonAddIcon />
               ) : formData.sendLink ? (
                 <SendIcon />
               ) : (
@@ -312,7 +459,13 @@ const InviteMemberModal = ({
               )
             }
           >
-            {submitting ? 'Saving...' : formData.sendLink ? 'Add & Send Invite' : 'Save Member'}
+            {submitting
+              ? 'Saving...'
+              : isExistingAppMember
+              ? 'Add Member'
+              : formData.sendLink
+              ? 'Add & Send Invite'
+              : 'Save Member'}
           </Button>
         </DialogActions>
       </form>

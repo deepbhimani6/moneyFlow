@@ -823,7 +823,7 @@ const MembersPage = () => {
         existingMembers={members}
         currentUserEmail={user?.email || profile?.email || ''}
         onClose={() => setIsInviteOpen(false)}
-        onMemberCreated={async (newMember, sentLink) => {
+        onMemberCreated={async (newMember, sentLink, alreadyRegistered) => {
           if (newMember) {
             setMembers((prev) => {
               if (prev.some((m) => m._id === newMember._id)) return prev;
@@ -832,9 +832,15 @@ const MembersPage = () => {
             setPage(0);
           }
           await fetchMembers();
+          let successMessage = "Member created successfully.";
+          if (alreadyRegistered) {
+            successMessage = `Member '${newMember?.fullName || ''}' added to your list successfully.`;
+          } else if (sentLink) {
+            successMessage = "Member invited successfully.";
+          }
           setSnackbar({
             open: true,
-            message: sentLink ? "Member invited successfully." : "Member created successfully.",
+            message: successMessage,
             severity: "success",
           });
         }}
