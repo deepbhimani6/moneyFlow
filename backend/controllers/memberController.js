@@ -851,24 +851,18 @@ const getMemberEntriesDetail = async (req, res) => {
     const mPay = rawPay.filter(isMatch);
 
     let pendingReceiveAmount = 0;
-    let totalReceivedAmount = 0;
     for (const e of mReceive) {
       const amt = Number(e.amount) || 0;
       if ((e.paymentStatus || 'Pending') === 'Pending') {
         pendingReceiveAmount += amt;
-      } else if (e.paymentStatus === 'Received') {
-        totalReceivedAmount += amt;
       }
     }
 
     let pendingPayAmount = 0;
-    let totalPaidAmount = 0;
     for (const p of mPay) {
       const amt = Number(p.amount) || 0;
       if ((p.paymentStatus || 'Pending') === 'Pending') {
         pendingPayAmount += amt;
-      } else if (p.paymentStatus === 'Paid') {
-        totalPaidAmount += amt;
       }
     }
 
@@ -955,8 +949,6 @@ const getMemberEntriesDetail = async (req, res) => {
         stats: {
           pendingReceiveAmount: Math.trunc(pendingReceiveAmount),
           pendingPayAmount: Math.trunc(pendingPayAmount),
-          totalReceivedAmount: Math.trunc(totalReceivedAmount),
-          totalPaidAmount: Math.trunc(totalPaidAmount),
           netBalance: Math.trunc(pendingReceiveAmount - pendingPayAmount),
           totalEntries: combinedEntries.length,
           receiveEntriesCount: receiveMapped.length,

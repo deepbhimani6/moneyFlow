@@ -10,7 +10,6 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
-import PriceCheckIcon from "@mui/icons-material/PriceCheck";
 import { memberService } from "../services/api";
 import { formatDate, formatAmount, capitalizeName } from "../utils/formatters";
 
@@ -52,8 +51,6 @@ const MemberDetailPage = () => {
   const stats = data?.stats || {
     pendingReceiveAmount: 0,
     pendingPayAmount: 0,
-    totalReceivedAmount: 0,
-    totalPaidAmount: 0,
     netBalance: 0,
     totalEntries: 0,
     receiveEntriesCount: 0,
@@ -196,9 +193,8 @@ const MemberDetailPage = () => {
           sx={{
             display: "grid",
             gridTemplateColumns: {
-              xs: "repeat(2, 1fr)",
+              xs: "repeat(1, 1fr)",
               sm: "repeat(3, 1fr)",
-              md: "repeat(5, 1fr)",
             },
             gap: { xs: 1.5, sm: 2 },
             width: "100%",
@@ -318,65 +314,6 @@ const MemberDetailPage = () => {
             </Typography>
             <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.7rem", mt: 0.25 }}>
               {stats.pendingReceiveAmount > stats.pendingPayAmount ? "You will receive" : stats.pendingPayAmount > stats.pendingReceiveAmount ? "You will pay" : "All settled"}
-            </Typography>
-          </Card>
-
-          {/* Card 4: Total Received */}
-          <Card
-            elevation={0}
-            sx={{
-              borderRadius: 3,
-              border: "1px solid #e2e8f0",
-              bgcolor: "#ffffff",
-              p: 1.5,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: "#475569", fontSize: "0.72rem" }}>
-                Total Received
-              </Typography>
-              <Box sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: "rgba(22, 163, 74, 0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <CheckCircleOutlineIcon sx={{ fontSize: 16, color: "#16a34a" }} />
-              </Box>
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: "#16a34a", fontSize: { xs: "1.15rem", sm: "1.3rem" } }}>
-              ₹ {formatAmount(stats.totalReceivedAmount)}
-            </Typography>
-            <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.7rem", mt: 0.25 }}>
-              Settled received
-            </Typography>
-          </Card>
-
-          {/* Card 5: Total Paid */}
-          <Card
-            elevation={0}
-            sx={{
-              borderRadius: 3,
-              border: "1px solid #e2e8f0",
-              bgcolor: "#ffffff",
-              p: 1.5,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              gridColumn: { xs: "span 2", sm: "span 1" },
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: "#475569", fontSize: "0.72rem" }}>
-                Total Paid
-              </Typography>
-              <Box sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: "rgba(100, 116, 139, 0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <PriceCheckIcon sx={{ fontSize: 16, color: "#64748b" }} />
-              </Box>
-            </Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: "#475569", fontSize: { xs: "1.15rem", sm: "1.3rem" } }}>
-              ₹ {formatAmount(stats.totalPaidAmount)}
-            </Typography>
-            <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.7rem", mt: 0.25 }}>
-              Settled paid
             </Typography>
           </Card>
         </Box>
