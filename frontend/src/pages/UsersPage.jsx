@@ -405,9 +405,27 @@ const UsersPage = () => {
 
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
           {/* Filter Button */}
-          <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => setIsFilterOpen(true)} size="small">
+          <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => setIsFilterOpen(true)} size="small" sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}>
             Filter{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}
           </Button>
+
+          {/* Desktop Bulk Actions Button (Screens >= 1024px) */}
+          {selectedIds.length > 0 && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              size="small"
+              onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+              sx={{
+                display: { xs: "none", lg: "inline-flex" },
+                borderRadius: 2,
+                fontWeight: 600,
+                textTransform: "none",
+              }}
+            >
+              Bulk Actions ({selectedIds.length})
+            </Button>
+          )}
 
           <Menu
             anchorEl={bulkAnchorEl}
@@ -466,31 +484,26 @@ const UsersPage = () => {
                 sx={{ p: 0.25 }}
               />
               <Typography variant="body2" sx={{ fontWeight: 600, color: "#475467" }}>
-                Select All ({selectableUsers.length})
+                Select All ({selectedIds.length > 0 ? selectedIds.length : selectableUsers.length})
               </Typography>
             </Box>
             {selectedIds.length > 0 && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main" }}>
-                  {selectedIds.length} selected
-                </Typography>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="secondary"
-                  onClick={(e) => setBulkAnchorEl(e.currentTarget)}
-                  sx={{
-                    py: 0.25,
-                    px: 1,
-                    fontSize: "0.75rem",
-                    borderRadius: 1.5,
-                    textTransform: "none",
-                    fontWeight: 600,
-                  }}
-                >
-                  Bulk Actions
-                </Button>
-              </Box>
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+                sx={{
+                  py: 0.25,
+                  px: 1.25,
+                  fontSize: "0.75rem",
+                  borderRadius: 1.5,
+                  textTransform: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Bulk Actions
+              </Button>
             )}
           </Box>
 
@@ -532,7 +545,7 @@ const UsersPage = () => {
                       boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                     }}
                   >
-                    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 1, flexWrap: "wrap" }}>
+                    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 1 }}>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0, flex: 1, overflow: "hidden" }}>
                         {!isCurrent && (
                           <Checkbox
@@ -546,39 +559,40 @@ const UsersPage = () => {
                           {(row.fullName || "U")[0].toUpperCase()}
                         </Avatar>
                         <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: "0.95rem", lineHeight: 1.3, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
-                            {capitalizeName(row.fullName)}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.74rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: "0.95rem", lineHeight: 1.3, color: "#1e293b" }}>
+                              {capitalizeName(row.fullName)}
+                            </Typography>
+                            {hasJoined ? (
+                              <Chip
+                                icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 13 } }} />}
+                                label="Joined"
+                                size="small"
+                                color="success"
+                                sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                              />
+                            ) : row.inviteSent ? (
+                              <Chip
+                                label="Invite Sent"
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                                sx={{ height: 20, fontSize: "0.68rem", fontWeight: 600 }}
+                              />
+                            ) : (
+                              <Chip label="Pending" size="small" variant="outlined" sx={{ height: 20, fontSize: "0.68rem" }} />
+                            )}
+                          </Box>
+                          <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.74rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block", mt: 0.25 }}>
                             {row.email || row.phoneNumber || "No contact info"}
                           </Typography>
                         </Box>
                       </Box>
-
-                      {hasJoined ? (
-                        <Chip
-                          icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 14 } }} />}
-                          label="Joined"
-                          size="small"
-                          color="success"
-                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700, flexShrink: 0 }}
-                        />
-                      ) : row.inviteSent ? (
-                        <Chip
-                          label="Invite Sent"
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600, flexShrink: 0 }}
-                        />
-                      ) : (
-                        <Chip label="Pending" size="small" variant="outlined" sx={{ height: 22, fontSize: "0.7rem", flexShrink: 0 }} />
-                      )}
                     </Box>
 
                     {/* Join date */}
                     <Box sx={{ my: 1, bgcolor: "#f8fafc", p: 1, borderRadius: 2 }}>
-                      <Typography variant="caption" sx={{ color: "#64748b" }}>
+                      <Typography variant="caption" sx={{ color: hasJoined ? "#16a34a" : "#64748b", fontWeight: hasJoined ? 600 : 400 }}>
                         <strong>Joined:</strong> {formattedJoinDate}
                       </Typography>
                     </Box>
@@ -618,40 +632,6 @@ const UsersPage = () => {
           )}
         </Box>
 
-        {/* Desktop Selection Bar (Screens >= 1024px) */}
-        {selectedIds.length > 0 && (
-          <Box
-            sx={{
-              display: { xs: "none", lg: "flex" },
-              alignItems: "center",
-              justifyContent: "space-between",
-              px: 2.5,
-              py: 1.25,
-              bgcolor: "#f8fafc",
-              borderBottom: "1px solid #e2e8f0",
-            }}
-          >
-            <Typography variant="body2" sx={{ fontWeight: 700, color: "primary.main" }}>
-              {selectedIds.length} selected
-            </Typography>
-            <Button
-              size="small"
-              variant="outlined"
-              color="secondary"
-              onClick={(e) => setBulkAnchorEl(e.currentTarget)}
-              sx={{
-                py: 0.25,
-                px: 1.25,
-                fontSize: "0.75rem",
-                borderRadius: 1.5,
-                textTransform: "none",
-                fontWeight: 600,
-              }}
-            >
-              Bulk Actions
-            </Button>
-          </Box>
-        )}
 
         {/* Desktop Data Table (Screens >= 1024px) */}
         <TableContainer

@@ -504,14 +504,32 @@ const MembersPage = () => {
 
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
           {/* Filter Button */}
-          <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => setIsFilterOpen(true)} size="small">
+          <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => setIsFilterOpen(true)} size="small" sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}>
             Filter{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}
           </Button>
 
           {/* Invite Members Button */}
-          <Button variant="contained" startIcon={<PersonAddIcon />} onClick={() => setIsInviteOpen(true)} size="small">
+          <Button variant="contained" startIcon={<PersonAddIcon />} onClick={() => setIsInviteOpen(true)} size="small" sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}>
             Invite Members
           </Button>
+
+          {/* Desktop Bulk Actions Button (Screens >= 1024px) */}
+          {selectedIds.length > 0 && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              size="small"
+              onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+              sx={{
+                display: { xs: "none", lg: "inline-flex" },
+                borderRadius: 2,
+                fontWeight: 600,
+                textTransform: "none",
+              }}
+            >
+              Bulk Actions ({selectedIds.length})
+            </Button>
+          )}
 
           {/* Bulk Actions Menu */}
           <Menu anchorEl={bulkAnchorEl} open={Boolean(bulkAnchorEl)} onClose={() => setBulkAnchorEl(null)}>
@@ -555,35 +573,31 @@ const MembersPage = () => {
                 indeterminate={isIndeterminate}
                 checked={isAllSelected}
                 onChange={handleSelectAll}
+                disabled={selectableMembers.length === 0}
                 size="small"
                 sx={{ p: 0.25 }}
               />
               <Typography variant="body2" sx={{ fontWeight: 600, color: "#475467" }}>
-                Select All ({selectableMembers.length})
+                Select All ({selectedIds.length > 0 ? selectedIds.length : selectableMembers.length})
               </Typography>
             </Box>
             {selectedIds.length > 0 && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main" }}>
-                  {selectedIds.length} selected
-                </Typography>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="secondary"
-                  onClick={(e) => setBulkAnchorEl(e.currentTarget)}
-                  sx={{
-                    py: 0.25,
-                    px: 1,
-                    fontSize: "0.75rem",
-                    borderRadius: 1.5,
-                    textTransform: "none",
-                    fontWeight: 600,
-                  }}
-                >
-                  Bulk Actions
-                </Button>
-              </Box>
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+                sx={{
+                  py: 0.25,
+                  px: 1.25,
+                  fontSize: "0.75rem",
+                  borderRadius: 1.5,
+                  textTransform: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Bulk Actions
+              </Button>
             )}
           </Box>
 
@@ -680,22 +694,39 @@ const MembersPage = () => {
                             {(row.fullName || "M")[0].toUpperCase()}
                           </Avatar>
                           <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
-                            <Typography
-                              variant="subtitle1"
-                              sx={{
-                                fontWeight: 700,
-                                fontSize: "0.95rem",
-                                lineHeight: 1.3,
-                                color: "primary.main",
-                                overflow: "hidden",
-                                textOverflow: "ellipsis",
-                                whiteSpace: "nowrap",
-                                display: "block",
-                                "&:hover": { textDecoration: "underline" },
-                              }}
-                            >
-                              {capitalizeName(row.fullName)}
-                            </Typography>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
+                              <Typography
+                                variant="subtitle1"
+                                sx={{
+                                  fontWeight: 700,
+                                  fontSize: "0.95rem",
+                                  lineHeight: 1.3,
+                                  color: "primary.main",
+                                  "&:hover": { textDecoration: "underline" },
+                                }}
+                              >
+                                {capitalizeName(row.fullName)}
+                              </Typography>
+                              {hasJoined ? (
+                                <Chip
+                                  icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 13 } }} />}
+                                  label="Joined"
+                                  size="small"
+                                  color="success"
+                                  sx={{ height: 20, fontSize: "0.68rem", fontWeight: 700 }}
+                                />
+                              ) : row.inviteSent ? (
+                                <Chip
+                                  label="Invite Sent"
+                                  size="small"
+                                  color="primary"
+                                  variant="outlined"
+                                  sx={{ height: 20, fontSize: "0.68rem", fontWeight: 600 }}
+                                />
+                              ) : (
+                                <Chip label="Pending" size="small" variant="outlined" sx={{ height: 20, fontSize: "0.68rem" }} />
+                              )}
+                            </Box>
                             <Typography
                               variant="caption"
                               sx={{
@@ -705,6 +736,7 @@ const MembersPage = () => {
                                 textOverflow: "ellipsis",
                                 whiteSpace: "nowrap",
                                 display: "block",
+                                mt: 0.25,
                               }}
                             >
                               {row.email || row.phoneNumber || "No contact info"}
@@ -712,26 +744,6 @@ const MembersPage = () => {
                           </Box>
                         </Box>
                       </Box>
-
-                      {hasJoined ? (
-                        <Chip
-                          icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 14 } }} />}
-                          label="Joined"
-                          size="small"
-                          color="success"
-                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700 }}
-                        />
-                      ) : row.inviteSent ? (
-                        <Chip
-                          label="Invite Sent"
-                          size="small"
-                          color="primary"
-                          variant="outlined"
-                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600 }}
-                        />
-                      ) : (
-                        <Chip label="Pending" size="small" variant="outlined" sx={{ height: 22, fontSize: "0.7rem" }} />
-                      )}
                     </Box>
 
                     {/* Financial pending balances & Final Pay/Receive */}
@@ -785,7 +797,7 @@ const MembersPage = () => {
                       <Typography variant="caption" sx={{ color: "#64748b" }}>
                         <strong>Invite:</strong> {formattedInviteDate}
                       </Typography>
-                      <Typography variant="caption" sx={{ color: "#64748b" }}>
+                      <Typography variant="caption" sx={{ color: hasJoined ? "#16a34a" : "#64748b", fontWeight: hasJoined ? 600 : 400 }}>
                         <strong>Joined:</strong> {formattedJoinDate}
                       </Typography>
                       {row.phoneNumber && (

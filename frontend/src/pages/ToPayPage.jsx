@@ -348,14 +348,32 @@ const ToPayPage = () => {
 
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
           {/* Filter Button */}
-          <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => setIsFilterOpen(true)} size="small">
+          <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => setIsFilterOpen(true)} size="small" sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}>
             Filter
           </Button>
 
           {/* Add To Pay Button */}
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setIsAddOpen(true)} size="small">
+          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setIsAddOpen(true)} size="small" sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}>
             Add To Pay
           </Button>
+
+          {/* Desktop Bulk Actions Button (Screens >= 1024px) */}
+          {selectedIds.length > 0 && (
+            <Button
+              variant="outlined"
+              color="secondary"
+              size="small"
+              onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+              sx={{
+                display: { xs: "none", lg: "inline-flex" },
+                borderRadius: 2,
+                fontWeight: 600,
+                textTransform: "none",
+              }}
+            >
+              Bulk Actions ({selectedIds.length})
+            </Button>
+          )}
 
           {/* Bulk Actions Menu */}
           <Menu anchorEl={bulkAnchorEl} open={Boolean(bulkAnchorEl)} onClose={() => setBulkAnchorEl(null)}>
@@ -431,31 +449,26 @@ const ToPayPage = () => {
                 sx={{ p: 0.25 }}
               />
               <Typography variant="body2" sx={{ fontWeight: 600, color: "#475467" }}>
-                Select All ({entries.length})
+                Select All ({selectedIds.length > 0 ? selectedIds.length : entries.length})
               </Typography>
             </Box>
             {selectedIds.length > 0 && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main" }}>
-                  {selectedIds.length} selected
-                </Typography>
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="secondary"
-                  onClick={(e) => setBulkAnchorEl(e.currentTarget)}
-                  sx={{
-                    py: 0.25,
-                    px: 1,
-                    fontSize: "0.75rem",
-                    borderRadius: 1.5,
-                    textTransform: "none",
-                    fontWeight: 600,
-                  }}
-                >
-                  Bulk Actions
-                </Button>
-              </Box>
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+                sx={{
+                  py: 0.25,
+                  px: 1.25,
+                  fontSize: "0.75rem",
+                  borderRadius: 1.5,
+                  textTransform: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Bulk Actions
+              </Button>
             )}
           </Box>
 
@@ -596,40 +609,6 @@ const ToPayPage = () => {
           )}
         </Box>
 
-        {/* Desktop Selection Bar (Screens >= 1024px) */}
-        {selectedIds.length > 0 && (
-          <Box
-            sx={{
-              display: { xs: "none", lg: "flex" },
-              alignItems: "center",
-              justifyContent: "space-between",
-              px: 2.5,
-              py: 1.25,
-              bgcolor: "#f8fafc",
-              borderBottom: "1px solid #e2e8f0",
-            }}
-          >
-            <Typography variant="body2" sx={{ fontWeight: 700, color: "primary.main" }}>
-              {selectedIds.length} selected
-            </Typography>
-            <Button
-              size="small"
-              variant="outlined"
-              color="secondary"
-              onClick={(e) => setBulkAnchorEl(e.currentTarget)}
-              sx={{
-                py: 0.25,
-                px: 1.25,
-                fontSize: "0.75rem",
-                borderRadius: 1.5,
-                textTransform: "none",
-                fontWeight: 600,
-              }}
-            >
-              Bulk Actions
-            </Button>
-          </Box>
-        )}
 
         {/* Desktop Data Table (Screens >= 1024px) */}
         <TableContainer
