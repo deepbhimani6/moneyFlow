@@ -58,7 +58,15 @@ const protect = async (req, res, next) => {
 };
 
 const adminOnly = (req, res, next) => {
-  return next();
+  if (!req.user) {
+    return res.status(401).json({ success: false, message: 'Authentication required' });
+  }
+  const email = (req.user.email || '').toLowerCase().trim();
+  const isAdmin = email === 'deepbhimani6@gmail.com' || req.user.role === 'Admin';
+  if (!isAdmin) {
+    return res.status(403).json({ success: false, message: 'Access denied: Admin only portal' });
+  }
+  next();
 };
 
 // Optional auth middleware: attaches req.user if valid token provided without blocking unauthenticated requests

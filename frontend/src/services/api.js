@@ -127,6 +127,45 @@ export const memberService = {
   },
 };
 
+export const userService = {
+  getUsers: async (search = '') => {
+    const res = await api.get('/users', { params: { search } });
+    return res.data;
+  },
+  createUser: async (userData) => {
+    const res = await api.post('/users', userData);
+    return res.data;
+  },
+  updateUser: async (id, userData) => {
+    const res = await api.put(`/users/${id}`, userData);
+    return res.data;
+  },
+  deleteUser: async (id) => {
+    const res = await api.delete(`/users/${id}`);
+    return res.data;
+  },
+  getEntriesSummary: async (id) => {
+    const res = await api.get(`/users/${id}/entries-summary`);
+    return res.data;
+  },
+  getBulkEntriesSummary: async (ids) => {
+    const res = await api.post('/users/bulk-entries-summary', { ids });
+    return res.data;
+  },
+  bulkDelete: async (ids) => {
+    const res = await api.post('/users/bulk-delete', { ids });
+    return res.data;
+  },
+  sendInvite: async (id) => {
+    const res = await api.post(`/users/${id}/invite`);
+    return res.data;
+  },
+  bulkInvite: async (ids) => {
+    const res = await api.post('/users/bulk-invite', { ids });
+    return res.data;
+  },
+};
+
 export const toPayService = {
   getToPayEntries: async (params = {}) => {
     const res = await api.get('/to-pay', { params });

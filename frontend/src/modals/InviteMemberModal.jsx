@@ -25,6 +25,8 @@ const InviteMemberModal = ({
   onMemberCreated,
   existingMembers = [],
   currentUserEmail = '',
+  title = 'Invite New Member',
+  createFunction = null,
 }) => {
   const [formData, setFormData] = useState({
     fullName: '',
@@ -122,7 +124,8 @@ const InviteMemberModal = ({
 
     try {
       setSubmitting(true);
-      const res = await memberService.createMember({
+      const submitFn = createFunction || memberService.createMember;
+      const res = await submitFn({
         fullName: formattedFullName,
         phoneNumber: formData.phoneNumber.trim(),
         email: formData.email.trim().toLowerCase(),
@@ -183,7 +186,7 @@ const InviteMemberModal = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit} noValidate>
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Invite New Member</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>{title}</DialogTitle>
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 

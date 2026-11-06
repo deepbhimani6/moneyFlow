@@ -16,7 +16,14 @@ import {
 import { memberService } from '../services/api';
 import { capitalizeName, capitalizeWordsInput } from '../utils/formatters';
 
-const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
+const EditMemberModal = ({
+  open,
+  onClose,
+  member,
+  onMemberUpdated,
+  title = 'Edit Member',
+  updateFunction = null,
+}) => {
   const [formData, setFormData] = useState({
     fullName: '',
     phoneNumber: '',
@@ -82,7 +89,8 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
 
     try {
       setSubmitting(true);
-      const res = await memberService.updateMember(member._id, {
+      const updateFn = updateFunction || memberService.updateMember;
+      const res = await updateFn(member._id, {
         ...formData,
         fullName: formattedFullName,
       });
@@ -130,7 +138,7 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit} noValidate>
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Edit Member</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>{title}</DialogTitle>
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 

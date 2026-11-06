@@ -33,6 +33,7 @@ import ForSelfPage from './pages/ForSelfPage';
 import ToReceivePage from './pages/ToReceivePage';
 import ToPayPage from './pages/ToPayPage';
 import MembersPage from './pages/MembersPage';
+import UsersPage from './pages/UsersPage';
 import ProfilePage from './pages/ProfilePage';
 
 const drawerWidth = 240;
@@ -49,6 +50,7 @@ function MainAppLayout() {
     if (location.pathname.startsWith('/to-receive') || location.pathname.startsWith('/entries')) return 'To Receive';
     if (location.pathname.startsWith('/to-pay') || location.pathname.startsWith('/topay')) return 'To Pay';
     if (location.pathname.startsWith('/members')) return 'Members';
+    if (location.pathname.startsWith('/users')) return 'Users';
     return 'Dashboard';
   };
 
@@ -153,6 +155,7 @@ function MainAppLayout() {
             <Route path="/to-pay" element={<ToPayPage />} />
             <Route path="/borrowed" element={<Navigate to="/to-pay" replace />} />
             <Route path="/members" element={<MembersPage />} />
+            <Route path="/users" element={<UsersPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

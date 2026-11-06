@@ -18,11 +18,13 @@ import CallReceivedIcon from '@mui/icons-material/CallReceived';
 import PaymentIcon from '@mui/icons-material/Payment';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import { useProfile } from '../context/ProfileContext';
+import { useAuth } from '../context/AuthContext';
 
 const drawerWidth = 240;
 
-const menuItems = [
+const baseMenuItems = [
   { id: 'dashboard', path: '/dashboard', label: 'Dashboard', icon: <DashboardIcon /> },
   { id: 'for-self', path: '/for-self', label: 'For Self', icon: <AccountCircleIcon /> },
   { id: 'to-receive', path: '/to-receive', label: 'To Receive', icon: <CallReceivedIcon /> },
@@ -35,6 +37,15 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
   const navigate = useNavigate();
   const currentPath = location.pathname;
   const { profile, initials } = useProfile();
+  const { user } = useAuth();
+
+  const currentEmail = (profile?.email || user?.email || '').toLowerCase().trim();
+  const isAdmin = currentEmail === 'deepbhimani6@gmail.com' || profile?.role === 'Admin' || user?.role === 'Admin';
+
+  const menuItems = [
+    ...baseMenuItems,
+    ...(isAdmin ? [{ id: 'users', path: '/users', label: 'Users', icon: <ManageAccountsIcon /> }] : []),
+  ];
 
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
