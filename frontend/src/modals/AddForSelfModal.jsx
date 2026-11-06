@@ -77,6 +77,7 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
       });
 
       if (res.success) {
+        window.dispatchEvent(new CustomEvent('moneyflow-entry-created'));
         onEntryCreated();
         onClose();
       } else {

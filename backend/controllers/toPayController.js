@@ -2,8 +2,10 @@ const ToPay = require("../models/ToPay");
 const Entry = require("../models/Entry");
 const ForSelf = require("../models/ForSelf");
 const Member = require("../models/Member");
+const Notification = require("../models/Notification");
 const crypto = require("crypto");
 const { capitalizeName } = require("../utils/formatters");
+const { sendEntryNotificationEmail } = require("../utils/email");
 
 // Helper to resolve or auto-create a Member when a new participant name is used
 const resolveOrCreateMember = async (item, user) => {
@@ -202,6 +204,57 @@ const createToPayEntry = async (req, res) => {
       });
 
       await singleEntry.save();
+
+      const creatorName = req.user.fullName || 'You';
+      const cleanDescription = description && description.trim() ? description.trim() : 'No description provided';
+
+      // 1. In-app notification for the creator
+      await Notification.create({
+        userId: req.user._id,
+        creatorUserId: req.user._id,
+        creatorName,
+        title: `Entry Added: ${entryType}`,
+        message: `You added a ${entryType} (To Pay) entry of ₹${parsedAmount} for ${singleName}.`,
+        entryType,
+        amount: parsedAmount,
+        reason: cleanDescription,
+        date: entryDate,
+        time: entryTime,
+      }).catch((e) => console.error('[Notification Error]:', e.message));
+
+      // 2. In-app and email notification for the recipient if registered member
+      if (resolvedMemberId && String(resolvedMemberId) !== String(req.user._id)) {
+        const recipientMember = await Member.findById(resolvedMemberId).catch(() => null);
+        if (recipientMember) {
+          await Notification.create({
+            userId: recipientMember._id,
+            creatorUserId: req.user._id,
+            creatorName: req.user.fullName || 'A member',
+            title: `New ${entryType} Entry`,
+            message: `${req.user.fullName || 'A member'} added a ${entryType} entry of ₹${parsedAmount} involving you.`,
+            entryType,
+            amount: parsedAmount,
+            reason: cleanDescription,
+            date: entryDate,
+            time: entryTime,
+          }).catch((e) => console.error('[Notification Error]:', e.message));
+
+          if (recipientMember.email) {
+            sendEntryNotificationEmail({
+              toEmail: recipientMember.email,
+              recipientName: recipientMember.fullName,
+              creatorName: req.user.fullName || 'A member',
+              entryType,
+              amount: parsedAmount,
+              reason: cleanDescription,
+              date: entryDate,
+              time: entryTime,
+              isSplit: false,
+            }).catch((e) => console.error('[Email Notification Error]:', e.message));
+          }
+        }
+      }
+
       return res.status(201).json({
         success: true,
         message: "Entry created successfully.",
@@ -304,8 +357,55 @@ const createToPayEntry = async (req, res) => {
         });
 
         await recipientEntry.save();
+
+        // In-app notification for recipient member
+        await Notification.create({
+          userId: recipientMember._id,
+          creatorUserId: req.user._id,
+          creatorName: req.user.fullName || 'A member',
+          title: 'New Split Entry',
+          message: `${req.user.fullName || 'A member'} added a Split expense. Your share is ₹${memberAmount}.`,
+          entryType: 'Split',
+          amount: memberAmount,
+          reason: description && description.trim() ? description.trim() : 'Split expense',
+          date: entryDate,
+          time: entryTime,
+          splitGroupId,
+        }).catch((e) => console.error('[Notification Error]:', e.message));
+
+        // Email notification to the recipient member
+        if (recipientMember.email) {
+          sendEntryNotificationEmail({
+            toEmail: recipientMember.email,
+            recipientName: recipientMember.fullName,
+            creatorName: req.user.fullName || 'A member',
+            entryType: 'Split Expense',
+            amount: memberAmount,
+            reason: description && description.trim() ? description.trim() : 'Split expense',
+            date: entryDate,
+            time: entryTime,
+            isSplit: true,
+            splitTotalAmount: totalGroupAmount,
+            splitParticipantsCount: totalParticipants,
+          }).catch((e) => console.error('[Email Notification Error]:', e.message));
+        }
       }
     }
+
+    // In-app notification for the creator
+    await Notification.create({
+      userId: req.user._id,
+      creatorUserId: req.user._id,
+      creatorName: req.user.fullName || 'You',
+      title: 'Split Entry Created',
+      message: `You created a Split entry of ₹${totalGroupAmount} across ${totalParticipants} participants.`,
+      entryType: 'Split',
+      amount: totalGroupAmount,
+      reason: description && description.trim() ? description.trim() : 'Split expense',
+      date: entryDate,
+      time: entryTime,
+      splitGroupId,
+    }).catch((e) => console.error('[Notification Error]:', e.message));
 
     if (addSeparateMine) {
       let myAmount = equalSplitAmount;

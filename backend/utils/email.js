@@ -225,7 +225,96 @@ MoneyFlow • Online Expense & Split Tracker`;
   return dispatchEmail({ toEmail, fullName, subject, html, text });
 };
 
+const sendEntryNotificationEmail = async ({
+  toEmail,
+  recipientName,
+  creatorName,
+  entryType,
+  amount,
+  reason,
+  date,
+  time,
+  isSplit,
+  splitTotalAmount,
+  splitParticipantsCount,
+}) => {
+  if (!toEmail) return { success: false, error: 'No recipient email provided' };
+
+  const appUrl = process.env.APP_URL || 'https://moneyflow-5a2a.onrender.com';
+  const displayReason = reason && reason.trim() ? reason.trim() : 'No specific reason provided';
+  const subject = `MoneyFlow Notification: ${creatorName || 'A member'} added a ${entryType || 'new'} entry (₹${amount})`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+      <div style="text-align: center; margin-bottom: 24px; border-bottom: 1px solid #f1f5f9; padding-bottom: 16px;">
+        <h2 style="color: #1976d2; margin: 0; font-size: 24px; font-weight: 700;">MoneyFlow</h2>
+        <p style="color: #64748b; font-size: 13px; margin-top: 4px;">New Entry Notification</p>
+      </div>
+
+      <p style="color: #334155; font-size: 15px; line-height: 1.5; margin-bottom: 16px;">
+        Hello <strong>${recipientName || 'there'}</strong>,
+      </p>
+
+      <p style="color: #475569; font-size: 14px; line-height: 1.6; margin-bottom: 20px;">
+        <strong>${creatorName || 'A member'}</strong> added a new <strong>${entryType || 'expense'}</strong> entry on MoneyFlow that involves you.
+      </p>
+
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 18px; margin: 20px 0;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <span style="font-size: 13px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Your Share / Amount</span>
+          <span style="font-size: 22px; font-weight: 700; color: #1976d2;">₹${amount}</span>
+        </div>
+
+        <div style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
+          <p style="margin: 0 0 6px 0; font-size: 13px; color: #64748b; font-weight: 600;">Why / Reason:</p>
+          <div style="background-color: #ffffff; border: 1px solid #e2e8f0; padding: 10px 12px; border-radius: 6px; font-size: 14px; color: #1e293b; font-weight: 500;">
+            "${displayReason}"
+          </div>
+        </div>
+
+        <div style="margin-top: 14px; font-size: 13px; color: #475569; line-height: 1.6;">
+          <p style="margin: 3px 0;"><strong>Entry Type:</strong> ${entryType || 'Expense'}</p>
+          <p style="margin: 3px 0;"><strong>Added By:</strong> ${creatorName || 'MoneyFlow User'}</p>
+          ${date ? `<p style="margin: 3px 0;"><strong>Date:</strong> ${date} ${time ? `at ${time}` : ''}</p>` : ''}
+          ${isSplit && splitTotalAmount ? `<p style="margin: 3px 0; color: #0284c7;"><strong>Split Details:</strong> ₹${splitTotalAmount} total across ${splitParticipantsCount || 'multiple'} participants</p>` : ''}
+        </div>
+      </div>
+
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${appUrl}" style="background-color: #1976d2; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 14px; box-shadow: 0 2px 6px rgba(25,118,210,0.3);">
+          Open MoneyFlow App
+        </a>
+      </div>
+
+      <p style="color: #94a3b8; font-size: 12px; line-height: 1.5; text-align: center;">
+        You received this notification because you are a registered participant on MoneyFlow.
+      </p>
+
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin-top: 24px;" />
+      <p style="color: #94a3b8; font-size: 11px; text-align: center; margin: 0;">MoneyFlow • Online Expense & Split Tracker</p>
+    </div>
+  `;
+
+  const text = `Hello ${recipientName || 'there'},
+
+${creatorName || 'A member'} added a new ${entryType || 'expense'} entry on MoneyFlow that involves you.
+
+Amount / Share: ₹${amount}
+Why / Reason: ${displayReason}
+Entry Type: ${entryType || 'Expense'}
+Added By: ${creatorName || 'MoneyFlow User'}
+${date ? `Date: ${date} ${time ? `at ${time}` : ''}\n` : ''}${isSplit && splitTotalAmount ? `Split Details: ₹${splitTotalAmount} total across ${splitParticipantsCount || 'multiple'} participants\n` : ''}
+Open MoneyFlow to review:
+${appUrl}
+
+---
+MoneyFlow • Online Expense & Split Tracker`;
+
+  return dispatchEmail({ toEmail, fullName: recipientName, subject, html, text });
+};
+
 module.exports = {
   sendInviteEmail,
   sendPasswordResetEmail,
+  sendEntryNotificationEmail,
 };

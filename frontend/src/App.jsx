@@ -16,6 +16,7 @@ import theme from './theme';
 import Sidebar from './components/Sidebar';
 import OnlineDetector from './components/OnlineDetector';
 import HeaderProfileMenu from './components/HeaderProfileMenu';
+import NotificationBell from './components/NotificationBell';
 import { AuthProvider } from './context/AuthContext';
 import { ProfileProvider } from './context/ProfileContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -137,6 +138,9 @@ function MainAppLayout() {
                   Install PWA
                 </Button>
               )}
+
+              {/* Notification Bell */}
+              <NotificationBell />
 
               {/* Header Right Profile Icon & Menu */}
               <HeaderProfileMenu />

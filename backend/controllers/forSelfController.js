@@ -1,5 +1,6 @@
 const ForSelf = require("../models/ForSelf");
 const Entry = require("../models/Entry");
+const Notification = require("../models/Notification");
 
 // @desc    Get all For Self entries with filtering, search, and summary stats
 // @route   GET /api/for-self
@@ -169,6 +170,21 @@ const createForSelfEntry = async (req, res) => {
       isSplit: false,
       isMine: true,
     });
+
+    const cleanDescription = description && description.trim() ? description.trim() : "Personal expense";
+
+    await Notification.create({
+      userId: req.user._id,
+      creatorUserId: req.user._id,
+      creatorName: req.user.fullName || "You",
+      title: `Personal Entry Added: ${entryType}`,
+      message: `You added a personal ${entryType} of ₹${parsedAmount}.`,
+      entryType,
+      amount: parsedAmount,
+      reason: cleanDescription,
+      date: entryDate,
+      time: entryTime,
+    }).catch((e) => console.error("[Notification Error]:", e.message));
 
     res.status(201).json({
       success: true,

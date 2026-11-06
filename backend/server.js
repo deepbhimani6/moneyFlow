@@ -15,6 +15,7 @@ const toPayRoutes = require('./routes/toPayRoutes');
 const forSelfRoutes = require('./routes/forSelfRoutes');
 const profileRoutes = require('./routes/profileRoutes');
 const userRoutes = require('./routes/userRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const { resolveAuthUser } = require('./middleware/authMiddleware');
 
 const app = express();
@@ -52,6 +53,7 @@ app.use('/api/for-self', forSelfRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/profile', profileRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Serve Frontend in production
 const frontendDist = path.join(__dirname, '../frontend/dist');
