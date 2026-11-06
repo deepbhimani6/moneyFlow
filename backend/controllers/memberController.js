@@ -84,7 +84,6 @@ const getMembers = async (req, res) => {
     const members = await Member.find({ $and: andConditions }).sort({ createdAt: -1 });
     const customNames = currentUser && currentUser.memberCustomNames ? currentUser.memberCustomNames : null;
     const inviteDates = currentUser && currentUser.memberInviteDates ? currentUser.memberInviteDates : null;
-    const currentUserIdStr = currentUserId.toString();
 
     const formattedMembers = members.map((m) => {
       const mObj = m.toObject ? m.toObject() : { ...m };
@@ -473,12 +472,6 @@ const deleteMember = async (req, res) => {
       });
     }
 
-    const isAdmin = Boolean(
-      (req.user && req.user.email && req.user.email.toLowerCase().trim() === 'deepbhimani6@gmail.com') ||
-      (req.user && req.user.role === 'Admin')
-    );
-    const hasLoggedInAtLeastOnce = Boolean(member.hasLoggedIn || member.joinDate);
-
     // Only remove from this specific user's members directory (does not delete full user account)
     const currentUser = await Member.findById(req.user._id);
     if (currentUser) {
@@ -515,11 +508,6 @@ const bulkDeleteMembers = async (req, res) => {
 
     const currentUserId = req.user ? String(req.user._id) : null;
     const validIds = ids.filter((id) => String(id) !== currentUserId);
-
-    const isAdmin = Boolean(
-      (req.user && req.user.email && req.user.email.toLowerCase().trim() === 'deepbhimani6@gmail.com') ||
-      (req.user && req.user.role === 'Admin')
-    );
 
     // Only remove from this specific user's members list (does not delete full user account)
     const currentUser = await Member.findById(req.user._id);

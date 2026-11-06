@@ -181,7 +181,7 @@ MoneyFlow • Online Expense & Split Tracker`;
   return dispatchEmail({ toEmail, fullName, subject, html, text });
 };
 
-const sendPasswordResetEmail = async ({ toEmail, fullName, resetLink, resetCode }) => {
+const sendPasswordResetEmail = async ({ toEmail, fullName, resetCode }) => {
   const subject = `Reset your MoneyFlow password`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #ffffff;">

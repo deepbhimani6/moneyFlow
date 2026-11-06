@@ -91,7 +91,7 @@ const resolveAuthUser = async (req, res, next) => {
       if (user) {
         req.user = user;
       }
-    } catch (error) {
+    } catch {
       // Ignore token verification errors for optional auth
     }
   }

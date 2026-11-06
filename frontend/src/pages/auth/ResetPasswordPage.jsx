@@ -81,7 +81,6 @@ const ResetPasswordPage = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
 
   const tokenRef = useRef(null);
   const newPasswordRef = useRef(null);
@@ -287,16 +286,6 @@ const ResetPasswordPage = () => {
           {error && (
             <Alert severity="error" sx={{ mb: 2.5, borderRadius: 2 }} onClose={() => setError('')}>
               {error}
-            </Alert>
-          )}
-
-          {successMsg && (
-            <Alert
-              icon={<CheckCircleIcon fontSize="inherit" />}
-              severity="success"
-              sx={{ mb: 2.5, borderRadius: 2 }}
-            >
-              {successMsg}
             </Alert>
           )}
 

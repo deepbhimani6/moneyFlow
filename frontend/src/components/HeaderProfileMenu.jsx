@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Box, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Typography, Divider, Chip } from "@mui/material";
+import { Box, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Typography, Divider } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";

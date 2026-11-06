@@ -270,26 +270,9 @@ const forgotPassword = async (req, res) => {
     member.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour expiration
     await member.save();
 
-    // Determine correct app URL
-    let appUrl = 'https://moneyflow-5a2a.onrender.com';
-    if (req.headers.origin) {
-      appUrl = req.headers.origin;
-    } else if (req.headers.referer) {
-      try {
-        const u = new URL(req.headers.referer);
-        appUrl = `${u.protocol}//${u.host}`;
-      } catch (e) {}
-    } else if (process.env.APP_URL) {
-      appUrl = process.env.APP_URL;
-    }
-    appUrl = appUrl.replace(/\/+$/, '');
-
-    const resetLink = `${appUrl}/reset-password?token=${token}`;
-
     const emailResult = await sendPasswordResetEmail({
       toEmail: member.email,
       fullName: member.fullName,
-      resetLink,
       resetCode,
     });
 

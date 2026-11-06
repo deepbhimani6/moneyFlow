@@ -26,7 +26,6 @@ const ForgotPasswordPage = () => {
   const [error, setError] = useState('');
   const [sentSuccess, setSentSuccess] = useState(false);
   const [sentEmail, setSentEmail] = useState('');
-  const [devToken, setDevToken] = useState('');
 
   const emailRef = useRef(null);
 
@@ -57,9 +56,6 @@ const ForgotPasswordPage = () => {
       if (res.success) {
         setSentSuccess(true);
         setSentEmail(email.trim());
-        if (res.resetToken) {
-          setDevToken(res.resetToken);
-        }
       } else {
         const msg = res.message || 'Unable to process reset request.';
         setErrors({ email: msg });

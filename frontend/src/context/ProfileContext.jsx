@@ -25,7 +25,7 @@ export const ProfileProvider = ({ children }) => {
       if (cached) {
         return JSON.parse(cached);
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
     return null;
