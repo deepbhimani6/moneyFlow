@@ -407,25 +407,10 @@ const deleteMember = async (req, res) => {
     );
     const hasLoggedInAtLeastOnce = Boolean(member.hasLoggedIn || member.joinDate);
 
-    // Remove from current user's members directory
+    // Only remove from this specific user's members directory (does not delete full user account)
     await Member.findByIdAndUpdate(req.user._id, {
       $pull: { members: member._id },
     });
-
-    if (isAdmin) {
-      // Admin can delete all person without restrictions
-      await Member.findByIdAndDelete(member._id);
-      await Member.updateMany({}, { $pull: { members: member._id } });
-    } else if (!hasLoggedInAtLeastOnce) {
-      // Member has NOT logged in for the first time -> removed from user & member table completely
-      await Member.findByIdAndDelete(member._id);
-      await Member.updateMany({}, { $pull: { members: member._id } });
-    } else {
-      // Member HAS logged in at least 1 time -> only member will delete & user not delete
-      if (String(member.createdBy) === String(req.user._id)) {
-        await Member.updateOne({ _id: member._id }, { $set: { createdBy: null } });
-      }
-    }
 
     res.json({
       success: true,
@@ -454,27 +439,10 @@ const bulkDeleteMembers = async (req, res) => {
       (req.user && req.user.role === 'Admin')
     );
 
-    // Remove from current user's members list
+    // Only remove from this specific user's members list (does not delete full user account)
     await Member.findByIdAndUpdate(req.user._id, {
       $pull: { members: { $in: validIds } },
     });
-
-    for (const memberId of validIds) {
-      const m = await Member.findById(memberId);
-      if (!m) continue;
-      const hasLoggedInAtLeastOnce = Boolean(m.hasLoggedIn || m.joinDate);
-
-      if (isAdmin || !hasLoggedInAtLeastOnce) {
-        // Admin or unjoined member -> completely removed from DB & member tables
-        await Member.findByIdAndDelete(memberId);
-        await Member.updateMany({}, { $pull: { members: memberId } });
-      } else {
-        // Member has logged in at least 1 time -> user not deleted
-        if (String(m.createdBy) === String(req.user._id)) {
-          await Member.updateOne({ _id: memberId }, { $set: { createdBy: null } });
-        }
-      }
-    }
 
     res.json({
       success: true,
