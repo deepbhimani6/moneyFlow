@@ -641,8 +641,8 @@ const MemberDetailPage = () => {
             overflow: "hidden",
           }}
         >
-          {/* Mobile Card View */}
-          <Box sx={{ display: { xs: "block", md: "none" } }}>
+          {/* Mobile Card View (Screens < 1024px) */}
+          <Box sx={{ display: { xs: "block", lg: "none" } }}>
             {/* Subheader Toolbar with Select All */}
             <Box
               sx={{
@@ -712,7 +712,7 @@ const MemberDetailPage = () => {
                       key={entry._id}
                       elevation={0}
                       sx={{
-                        p: 1.75,
+                        p: { xs: 1.75, sm: 2 },
                         borderRadius: 2.5,
                         border: "1px solid #e2e8f0",
                         outline: isSelected ? "2px solid #1976d2" : "none",
@@ -721,8 +721,9 @@ const MemberDetailPage = () => {
                         transition: "all 0.15s ease",
                       }}
                     >
-                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                      {/* Top row: Badges + Status */}
+                      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 1.25 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0.75, minWidth: 0, flex: 1 }}>
                           <Checkbox
                             size="small"
                             checked={isSelected}
@@ -734,35 +735,55 @@ const MemberDetailPage = () => {
                           {entry.isSplit && <Chip icon={<CallSplitIcon sx={{ "&&": { fontSize: 13 } }} />} label="Split" size="small" sx={{ height: 22, fontSize: "0.68rem" }} />}
                         </Box>
 
-                        {renderStatusChip(entry)}
+                        <Box sx={{ flexShrink: 0 }}>
+                          {renderStatusChip(entry)}
+                        </Box>
                       </Box>
 
-                      <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", my: 1 }}>
+                      {/* Middle row: Amount + Date & Time */}
+                      <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: 1, my: 1 }}>
                         <Typography
                           variant="h6"
                           sx={{
                             fontWeight: 800,
                             color: isReceive ? "#1976d2" : "#ea580c",
-                            fontSize: "1.25rem",
+                            fontSize: { xs: "1.15rem", sm: "1.25rem" },
                           }}
                         >
                           ₹ {formatAmount(entry.amount)}
                         </Typography>
 
-                        <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600 }}>
+                        <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 600, fontSize: "0.74rem" }}>
                           {formatDate(entry.date)} • {entry.time || ""}
                         </Typography>
                       </Box>
 
-                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pt: 1, borderTop: "1px solid #f1f5f9" }}>
+                      {/* Description Callout */}
+                      {entry.description && (
+                        <Box sx={{ bgcolor: "#f8fafc", p: 1, borderRadius: 1.5, borderLeft: "3px solid #1976d2", my: 1 }}>
+                          <Typography variant="caption" sx={{ color: "#475569", fontStyle: "italic", fontSize: "0.78rem", display: "block", wordBreak: "break-word" }}>
+                            "{entry.description}"
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Bottom row: Creator source info */}
+                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, pt: 1, borderTop: "1px solid #f1f5f9" }}>
                         <Typography variant="caption" sx={{ color: "#64748b" }}>
                           Source: <strong>{entry.creatorName}</strong>
                         </Typography>
-                        {entry.description && (
-                          <Typography variant="caption" sx={{ color: "#64748b", fontStyle: "italic", maxWidth: 180 }} noWrap>
-                            {entry.description}
-                          </Typography>
-                        )}
+                        <Chip
+                          label={entry.isMine ? "You" : entry.creatorName}
+                          size="small"
+                          variant="outlined"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.68rem",
+                            fontWeight: entry.isMine ? 600 : 700,
+                            borderColor: entry.isMine ? "#cbd5e1" : "#1976d2",
+                            color: entry.isMine ? "text.secondary" : "primary.main",
+                          }}
+                        />
                       </Box>
                     </Paper>
                   );
@@ -771,8 +792,8 @@ const MemberDetailPage = () => {
             )}
           </Box>
 
-          {/* Desktop Table View */}
-          <Box sx={{ display: { xs: "none", md: "block" } }}>
+          {/* Desktop Table View (Screens >= 1024px) */}
+          <Box sx={{ display: { xs: "none", lg: "block" } }}>
             {selectedIds.length > 0 && (
               <Box
                 sx={{
@@ -806,7 +827,20 @@ const MemberDetailPage = () => {
                 </Button>
               </Box>
             )}
-            <TableContainer>
+            <TableContainer
+              sx={{
+                width: "100%",
+                overflowX: "auto",
+                WebkitOverflowScrolling: "touch",
+                "&::-webkit-scrollbar": { height: "6px" },
+                "&::-webkit-scrollbar-track": { backgroundColor: "#f8fafc" },
+                "&::-webkit-scrollbar-thumb": {
+                  backgroundColor: "rgba(0, 0, 0, 0.18)",
+                  borderRadius: "3px",
+                  "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.3)" },
+                },
+              }}
+            >
               <Table sx={{ minWidth: 700 }}>
                 <TableHead sx={{ bgcolor: "#f8fafc" }}>
                   <TableRow>

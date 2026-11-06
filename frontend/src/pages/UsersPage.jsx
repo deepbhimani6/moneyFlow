@@ -442,8 +442,8 @@ const UsersPage = () => {
           bgcolor: "background.paper",
         }}
       >
-        {/* Mobile-First Card View (Screens < 768px) */}
-        <Box sx={{ display: { xs: "block", md: "none" } }}>
+        {/* Mobile-First Card View (Screens < 1024px) */}
+        <Box sx={{ display: { xs: "block", lg: "none" } }}>
           {/* Subheader Toolbar with Select All */}
           <Box
             sx={{
@@ -532,7 +532,7 @@ const UsersPage = () => {
                       boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
                     }}
                   >
-                    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 1, flexWrap: "wrap" }}>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0, flex: 1, overflow: "hidden" }}>
                         {!isCurrent && (
                           <Checkbox
@@ -561,7 +561,7 @@ const UsersPage = () => {
                           label="Joined"
                           size="small"
                           color="success"
-                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700 }}
+                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700, flexShrink: 0 }}
                         />
                       ) : row.inviteSent ? (
                         <Chip
@@ -569,10 +569,10 @@ const UsersPage = () => {
                           size="small"
                           color="primary"
                           variant="outlined"
-                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600 }}
+                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600, flexShrink: 0 }}
                         />
                       ) : (
-                        <Chip label="Pending" size="small" variant="outlined" sx={{ height: 22, fontSize: "0.7rem" }} />
+                        <Chip label="Pending" size="small" variant="outlined" sx={{ height: 22, fontSize: "0.7rem", flexShrink: 0 }} />
                       )}
                     </Box>
 
@@ -585,7 +585,7 @@ const UsersPage = () => {
 
                     {/* Actions */}
                     <Divider sx={{ my: 1, borderColor: "#f1f5f9" }} />
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                       <Button
                         size="small"
                         variant="outlined"
@@ -618,11 +618,11 @@ const UsersPage = () => {
           )}
         </Box>
 
-        {/* Desktop Selection Bar */}
+        {/* Desktop Selection Bar (Screens >= 1024px) */}
         {selectedIds.length > 0 && (
           <Box
             sx={{
-              display: { xs: "none", md: "flex" },
+              display: { xs: "none", lg: "flex" },
               alignItems: "center",
               justifyContent: "space-between",
               px: 2.5,
@@ -653,8 +653,26 @@ const UsersPage = () => {
           </Box>
         )}
 
-        {/* Desktop Data Table (Screens >= 768px) */}
-        <TableContainer sx={{ display: { xs: "none", md: "block" }, overflowX: "auto" }}>
+        {/* Desktop Data Table (Screens >= 1024px) */}
+        <TableContainer
+          sx={{
+            display: { xs: "none", lg: "block" },
+            width: "100%",
+            overflowX: "auto",
+            WebkitOverflowScrolling: "touch",
+            "&::-webkit-scrollbar": {
+              height: "6px",
+            },
+            "&::-webkit-scrollbar-track": {
+              backgroundColor: "rgba(0, 0, 0, 0.05)",
+            },
+            "&::-webkit-scrollbar-thumb": {
+              backgroundColor: "rgba(0, 0, 0, 0.18)",
+              borderRadius: "3px",
+              "&:hover": { backgroundColor: "rgba(0, 0, 0, 0.3)" },
+            },
+          }}
+        >
           <Table sx={{ minWidth: 750 }}>
             <TableHead
               sx={{

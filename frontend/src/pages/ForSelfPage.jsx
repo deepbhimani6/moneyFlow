@@ -268,8 +268,8 @@ const ForSelfPage = () => {
           bgcolor: "background.paper",
         }}
       >
-        {/* Mobile-First Card View (Screens < 768px) */}
-        <Box sx={{ display: { xs: "block", md: "none" } }}>
+        {/* Mobile-First Card View (Screens < 1024px) */}
+        <Box sx={{ display: { xs: "block", lg: "none" } }}>
           {/* Subheader Toolbar with Select All */}
           <Box
             sx={{
@@ -387,7 +387,7 @@ const ForSelfPage = () => {
                     {/* Description */}
                     {row.description && (
                       <Box sx={{ bgcolor: "#f8fafc", p: 1, borderRadius: 1.5, borderLeft: `3px solid ${isAddBalance ? "#1976d2" : "#ed6c02"}`, my: 1 }}>
-                        <Typography variant="caption" sx={{ color: "#475569", fontStyle: "italic", fontSize: "0.78rem", display: "block" }}>
+                        <Typography variant="caption" sx={{ color: "#475569", fontStyle: "italic", fontSize: "0.78rem", display: "block", wordBreak: "break-word" }}>
                           "{row.description}"
                         </Typography>
                       </Box>
@@ -423,11 +423,11 @@ const ForSelfPage = () => {
           )}
         </Box>
 
-        {/* Desktop Selection Bar */}
+        {/* Desktop Selection Bar (Screens >= 1024px) */}
         {selectedIds.length > 0 && (
           <Box
             sx={{
-              display: { xs: "none", md: "flex" },
+              display: { xs: "none", lg: "flex" },
               alignItems: "center",
               justifyContent: "space-between",
               px: 2.5,
@@ -458,10 +458,10 @@ const ForSelfPage = () => {
           </Box>
         )}
 
-        {/* Desktop Data Table (Screens >= 768px) */}
+        {/* Desktop Data Table (Screens >= 1024px) */}
         <TableContainer
           sx={{
-            display: { xs: "none", md: "block" },
+            display: { xs: "none", lg: "block" },
             width: "100%",
             overflowX: "auto",
             WebkitOverflowScrolling: "touch",

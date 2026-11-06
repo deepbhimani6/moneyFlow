@@ -742,10 +742,10 @@ const MembersPage = () => {
                       }}
                       sx={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(3, 1fr)",
-                        gap: 1,
+                        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                        gap: { xs: 0.75, sm: 1 },
                         my: 1.25,
-                        p: 1.25,
+                        p: { xs: 1, sm: 1.25 },
                         bgcolor: "#f8fafc",
                         borderRadius: 2,
                         border: "1px solid #f1f5f9",
@@ -754,27 +754,27 @@ const MembersPage = () => {
                         "&:hover": { bgcolor: "#f1f5f9", borderColor: "#e2e8f0" },
                       }}
                     >
-                      <Box>
-                        <Typography variant="caption" sx={{ color: "#0284c7", fontSize: "0.7rem", fontWeight: 700, display: "block" }}>
+                      <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+                        <Typography variant="caption" sx={{ color: "#0284c7", fontSize: { xs: "0.65rem", sm: "0.7rem" }, fontWeight: 700, display: "block", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                           Pending Receive
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingReceive > 0 ? "#0369a1" : "#475569" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingReceive > 0 ? "#0369a1" : "#475569", fontSize: { xs: "0.8rem", sm: "0.875rem" }, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                           ₹ {formatAmount(pendingReceive)}
                         </Typography>
                       </Box>
-                      <Box>
-                        <Typography variant="caption" sx={{ color: "#ea580c", fontSize: "0.7rem", fontWeight: 700, display: "block" }}>
+                      <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+                        <Typography variant="caption" sx={{ color: "#ea580c", fontSize: { xs: "0.65rem", sm: "0.7rem" }, fontWeight: 700, display: "block", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                           Pending Pay
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingPay > 0 ? "#c2410c" : "#475569" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingPay > 0 ? "#c2410c" : "#475569", fontSize: { xs: "0.8rem", sm: "0.875rem" }, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                           ₹ {formatAmount(pendingPay)}
                         </Typography>
                       </Box>
-                      <Box>
-                        <Typography variant="caption" sx={{ color: finalColor, fontSize: "0.7rem", fontWeight: 700, display: "block" }}>
+                      <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+                        <Typography variant="caption" sx={{ color: finalColor, fontSize: { xs: "0.65rem", sm: "0.7rem" }, fontWeight: 700, display: "block", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                           {finalTitle}
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: totalMoney > 0 ? finalColor : "#475569" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: totalMoney > 0 ? finalColor : "#475569", fontSize: { xs: "0.8rem", sm: "0.875rem" }, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                           ₹ {formatAmount(totalMoney)}
                         </Typography>
                       </Box>
@@ -797,7 +797,7 @@ const MembersPage = () => {
 
                     {/* Actions */}
                     <Divider sx={{ my: 1, borderColor: "#f1f5f9" }} />
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                       <Tooltip title={inviteTooltip}>
                         <span>
                           <Button
