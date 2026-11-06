@@ -195,25 +195,14 @@ const sendPasswordResetEmail = async ({ toEmail, fullName, resetLink, resetCode 
         We received a request to reset the password for your MoneyFlow account associated with <strong>${toEmail}</strong>.
       </p>
 
-      <div style="text-align: center; margin: 30px 0;">
-        <a href="${resetLink}" style="background-color: #1976d2; color: #ffffff; padding: 13px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 15px; box-shadow: 0 4px 12px rgba(25,118,210,0.3);">
-          Reset Your Password
-        </a>
-      </div>
-
       ${resetCode ? `
-      <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 14px; border-radius: 8px; margin: 20px 0; text-align: center;">
-        <span style="display: block; font-size: 12px; color: #64748b; margin-bottom: 4px;">Your Reset Code (if entering manually):</span>
-        <code style="font-size: 18px; font-weight: bold; letter-spacing: 2px; color: #0f172a;">${resetCode}</code>
+      <div style="background-color: #f8fafc; border: 1px dashed #cbd5e1; padding: 20px; border-radius: 8px; margin: 24px 0; text-align: center;">
+        <span style="display: block; font-size: 13px; color: #64748b; margin-bottom: 8px; font-weight: 600;">Your Password Reset Code:</span>
+        <code style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: #1976d2; font-family: monospace;">${resetCode}</code>
       </div>` : ''}
 
       <p style="color: #64748b; font-size: 13px; line-height: 1.5;">
-        This password reset link is valid for <strong>1 hour</strong>. If you did not request a password reset, you can safely ignore this email — your account remains completely secure.
-      </p>
-
-      <p style="color: #94a3b8; font-size: 12px; line-height: 1.4; word-break: break-all;">
-        If the button above does not work, copy and paste this URL into your browser:<br/>
-        <a href="${resetLink}" style="color: #1976d2;">${resetLink}</a>
+        This password reset code is valid for <strong>1 hour</strong>. Please enter this code on the reset password screen to create a new password. If you did not request a password reset, you can safely ignore this email — your account remains completely secure.
       </p>
 
       <hr style="border: none; border-top: 1px solid #e2e8f0; margin-top: 25px;" />
@@ -223,12 +212,11 @@ const sendPasswordResetEmail = async ({ toEmail, fullName, resetLink, resetCode 
 
   const text = `Hello ${fullName || 'there'},
 
-We received a request to reset your MoneyFlow account password.
+We received a request to reset the password for your MoneyFlow account.
 
-Click this link to set a new password (valid for 1 hour):
-${resetLink}
+${resetCode ? `Your Password Reset Code: ${resetCode}\n` : ''}
+This code is valid for 1 hour. Please enter this code on the reset password screen to set a new password.
 
-${resetCode ? `Your Reset Code: ${resetCode}\n` : ''}
 If you did not request this, you can safely ignore this email.
 
 ---
