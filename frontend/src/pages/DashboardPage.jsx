@@ -65,7 +65,6 @@ const DashboardPage = () => {
       amount: stats.totalBalance,
       color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f',
       icon: <AccountBalanceWalletIcon sx={{ fontSize: 32, color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f' }} />,
-      subtitle: 'For Self (Add balance) - Total Expenses - To Receive (Split, Loan & Expense (Status: Pending)) - To Pay (Loan & Expense (Status: Paid))',
       gridProps: { xs: 12, sm: 6, md: 6, lg: 6, xl: 6, '2xl': 6 },
     },
     {
@@ -74,7 +73,6 @@ const DashboardPage = () => {
       amount: stats.totalExpenses,
       color: '#d32f2f',
       icon: <TrendingDownIcon sx={{ fontSize: 32, color: '#d32f2f' }} />,
-      subtitle: 'For Self (Expense, Split)',
       gridProps: { xs: 12, sm: 6, md: 6, lg: 6, xl: 6, '2xl': 6 },
     },
     {
@@ -83,7 +81,6 @@ const DashboardPage = () => {
       amount: stats.pendingReceiveLoans,
       color: '#7b1fa2',
       icon: <MonetizationOnIcon sx={{ fontSize: 32, color: '#7b1fa2' }} />,
-      subtitle: 'To Receive (Type: Loan) (Status: Pending)',
       gridProps: { xs: 12, sm: 6, md: 6, lg: 6, xl: 6, '2xl': 6 },
     },
     {
@@ -92,7 +89,6 @@ const DashboardPage = () => {
       amount: stats.pendingReceiveExpenses,
       color: '#ed6c02',
       icon: <PendingActionsIcon sx={{ fontSize: 32, color: '#ed6c02' }} />,
-      subtitle: 'To Receive (Type: Split, Expenses) (Status: Pending)',
       gridProps: { xs: 12, sm: 6, md: 6, lg: 6, xl: 6, '2xl': 6 },
     },
     {
@@ -101,7 +97,6 @@ const DashboardPage = () => {
       amount: stats.pendingPayLoans,
       color: '#c2185b',
       icon: <ReceiptLongIcon sx={{ fontSize: 32, color: '#c2185b' }} />,
-      subtitle: 'To Pay (Type: Loan) (Status: Pending)',
       gridProps: { xs: 12, sm: 6, md: 6, lg: 6, xl: 6, '2xl': 6 },
     },
     {
@@ -110,7 +105,6 @@ const DashboardPage = () => {
       amount: stats.pendingPayExpenses,
       color: '#e65100',
       icon: <PriceCheckIcon sx={{ fontSize: 32, color: '#e65100' }} />,
-      subtitle: 'To Pay (Type: Expenses) (Status: Pending)',
       gridProps: { xs: 12, sm: 6, md: 6, lg: 6, xl: 6, '2xl': 6 },
     },
   ];
@@ -163,14 +157,10 @@ const DashboardPage = () => {
                     sx={{
                       fontWeight: 700,
                       color: card.color,
-                      mb: 0.5,
+                      mb: 0,
                     }}
                   >
                     ₹ {formatAmount(card.amount)}
-                  </Typography>
-
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.4 }}>
-                    {card.subtitle}
                   </Typography>
                 </CardContent>
               </Card>
