@@ -1,5 +1,6 @@
 const Member = require('../models/Member');
 const Entry = require('../models/Entry');
+const ToPay = require('../models/ToPay');
 const { sendInviteEmail } = require('../utils/email');
 const { capitalizeName } = require('../utils/formatters');
 
@@ -81,7 +82,11 @@ const getMembers = async (req, res) => {
       });
     }
 
-    const members = await Member.find({ $and: andConditions }).sort({ createdAt: -1 });
+    const [members, userReceiveEntries, userPayEntries] = await Promise.all([
+      Member.find({ $and: andConditions }).sort({ createdAt: -1 }),
+      Entry.find({ userId: currentUserId }).lean(),
+      ToPay.find({ userId: currentUserId }).lean(),
+    ]);
     const customNames = currentUser && currentUser.memberCustomNames ? currentUser.memberCustomNames : null;
     const inviteDates = currentUser && currentUser.memberInviteDates ? currentUser.memberInviteDates : null;
 
@@ -118,6 +123,31 @@ const getMembers = async (req, res) => {
         mObj.lastInviteSentAt = null;
         mObj.inviteSent = false;
       }
+
+      // 3. Compute Pending to Receive & Pending to Pay amounts for this member
+      const mOrigName = (m.fullName || '').toLowerCase().trim();
+      const mCustName = (customName || '').toLowerCase().trim();
+
+      const isMatch = (e) => {
+        if (e.memberId && String(e.memberId) === mIdStr) return true;
+        const fn = (e.forFromName || '').toLowerCase().trim();
+        return (mOrigName && fn === mOrigName) || (mCustName && fn === mCustName);
+      };
+
+      const mReceiveEntries = userReceiveEntries.filter(isMatch);
+      const mPayEntries = userPayEntries.filter(isMatch);
+
+      const pendingReceiveAmount = mReceiveEntries
+        .filter((e) => (e.paymentStatus || 'Pending') === 'Pending' && e.type !== 'Add Balance')
+        .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+      const pendingPayAmount = mPayEntries
+        .filter((e) => (e.paymentStatus || 'Pending') === 'Pending' && e.type !== 'Add Balance')
+        .reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+
+      mObj.pendingReceiveAmount = Math.trunc(pendingReceiveAmount);
+      mObj.pendingPayAmount = Math.trunc(pendingPayAmount);
+      mObj.totalEntries = mReceiveEntries.length + mPayEntries.length;
 
       return mObj;
     });
@@ -778,8 +808,171 @@ const checkMemberEmail = async (req, res) => {
   }
 };
 
+// @desc    Get detailed entries and stats for a specific member
+// @route   GET /api/members/:id/entries
+const getMemberEntriesDetail = async (req, res) => {
+  try {
+    const currentUserId = req.user ? req.user._id : null;
+    if (!currentUserId) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
+    }
+
+    const member = await Member.findById(req.params.id);
+    if (!member) {
+      return res.status(404).json({ success: false, message: 'Member not found.' });
+    }
+
+    const currentUser = await Member.findById(currentUserId);
+    const mIdStr = member._id.toString();
+    const customNames = currentUser && currentUser.memberCustomNames ? currentUser.memberCustomNames : null;
+    let customName = null;
+    if (customNames) {
+      customName = typeof customNames.get === 'function'
+        ? customNames.get(mIdStr)
+        : customNames[mIdStr];
+    }
+    const displayName = customName ? capitalizeName(customName) : capitalizeName(member.fullName);
+
+    const mOrigName = (member.fullName || '').toLowerCase().trim();
+    const mCustName = (customName || '').toLowerCase().trim();
+
+    const isMatch = (e) => {
+      if (e.memberId && String(e.memberId) === mIdStr) return true;
+      const fn = (e.forFromName || '').toLowerCase().trim();
+      return (mOrigName && fn === mOrigName) || (mCustName && fn === mCustName);
+    };
+
+    const [rawReceive, rawPay] = await Promise.all([
+      Entry.find({ userId: currentUserId }).sort({ date: -1, time: -1 }).lean(),
+      ToPay.find({ userId: currentUserId }).sort({ date: -1, time: -1 }).lean(),
+    ]);
+
+    const mReceive = rawReceive.filter(isMatch);
+    const mPay = rawPay.filter(isMatch);
+
+    let pendingReceiveAmount = 0;
+    let totalReceivedAmount = 0;
+    for (const e of mReceive) {
+      const amt = Number(e.amount) || 0;
+      if ((e.paymentStatus || 'Pending') === 'Pending') {
+        pendingReceiveAmount += amt;
+      } else if (e.paymentStatus === 'Received') {
+        totalReceivedAmount += amt;
+      }
+    }
+
+    let pendingPayAmount = 0;
+    let totalPaidAmount = 0;
+    for (const p of mPay) {
+      const amt = Number(p.amount) || 0;
+      if ((p.paymentStatus || 'Pending') === 'Pending') {
+        pendingPayAmount += amt;
+      } else if (p.paymentStatus === 'Paid') {
+        totalPaidAmount += amt;
+      }
+    }
+
+    const receiveMapped = mReceive.map((e) => {
+      const isMine = !e.creatorUserId || String(e.creatorUserId) === String(currentUserId);
+      return {
+        _id: e._id,
+        direction: 'To Receive',
+        directionType: 'receive',
+        type: e.type || (['Expense', 'Loan', 'Split'].includes(e.status) ? e.status : 'Expense'),
+        amount: Math.trunc(e.amount || 0),
+        date: e.date,
+        time: e.time,
+        paymentStatus: e.paymentStatus || 'Pending',
+        status: e.status,
+        isSplit: Boolean(e.isSplit),
+        splitGroupId: e.splitGroupId,
+        creatorUserId: e.creatorUserId,
+        creatorName: isMine ? 'You' : displayName,
+        isMine,
+        forFromName: e.forFromName,
+        description: e.description || '',
+        createdAt: e.createdAt,
+      };
+    });
+
+    const payMapped = mPay.map((p) => {
+      const isMine = !p.creatorUserId || String(p.creatorUserId) === String(currentUserId);
+      return {
+        _id: p._id,
+        direction: 'To Pay',
+        directionType: 'pay',
+        type: p.type || (['Expense', 'Loan', 'Split'].includes(p.status) ? p.status : 'Expense'),
+        amount: Math.trunc(p.amount || 0),
+        date: p.date,
+        time: p.time,
+        paymentStatus: p.paymentStatus || 'Pending',
+        status: p.status,
+        isSplit: Boolean(p.isSplit),
+        splitGroupId: p.splitGroupId,
+        creatorUserId: p.creatorUserId,
+        creatorName: isMine ? 'You' : displayName,
+        isMine,
+        forFromName: p.forFromName,
+        description: p.description || '',
+        createdAt: p.createdAt,
+      };
+    });
+
+    const combinedEntries = [...receiveMapped, ...payMapped].sort((a, b) => {
+      const dateA = a.date || '';
+      const dateB = b.date || '';
+      if (dateA !== dateB) return dateB.localeCompare(dateA);
+      const timeA = a.time || '';
+      const timeB = b.time || '';
+      return timeB.localeCompare(timeA);
+    });
+
+    // Determine invite status
+    const inviteDates = currentUser && currentUser.memberInviteDates ? currentUser.memberInviteDates : null;
+    let callerInviteDate = null;
+    if (inviteDates) {
+      callerInviteDate = typeof inviteDates.get === 'function' ? inviteDates.get(mIdStr) : inviteDates[mIdStr];
+    }
+    const hasJoined = Boolean(member.hasLoggedIn || member.joinDate);
+
+    res.json({
+      success: true,
+      data: {
+        member: {
+          _id: member._id,
+          fullName: displayName,
+          rawFullName: member.fullName,
+          email: member.email,
+          phoneNumber: member.phoneNumber || '',
+          username: member.username || '',
+          avatarColor: member.avatarColor || '#1976d2',
+          joinDate: member.joinDate || null,
+          lastInviteSentAt: callerInviteDate || null,
+          inviteSent: Boolean(callerInviteDate),
+          hasJoined,
+          role: member.role || 'Member',
+        },
+        stats: {
+          pendingReceiveAmount: Math.trunc(pendingReceiveAmount),
+          pendingPayAmount: Math.trunc(pendingPayAmount),
+          totalReceivedAmount: Math.trunc(totalReceivedAmount),
+          totalPaidAmount: Math.trunc(totalPaidAmount),
+          netBalance: Math.trunc(pendingReceiveAmount - pendingPayAmount),
+          totalEntries: combinedEntries.length,
+          receiveEntriesCount: receiveMapped.length,
+          payEntriesCount: payMapped.length,
+        },
+        entries: combinedEntries,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getMembers,
+  getMemberEntriesDetail,
   getMemberEntriesSummary,
   getBulkMembersEntriesSummary,
   createMember,

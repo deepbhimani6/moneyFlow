@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, IconButton, Menu, MenuItem, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TableSortLabel, Dialog, DialogTitle, DialogContent, DialogActions, Divider, Fab, Stack, Avatar } from "@mui/material";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import EditIcon from "@mui/icons-material/Edit";
@@ -30,6 +31,7 @@ const initialFilters = {
 };
 
 const MembersPage = () => {
+  const navigate = useNavigate();
   const { profile } = useProfile();
   const { user } = useAuth();
   const [members, setMembers] = useState([]);
@@ -165,6 +167,9 @@ const MembersPage = () => {
       if (orderBy === "joinDate" || orderBy === "createdAt" || orderBy === "lastInviteSentAt") {
         aVal = new Date(a[orderBy] || 0).getTime();
         bVal = new Date(b[orderBy] || 0).getTime();
+      } else if (orderBy === "pendingReceiveAmount" || orderBy === "pendingPayAmount") {
+        aVal = Number(a[orderBy]) || 0;
+        bVal = Number(b[orderBy]) || 0;
       } else if (orderBy === "inviteSent") {
         const aStatus = (a.hasLoggedIn || a.joinDate) ? 2 : a.inviteSent ? 1 : 0;
         const bStatus = (b.hasLoggedIn || b.joinDate) ? 2 : b.inviteSent ? 1 : 0;
@@ -591,7 +596,19 @@ const MembersPage = () => {
                           {(row.fullName || "M")[0].toUpperCase()}
                         </Avatar>
                         <Box sx={{ minWidth: 0 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: "0.95rem", lineHeight: 1.3, color: "#1e293b" }} noWrap>
+                          <Typography
+                            variant="subtitle1"
+                            onClick={() => navigate(`/members/${row._id}`)}
+                            sx={{
+                              fontWeight: 700,
+                              fontSize: "0.95rem",
+                              lineHeight: 1.3,
+                              color: "primary.main",
+                              cursor: "pointer",
+                              "&:hover": { textDecoration: "underline" },
+                            }}
+                            noWrap
+                          >
                             {capitalizeName(row.fullName)}
                           </Typography>
                           <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.74rem" }}>
@@ -619,6 +636,40 @@ const MembersPage = () => {
                       ) : (
                         <Chip label="Pending" size="small" variant="outlined" sx={{ height: 22, fontSize: "0.7rem" }} />
                       )}
+                    </Box>
+
+                    {/* Financial pending balances */}
+                    <Box
+                      onClick={() => navigate(`/members/${row._id}`)}
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: 1,
+                        my: 1,
+                        p: 1.25,
+                        bgcolor: "#f8fafc",
+                        borderRadius: 2,
+                        border: "1px solid #f1f5f9",
+                        cursor: "pointer",
+                        "&:hover": { bgcolor: "#f1f5f9" },
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="caption" sx={{ color: "#0284c7", fontSize: "0.7rem", fontWeight: 700, display: "block" }}>
+                          Pending Receive
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: (row.pendingReceiveAmount || 0) > 0 ? "#0369a1" : "#475569" }}>
+                          ₹ {formatAmount(row.pendingReceiveAmount || 0)}
+                        </Typography>
+                      </Box>
+                      <Box>
+                        <Typography variant="caption" sx={{ color: "#ea580c", fontSize: "0.7rem", fontWeight: 700, display: "block" }}>
+                          Pending Pay
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: (row.pendingPayAmount || 0) > 0 ? "#c2410c" : "#475569" }}>
+                          ₹ {formatAmount(row.pendingPayAmount || 0)}
+                        </Typography>
+                      </Box>
                     </Box>
 
                     {/* Contact & Date info */}
@@ -755,6 +806,28 @@ const MembersPage = () => {
                   </TableSortLabel>
                 </TableCell>
 
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "pendingReceiveAmount" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "pendingReceiveAmount"}
+                    direction={orderBy === "pendingReceiveAmount" ? order : "asc"}
+                    onClick={() => handleRequestSort("pendingReceiveAmount")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Pending Receive
+                  </TableSortLabel>
+                </TableCell>
+
+                <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "pendingPayAmount" ? order : false}>
+                  <TableSortLabel
+                    active={orderBy === "pendingPayAmount"}
+                    direction={orderBy === "pendingPayAmount" ? order : "asc"}
+                    onClick={() => handleRequestSort("pendingPayAmount")}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Pending Pay
+                  </TableSortLabel>
+                </TableCell>
+
                 <TableCell sx={{ fontWeight: 600 }} sortDirection={orderBy === "lastInviteSentAt" ? order : false}>
                   <TableSortLabel
                     active={orderBy === "lastInviteSentAt"}
@@ -796,13 +869,13 @@ const MembersPage = () => {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={10} align="center" sx={{ py: 6 }}>
                     <CircularProgress size={32} />
                   </TableCell>
                 </TableRow>
               ) : filteredMembers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                  <TableCell colSpan={10} align="center" sx={{ py: 6, color: "text.secondary" }}>
                     <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
                       No members found
                     </Typography>
@@ -848,12 +921,49 @@ const MembersPage = () => {
                           <Checkbox checked={isSelected} onChange={() => handleSelectOne(row._id)} size="small" />
                         )}
                       </TableCell>
-                      <TableCell sx={{ fontWeight: 500, whiteSpace: "nowrap", textTransform: "capitalize" }}>
-                        {capitalizeName(row.fullName)}
+                      <TableCell sx={{ fontWeight: 600, whiteSpace: "nowrap", textTransform: "capitalize" }}>
+                        <Typography
+                          component="span"
+                          onClick={() => navigate(`/members/${row._id}`)}
+                          sx={{
+                            fontWeight: 600,
+                            cursor: "pointer",
+                            color: "primary.main",
+                            transition: "all 0.15s ease",
+                            "&:hover": {
+                              textDecoration: "underline",
+                              color: "primary.dark",
+                            },
+                          }}
+                        >
+                          {capitalizeName(row.fullName)}
+                        </Typography>
                       </TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>{row.phoneNumber || "—"}</TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap", color: row.email ? "text.primary" : "text.secondary" }}>
                         {row.email || "—"}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 700,
+                            color: (row.pendingReceiveAmount || 0) > 0 ? "#0284c7" : "#475467",
+                          }}
+                        >
+                          ₹ {formatAmount(row.pendingReceiveAmount || 0)}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: "nowrap" }}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 700,
+                            color: (row.pendingPayAmount || 0) > 0 ? "#ea580c" : "#475467",
+                          }}
+                        >
+                          ₹ {formatAmount(row.pendingPayAmount || 0)}
+                        </Typography>
                       </TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>{formattedInviteDate}</TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>{formattedJoinDate}</TableCell>

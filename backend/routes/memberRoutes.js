@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const {
   getMembers,
+  getMemberEntriesDetail,
   getMemberEntriesSummary,
   getBulkMembersEntriesSummary,
   createMember,
@@ -30,6 +31,7 @@ router.route('/:id')
   .put(updateMember)
   .delete(deleteMember);
 
+router.get('/:id/entries', getMemberEntriesDetail);
 router.get('/:id/entries-summary', getMemberEntriesSummary);
 router.post('/:id/invite', sendInviteToMember);
 

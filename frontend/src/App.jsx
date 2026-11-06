@@ -34,6 +34,7 @@ import ForSelfPage from './pages/ForSelfPage';
 import ToReceivePage from './pages/ToReceivePage';
 import ToPayPage from './pages/ToPayPage';
 import MembersPage from './pages/MembersPage';
+import MemberDetailPage from './pages/MemberDetailPage';
 import UsersPage from './pages/UsersPage';
 import ProfilePage from './pages/ProfilePage';
 
@@ -168,6 +169,7 @@ function MainAppLayout() {
             <Route path="/to-pay" element={<ToPayPage />} />
             <Route path="/borrowed" element={<Navigate to="/to-pay" replace />} />
             <Route path="/members" element={<MembersPage />} />
+            <Route path="/members/:id" element={<MemberDetailPage />} />
             <Route path="/users" element={<UsersPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
