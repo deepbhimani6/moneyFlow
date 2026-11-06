@@ -22,7 +22,6 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
     phoneNumber: '',
     email: '',
     username: '',
-    password: '',
   });
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
@@ -38,7 +37,6 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
         phoneNumber: member.phoneNumber || '',
         email: member.email || '',
         username: member.username || '',
-        password: '',
       });
       setErrors({});
       setError('');
@@ -104,8 +102,6 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
           setErrors((prev) => ({ ...prev, username: msg }));
         } else if (lower.includes('phone') || lower.includes('mobile')) {
           setErrors((prev) => ({ ...prev, phoneNumber: msg }));
-        } else if (lower.includes('password')) {
-          setErrors((prev) => ({ ...prev, password: msg }));
         } else {
           setError(msg);
         }
@@ -123,8 +119,6 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
         setErrors((prev) => ({ ...prev, username: msg }));
       } else if (lower.includes('phone') || lower.includes('mobile')) {
         setErrors((prev) => ({ ...prev, phoneNumber: msg }));
-      } else if (lower.includes('password')) {
-        setErrors((prev) => ({ ...prev, password: msg }));
       } else {
         setError(msg);
       }
@@ -183,17 +177,6 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
             value={formData.username}
             error={Boolean(errors.username)}
             helperText={errors.username || ''}
-            onChange={handleChange}
-            fullWidth
-          />
-
-          <TextField
-            label="Password (leave blank to keep current)"
-            name="password"
-            type="password"
-            value={formData.password}
-            error={Boolean(errors.password)}
-            helperText={errors.password || ''}
             onChange={handleChange}
             fullWidth
           />
