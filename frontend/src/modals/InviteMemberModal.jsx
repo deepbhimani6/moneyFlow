@@ -330,17 +330,19 @@ const InviteMemberModal = ({
             placeholder="e.g. John Doe"
           />
 
-          {/* 2. Phone Number */}
-          <TextField
-            label="Phone Number"
-            name="phoneNumber"
-            value={formData.phoneNumber}
-            error={Boolean(errors.phoneNumber)}
-            helperText={errors.phoneNumber || ''}
-            onChange={handleChange}
-            fullWidth
-            placeholder="e.g. +91 9876543210"
-          />
+          {/* 2. Phone Number - Only shown for new member invitations */}
+          {!isExistingAppMember && (
+            <TextField
+              label="Phone Number"
+              name="phoneNumber"
+              value={formData.phoneNumber}
+              error={Boolean(errors.phoneNumber)}
+              helperText={errors.phoneNumber || ''}
+              onChange={handleChange}
+              fullWidth
+              placeholder="e.g. +91 9876543210"
+            />
+          )}
 
           {/* 3. E-mail */}
           <TextField
@@ -374,17 +376,19 @@ const InviteMemberModal = ({
             }}
           />
 
-          {/* 4. Username */}
-          <TextField
-            label="Username (optional)"
-            name="username"
-            value={formData.username}
-            error={Boolean(errors.username)}
-            helperText={errors.username || ''}
-            onChange={handleChange}
-            fullWidth
-            placeholder="e.g. johndoe (defaults to email username)"
-          />
+          {/* 4. Username - Only shown for new member invitations */}
+          {!isExistingAppMember && (
+            <TextField
+              label="Username (optional)"
+              name="username"
+              value={formData.username}
+              error={Boolean(errors.username)}
+              helperText={errors.username || ''}
+              onChange={handleChange}
+              fullWidth
+              placeholder="e.g. johndoe (defaults to email username)"
+            />
+          )}
 
           {/* When member is already registered in app, hide invite options and password generation */}
           {!isExistingAppMember && (

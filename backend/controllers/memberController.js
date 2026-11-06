@@ -202,11 +202,16 @@ const createMember = async (req, res) => {
         await existingMember.save();
       }
 
+      const dataObj = existingMember.toObject ? existingMember.toObject() : { ...existingMember };
+      dataObj.fullName = formattedFullName;
+      dataObj.inviteSent = false;
+      dataObj.lastInviteSentAt = null;
+
       return res.status(200).json({
         success: true,
-        data: existingMember,
+        data: dataObj,
         alreadyRegistered: true,
-        message: `Member '${existingMember.fullName}' is already registered and was added to your list.`,
+        message: `Member '${formattedFullName}' is already registered and was added to your list.`,
       });
     }
 
