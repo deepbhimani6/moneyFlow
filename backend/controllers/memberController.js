@@ -26,6 +26,10 @@ const generateSecurePassword = () => {
 };
 
 const getAppUrl = (req) => {
+  const origin = req ? (typeof req.get === 'function' ? req.get('origin') : (req.headers && req.headers.origin)) : null;
+  if (origin) {
+    return origin.replace(/\/+$/, '');
+  }
   if (
     process.env.APP_URL &&
     !process.env.APP_URL.includes('moneyflow.onrender.com') &&
@@ -33,7 +37,7 @@ const getAppUrl = (req) => {
   ) {
     return process.env.APP_URL.replace(/\/+$/, '');
   }
-  return 'https://moneyflow-5a2a.onrender.com';
+  return process.env.APP_URL || 'https://moneyflow-5a2a.onrender.com';
 };
 
 // @desc    Get all members for the authenticated user
@@ -194,12 +198,13 @@ const createMember = async (req, res) => {
     // Check if invite link checkbox was checked
     if (sendLink) {
       const appUrl = getAppUrl(req);
+      const inviteLink = `${appUrl}/login?invited=true&email=${encodeURIComponent(cleanEmail)}`;
       const emailResult = await sendInviteEmail({
         toEmail: member.email,
         fullName: member.fullName,
         username: member.username,
         temporaryPassword: temporaryPassword,
-        inviteLink: appUrl,
+        inviteLink,
       });
 
       if (emailResult.success) {
@@ -240,6 +245,14 @@ const updateMember = async (req, res) => {
 
     if (!member) {
       return res.status(404).json({ success: false, message: 'Member not found.' });
+    }
+
+    // Members who have already joined the app cannot be edited by other members
+    if (member.hasLoggedIn || member.joinDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'This member has already joined the app and cannot be edited.',
+      });
     }
 
     if (fullName !== undefined) member.fullName = capitalizeName(fullName);
@@ -498,6 +511,7 @@ const sendInviteToMember = async (req, res) => {
     }
 
     const appUrl = getAppUrl(req);
+    const inviteLink = `${appUrl}/login?invited=true&email=${encodeURIComponent(member.email)}`;
     let temporaryPassword = member.password;
     if (!temporaryPassword || temporaryPassword.startsWith('$2a$') || temporaryPassword.startsWith('$2b$')) {
       temporaryPassword = generateSecurePassword();
@@ -509,7 +523,7 @@ const sendInviteToMember = async (req, res) => {
       fullName: member.fullName,
       username: member.username,
       temporaryPassword,
-      inviteLink: appUrl,
+      inviteLink,
     });
 
     if (!emailResult.success) {
@@ -570,12 +584,13 @@ const bulkInviteMembers = async (req, res) => {
           member.password = temporaryPassword;
         }
 
+        const inviteLink = `${appUrl}/login?invited=true&email=${encodeURIComponent(member.email)}`;
         const emailResult = await sendInviteEmail({
           toEmail: member.email,
           fullName: member.fullName,
           username: member.username,
           temporaryPassword,
-          inviteLink: appUrl,
+          inviteLink,
         });
 
         if (emailResult.success) {

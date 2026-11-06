@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
@@ -25,8 +25,12 @@ const LoginPage = () => {
   const location = useLocation();
   const { login } = useAuth();
 
+  const searchParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const isInvited = searchParams.get('invited') === 'true' || searchParams.get('invite') === 'true';
+  const emailParam = searchParams.get('email') || '';
+
   const [formData, setFormData] = useState({
-    identifier: '',
+    identifier: emailParam || '',
     password: '',
     rememberMe: true,
   });
@@ -39,6 +43,18 @@ const LoginPage = () => {
     location.state?.successMsg ||
       (location.state?.message && !location.state?.error ? location.state.message : '')
   );
+
+  useEffect(() => {
+    if (emailParam) {
+      setFormData((prev) => ({
+        ...prev,
+        identifier: emailParam,
+      }));
+      if (passwordRef.current) {
+        passwordRef.current.focus();
+      }
+    }
+  }, [emailParam]);
 
   // Clear browser history state immediately after reading so page refresh will remove the message
   useEffect(() => {
@@ -136,6 +152,17 @@ const LoginPage = () => {
         </Alert>
       )}
 
+      {isInvited && (
+        <Alert severity="info" sx={{ mb: 2.5, borderRadius: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            Verify Your Invitation
+          </Typography>
+          <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+            Please enter your password sent via email to {emailParam ? <strong>{emailParam}</strong> : 'your email'} to verify and access your account.
+          </Typography>
+        </Alert>
+      )}
+
       <Box component="form" onSubmit={handleSubmit} noValidate>
         {/* Email or Username */}
         <TextField
@@ -149,7 +176,7 @@ const LoginPage = () => {
           error={Boolean(errors.identifier)}
           helperText={errors.identifier || ''}
           autoComplete="username"
-          autoFocus
+          autoFocus={!emailParam}
           required
           disabled={loading}
           sx={{ mb: 2.5 }}

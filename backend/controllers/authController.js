@@ -179,31 +179,36 @@ const login = async (req, res) => {
 
     // Silently upgrade plain-text passwords to bcrypt hash for enhanced security
     if (user.password && !user.password.startsWith('$2a$') && !user.password.startsWith('$2b$')) {
-      user.password = password;
-      await user.save();
+      const bcrypt = require('bcryptjs');
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      await Member.findByIdAndUpdate(user._id, { $set: { password: hashedPassword } });
     }
 
-    // When an invited member logs in with email & password, automatically add 1 member (the inviter) into their members directory (once only)
+    // When an invited member logs in with email & password:
+    // 1. Reciprocal linking between inviter and invited member
     if (user.invitedBy && !user.inviterLinked) {
-      const inviter = await Member.findById(user.invitedBy);
-      if (inviter) {
-        if (!user.members) user.members = [];
-        const hasInviter = user.members.some((mId) => String(mId) === String(inviter._id));
-        if (!hasInviter) {
-          user.members.push(inviter._id);
-        }
-      }
+      await Member.findByIdAndUpdate(user._id, {
+        $addToSet: { members: user.invitedBy },
+        $set: { inviterLinked: true },
+      });
+      await Member.findByIdAndUpdate(user.invitedBy, {
+        $addToSet: { members: user._id },
+      });
       user.inviterLinked = true;
-      await user.save();
     }
 
-    // When a member logs in for the first time, record their joinDate and mark as logged in
+    // 2. When a member logs in for the first time, record their joinDate and mark as logged in
     if (!user.hasLoggedIn || !user.joinDate) {
+      const now = new Date();
       user.hasLoggedIn = true;
-      if (!user.joinDate) {
-        user.joinDate = new Date();
-      }
-      await user.save();
+      user.joinDate = user.joinDate || now;
+      await Member.findByIdAndUpdate(user._id, {
+        $set: {
+          hasLoggedIn: true,
+          joinDate: user.joinDate,
+        },
+      });
     }
 
     const token = generateToken(user);

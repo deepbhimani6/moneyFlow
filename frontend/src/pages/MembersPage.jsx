@@ -751,10 +751,17 @@ const MembersPage = () => {
                             </span>
                           </Tooltip>
 
-                          <Tooltip title="Edit Member">
-                            <IconButton size="small" color="default" onClick={() => setEditingMember(row)}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
+                          <Tooltip title={hasJoined ? "Member has joined the app and cannot be edited" : "Edit Member"}>
+                            <span>
+                              <IconButton
+                                size="small"
+                                color="default"
+                                disabled={hasJoined}
+                                onClick={() => setEditingMember(row)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </span>
                           </Tooltip>
 
                           <Tooltip title={deleteTooltip}>

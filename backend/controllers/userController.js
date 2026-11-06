@@ -26,14 +26,18 @@ const generateSecurePassword = (length = 10) => {
 };
 
 const getAppUrl = (req) => {
-  if (process.env.APP_URL && process.env.APP_URL.trim()) {
-    return process.env.APP_URL.trim().replace(/\/+$/, '');
-  }
-  const origin = req.get('origin');
-  if (origin && !origin.includes('localhost:5000') && !origin.includes('localhost:5050')) {
+  const origin = req ? (typeof req.get === 'function' ? req.get('origin') : (req.headers && req.headers.origin)) : null;
+  if (origin) {
     return origin.replace(/\/+$/, '');
   }
-  return 'https://moneyflow-5a2a.onrender.com';
+  if (
+    process.env.APP_URL &&
+    !process.env.APP_URL.includes('moneyflow.onrender.com') &&
+    !process.env.APP_URL.includes('localhost')
+  ) {
+    return process.env.APP_URL.replace(/\/+$/, '');
+  }
+  return process.env.APP_URL || 'https://moneyflow-5a2a.onrender.com';
 };
 
 // @desc    Get all registered users in the app (Admin only)
@@ -135,12 +139,13 @@ const createUser = async (req, res) => {
 
     if (sendLink) {
       const appUrl = getAppUrl(req);
+      const inviteLink = `${appUrl}/login?invited=true&email=${encodeURIComponent(cleanEmail)}`;
       const emailResult = await sendInviteEmail({
         toEmail: newUser.email,
         fullName: newUser.fullName,
         username: newUser.username,
         temporaryPassword: temporaryPassword,
-        inviteLink: appUrl,
+        inviteLink,
       });
 
       if (emailResult.success) {
@@ -313,6 +318,7 @@ const sendInviteToUser = async (req, res) => {
     }
 
     const appUrl = getAppUrl(req);
+    const inviteLink = `${appUrl}/login?invited=true&email=${encodeURIComponent(user.email)}`;
     let temporaryPassword = user.password;
     if (!temporaryPassword || temporaryPassword.startsWith('$2a$') || temporaryPassword.startsWith('$2b$')) {
       temporaryPassword = generateSecurePassword();
@@ -324,7 +330,7 @@ const sendInviteToUser = async (req, res) => {
       fullName: user.fullName,
       username: user.username,
       temporaryPassword,
-      inviteLink: appUrl,
+      inviteLink,
     });
 
     if (!emailResult.success) {
@@ -384,12 +390,13 @@ const bulkInviteUsers = async (req, res) => {
           user.password = temporaryPassword;
         }
 
+        const inviteLink = `${appUrl}/login?invited=true&email=${encodeURIComponent(user.email)}`;
         const emailResult = await sendInviteEmail({
           toEmail: user.email,
           fullName: user.fullName,
           username: user.username,
           temporaryPassword,
-          inviteLink: appUrl,
+          inviteLink,
         });
 
         if (emailResult.success) {
