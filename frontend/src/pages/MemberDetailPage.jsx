@@ -216,23 +216,23 @@ const MemberDetailPage = () => {
               {(member.fullName || "M")[0].toUpperCase()}
             </Avatar>
 
-            <Box sx={{ flexGrow: 1, minWidth: 200 }}>
-              <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: "1.2rem", sm: "1.45rem" }, color: "#0f172a" }}>
+            <Box sx={{ flexGrow: 1, minWidth: 0, overflow: "hidden" }}>
+              <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: "1.2rem", sm: "1.45rem" }, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {capitalizeName(member.fullName)}
               </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 0.5, flexWrap: "wrap" }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2, mt: 0.5, flexWrap: "wrap", minWidth: 0 }}>
                 {member.email && (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "#64748b" }}>
-                    <EmailOutlinedIcon sx={{ fontSize: 16 }} />
-                    <Typography variant="body2" sx={{ fontSize: "0.85rem" }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "#64748b", minWidth: 0, maxWidth: "100%" }}>
+                    <EmailOutlinedIcon sx={{ fontSize: 16, flexShrink: 0 }} />
+                    <Typography variant="body2" sx={{ fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", wordBreak: "break-all" }}>
                       {member.email}
                     </Typography>
                   </Box>
                 )}
                 {member.phoneNumber && (
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "#64748b" }}>
-                    <PhoneOutlinedIcon sx={{ fontSize: 16 }} />
-                    <Typography variant="body2" sx={{ fontSize: "0.85rem" }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "#64748b", minWidth: 0, maxWidth: "100%" }}>
+                    <PhoneOutlinedIcon sx={{ fontSize: 16, flexShrink: 0 }} />
+                    <Typography variant="body2" sx={{ fontSize: "0.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                       {member.phoneNumber}
                     </Typography>
                   </Box>

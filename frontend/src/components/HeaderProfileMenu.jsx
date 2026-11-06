@@ -82,18 +82,54 @@ const HeaderProfileMenu = () => {
             fontWeight: 700,
             boxShadow: "0 2px 6px rgba(0,0,0,0.12)",
             border: "2px solid #ffffff",
+            flexShrink: 0,
           }}
         >
           {initials}
         </Avatar>
 
         {/* Name on medium screens and up */}
-        <Box sx={{ display: { xs: "none", md: "flex" }, flexDirection: "column", alignItems: "flex-start", textAlign: "left" }}>
-          <Typography variant="body2" sx={{ fontWeight: 600, lineHeight: 1.2, color: "text.primary", maxWidth: 120, textTransform: "capitalize" }} noWrap>
+        <Box
+          sx={{
+            display: { xs: "none", md: "flex" },
+            flexDirection: "column",
+            alignItems: "flex-start",
+            textAlign: "left",
+            minWidth: 0,
+            flex: 1,
+            overflow: "hidden",
+          }}
+        >
+          <Typography
+            variant="body2"
+            sx={{
+              fontWeight: 700,
+              lineHeight: 1.2,
+              color: "text.primary",
+              width: "100%",
+              textTransform: "capitalize",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              display: "block",
+            }}
+          >
             {profile?.fullName || "User"}
           </Typography>
           {profile?.email && (
-            <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.72rem", lineHeight: 1, maxWidth: 120 }} noWrap>
+            <Typography
+              variant="caption"
+              sx={{
+                color: "text.secondary",
+                fontSize: "0.72rem",
+                lineHeight: 1.2,
+                width: "100%",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                display: "block",
+              }}
+            >
               {profile.email}
             </Typography>
           )}
@@ -104,6 +140,7 @@ const HeaderProfileMenu = () => {
             display: { xs: "none", md: "block" },
             color: "text.secondary",
             fontSize: 20,
+            flexShrink: 0,
             transition: "transform 0.2s",
             transform: open ? "rotate(180deg)" : "rotate(0deg)",
           }}

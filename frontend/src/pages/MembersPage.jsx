@@ -583,7 +583,7 @@ const MembersPage = () => {
                     }}
                   >
                     <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 1 }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0, flex: 1, overflow: "hidden" }}>
                         {!isCurrent && (
                           <Checkbox
                             checked={isSelected}
@@ -592,10 +592,10 @@ const MembersPage = () => {
                             sx={{ p: 0.25 }}
                           />
                         )}
-                        <Avatar sx={{ width: 34, height: 34, bgcolor: "#1976d2", fontSize: "0.85rem", fontWeight: 700 }}>
+                        <Avatar sx={{ width: 34, height: 34, bgcolor: "#1976d2", fontSize: "0.85rem", fontWeight: 700, flexShrink: 0 }}>
                           {(row.fullName || "M")[0].toUpperCase()}
                         </Avatar>
-                        <Box sx={{ minWidth: 0 }}>
+                        <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
                           <Typography
                             variant="subtitle1"
                             onClick={() => navigate(`/members/${row._id}`)}
@@ -605,13 +605,26 @@ const MembersPage = () => {
                               lineHeight: 1.3,
                               color: "primary.main",
                               cursor: "pointer",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              display: "block",
                               "&:hover": { textDecoration: "underline" },
                             }}
-                            noWrap
                           >
                             {capitalizeName(row.fullName)}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.74rem" }}>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "#64748b",
+                              fontSize: "0.74rem",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              display: "block",
+                            }}
+                          >
                             {row.email || row.phoneNumber || "No contact info"}
                           </Typography>
                         </Box>

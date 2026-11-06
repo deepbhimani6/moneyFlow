@@ -486,7 +486,7 @@ const UsersPage = () => {
                     }}
                   >
                     <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 1 }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0, flex: 1, overflow: "hidden" }}>
                         {!isCurrent && (
                           <Checkbox
                             checked={isSelected}
@@ -495,14 +495,14 @@ const UsersPage = () => {
                             sx={{ p: 0.25 }}
                           />
                         )}
-                        <Avatar sx={{ width: 34, height: 34, bgcolor: "#1976d2", fontSize: "0.85rem", fontWeight: 700 }}>
+                        <Avatar sx={{ width: 34, height: 34, bgcolor: "#1976d2", fontSize: "0.85rem", fontWeight: 700, flexShrink: 0 }}>
                           {(row.fullName || "U")[0].toUpperCase()}
                         </Avatar>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: "0.95rem", lineHeight: 1.3, color: "#1e293b" }} noWrap>
+                        <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: "0.95rem", lineHeight: 1.3, color: "#1e293b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
                             {capitalizeName(row.fullName)}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.74rem" }}>
+                          <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.74rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "block" }}>
                             {row.email || row.phoneNumber || "No contact info"}
                           </Typography>
                         </Box>

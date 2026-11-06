@@ -267,7 +267,7 @@ const ProfilePage = () => {
                   </Typography>
                 </Box>
 
-                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.85)', mb: 1 }}>
+                <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.85)', mb: 1, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                   @{formData.username || 'username'} • {formData.email || 'No email provided'} • {formData.phoneNumber || 'No phone'}
                 </Typography>
 
