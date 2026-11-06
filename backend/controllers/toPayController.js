@@ -480,17 +480,11 @@ const updateToPayEntry = async (req, res) => {
     if (entry.isSplit && entry.splitGroupId) {
       const isCreator = !entry.creatorUserId || String(entry.creatorUserId) === String(req.user._id);
 
-      // If not creator, only allow toggling payment status for their own record
+      // If not creator, cannot edit or change status
       if (!isCreator) {
-        if (nextPaymentStatus && !totalAmount && !amount && !date && !time && description === undefined && !forFromName && !type) {
-          entry.paymentStatus = nextPaymentStatus;
-          entry.status = nextPaymentStatus;
-          await entry.save();
-          return res.json({ success: true, data: entry, message: "Payment status updated successfully." });
-        }
         return res.status(403).json({
           success: false,
-          message: "Only the creator of this split can edit this entry.",
+          message: "Only the creator of this split can change the status or edit this entry.",
         });
       }
 
@@ -682,7 +676,16 @@ const bulkUpdateStatus = async (req, res) => {
     }
 
     await ToPay.updateMany(
-      { _id: { $in: ids }, userId: req.user._id },
+      {
+        _id: { $in: ids },
+        userId: req.user._id,
+        $or: [
+          { isSplit: false },
+          { isSplit: { $exists: false } },
+          { isSplit: null },
+          { creatorUserId: req.user._id },
+        ],
+      },
       { $set: { paymentStatus: status, status: status } }
     );
 

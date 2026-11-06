@@ -27,6 +27,7 @@ import AddIcon from "@mui/icons-material/Add";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
+import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { toPayService } from "../services/api";
 import AddToPayModal from "../modals/AddToPayModal";
 import EditToPayModal from "../modals/EditToPayModal";
@@ -40,12 +41,14 @@ const getTypeChip = (type) => {
       return <Chip label="Expense" size="small" color="error" variant="outlined" />;
     case "Loan":
       return <Chip label="Loan" size="small" color="warning" variant="outlined" />;
+    case "Split":
+      return <Chip icon={<CallSplitIcon sx={{ "&&": { fontSize: 16 } }} />} label="Split" size="small" color="info" variant="outlined" />;
     default:
       return <Chip label={type || "Expense"} size="small" variant="outlined" />;
   }
 };
 
-const getStatusChip = (status, onToggle) => {
+const getStatusChip = (status, onToggle, disabled = false) => {
   const isPaid = status === "Paid";
   return (
     <Chip
@@ -53,9 +56,13 @@ const getStatusChip = (status, onToggle) => {
       size="small"
       color={isPaid ? "success" : "warning"}
       variant="outlined"
-      clickable
-      onClick={onToggle}
-      sx={{ cursor: "pointer", fontWeight: 600 }}
+      clickable={!disabled}
+      onClick={disabled ? undefined : onToggle}
+      sx={{
+        cursor: disabled ? "not-allowed" : "pointer",
+        fontWeight: 600,
+        opacity: disabled ? 0.75 : 1,
+      }}
     />
   );
 };
@@ -235,6 +242,14 @@ const ToPayPage = () => {
   };
 
   const handleToggleStatus = async (row) => {
+    if (row.canEdit === false) {
+      setSnackbar({
+        open: true,
+        message: "Only the creator of this split entry can change the status.",
+        severity: "warning",
+      });
+      return;
+    }
     const current = row.paymentStatus === "Paid" ? "Paid" : "Pending";
     const nextStatus = current === "Paid" ? "Pending" : "Paid";
     try {
@@ -485,18 +500,37 @@ const ToPayPage = () => {
                       <TableCell sx={{ whiteSpace: "nowrap" }}>{formatTime(row.time)}</TableCell>
                       <TableCell>{getTypeChip(rowType)}</TableCell>
                       <TableCell>
-                        {getStatusChip(row.paymentStatus, () => handleToggleStatus(row))}
+                        {row.canEdit === false ? (
+                          <Tooltip title="Only the creator of this split entry can change the status">
+                            <span style={{ display: "inline-block", cursor: "not-allowed" }}>
+                              {getStatusChip(row.paymentStatus, undefined, true)}
+                            </span>
+                          </Tooltip>
+                        ) : (
+                          getStatusChip(row.paymentStatus, () => handleToggleStatus(row), false)
+                        )}
                       </TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700 }}>
                         ₹ {formatAmount(row.amount)}
                       </TableCell>
                       <TableCell align="center">
                         {row.canEdit === false ? (
-                          <Tooltip title="Only the creator of this split can edit or delete this entry">
-                            <Box component="span" sx={{ color: "text.disabled", fontSize: "0.85rem", cursor: "default" }}>
-                              —
-                            </Box>
-                          </Tooltip>
+                          <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
+                            <Tooltip title="Only the creator of this split entry can edit it">
+                              <span style={{ display: "inline-block", cursor: "not-allowed" }}>
+                                <IconButton size="small" disabled sx={{ color: "action.disabled" }}>
+                                  <EditIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                            <Tooltip title="Only the creator of this split entry can delete it">
+                              <span style={{ display: "inline-block", cursor: "not-allowed" }}>
+                                <IconButton size="small" disabled sx={{ color: "action.disabled" }}>
+                                  <DeleteOutlineIcon fontSize="small" />
+                                </IconButton>
+                              </span>
+                            </Tooltip>
+                          </Box>
                         ) : (
                           <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
                             <Tooltip title={row.isSplit ? "Edit split group entry" : "Edit entry"}>
