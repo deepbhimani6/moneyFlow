@@ -455,8 +455,11 @@ const UsersPage = () => {
             </Box>
           ) : filteredUsers.length === 0 ? (
             <Box sx={{ p: 4, textAlign: "center" }}>
-              <Typography variant="body2" color="text.secondary">
-                {users.length === 0 ? "No users registered." : "No users match the selected filter criteria."}
+              <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                No users found
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                Try adjusting your filters or register a new user
               </Typography>
             </Box>
           ) : (
@@ -665,11 +668,12 @@ const UsersPage = () => {
               ) : filteredUsers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>
-                    {displayedUsers.length === 0 ? (
-                      "No users registered."
-                    ) : (
-                      "No users match the selected filter criteria."
-                    )}
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                      No users found
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      Try adjusting your filters or register a new user
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ) : (

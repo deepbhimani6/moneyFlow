@@ -419,8 +419,11 @@ const ToReceivePage = () => {
             </Box>
           ) : entries.length === 0 ? (
             <Box sx={{ p: 4, textAlign: "center" }}>
-              <Typography variant="body2" color="text.secondary">
-                No entries found. Tap <strong>+</strong> to add one.
+              <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                No entries found
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                Try adjusting your filters or create a new entry
               </Typography>
             </Box>
           ) : (
@@ -668,7 +671,12 @@ const ToReceivePage = () => {
             ) : entries.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
-                  No entries found. Click <strong>Add To Receive</strong> to create one.
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                    No entries found
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    Try adjusting your filters or create a new entry
+                  </Typography>
                 </TableCell>
               </TableRow>
             ) : (

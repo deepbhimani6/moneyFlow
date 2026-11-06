@@ -544,8 +544,11 @@ const MembersPage = () => {
             </Box>
           ) : filteredMembers.length === 0 ? (
             <Box sx={{ p: 4, textAlign: "center" }}>
-              <Typography variant="body2" color="text.secondary">
-                {displayedMembers.length === 0 ? "No members registered. Tap + to invite one." : "No members match the selected filter criteria."}
+              <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                No members found
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                Try adjusting your filters or invite a new member
               </Typography>
             </Box>
           ) : (
@@ -800,11 +803,12 @@ const MembersPage = () => {
               ) : filteredMembers.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
-                    {displayedMembers.length === 0 ? (
-                      <span>No members registered. Click <strong>Invite Members +</strong> to add one.</span>
-                    ) : (
-                      "No members match the selected filter criteria."
-                    )}
+                    <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                      No members found
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      Try adjusting your filters or invite a new member
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
