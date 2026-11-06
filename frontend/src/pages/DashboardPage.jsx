@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Grid,
@@ -8,6 +9,9 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  Button,
+  Paper,
+  Stack,
 } from '@mui/material';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
@@ -16,10 +20,15 @@ import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import PriceCheckIcon from '@mui/icons-material/PriceCheck';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import CallReceivedIcon from '@mui/icons-material/CallReceived';
+import PaymentIcon from '@mui/icons-material/Payment';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import { dashboardService } from '../services/api';
 import { formatAmount } from '../utils/formatters';
 
 const DashboardPage = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalBalance: 0,
     totalExpenses: 0,
@@ -51,122 +60,224 @@ const DashboardPage = () => {
     fetchStats();
   }, []);
 
-  // 6 KPI Blocks:
-  // 1. Total Balance: For Self (Add balance) - Total Expenses - To Receive (Split, Loan & Expense (Status: Pending)) - To Pay (Loan & Expense (Status: Paid))
-  // 2. Total Expenses: For Self (Expense, Split)
-  // 3. Pending Receive Loans: To Receive (Type: Loan) (Status: Pending)
-  // 4. Pending Receive Expenses: To Receive (Type: Split, Expenses) (Status: Pending)
-  // 5. Pending Pay Loans: To Pay (Type: Loan) (Status: Pending)
-  // 6. Pending Pay Expenses: To Pay (Type: Expenses) (Status: Pending)
-  const cards = [
-    {
-      id: 'balance',
-      title: 'Total Balance',
-      amount: stats.totalBalance,
-      color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f',
-      icon: <AccountBalanceWalletIcon sx={{ fontSize: 32, color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f' }} />,
-      gridProps: { xs: 12, sm: 6, md: 6, lg: 6, xl: 6, '2xl': 6 },
-    },
+  const quickActions = [
+    { label: 'Receive', path: '/to-receive', icon: <CallReceivedIcon />, color: '#1976d2', bg: 'rgba(25, 118, 210, 0.1)' },
+    { label: 'Pay', path: '/to-pay', icon: <PaymentIcon />, color: '#ed6c02', bg: 'rgba(237, 108, 2, 0.1)' },
+    { label: 'For Self', path: '/for-self', icon: <AccountCircleIcon />, color: '#2e7d32', bg: 'rgba(46, 125, 50, 0.1)' },
+    { label: 'Members', path: '/members', icon: <PeopleAltIcon />, color: '#9c27b0', bg: 'rgba(156, 39, 176, 0.1)' },
+  ];
+
+  const metricCards = [
     {
       id: 'expenses',
       title: 'Total Expenses',
       amount: stats.totalExpenses,
       color: '#d32f2f',
-      icon: <TrendingDownIcon sx={{ fontSize: 32, color: '#d32f2f' }} />,
-      gridProps: { xs: 12, sm: 6, md: 6, lg: 6, xl: 6, '2xl': 6 },
-    },
-    {
-      id: 'pending-receive-loans',
-      title: 'Pending Receive Loans',
-      amount: stats.pendingReceiveLoans,
-      color: '#7b1fa2',
-      icon: <MonetizationOnIcon sx={{ fontSize: 32, color: '#7b1fa2' }} />,
-      gridProps: { xs: 12, sm: 6, md: 6, lg: 6, xl: 6, '2xl': 6 },
+      bg: 'rgba(211, 47, 47, 0.08)',
+      icon: <TrendingDownIcon sx={{ fontSize: 24, color: '#d32f2f' }} />,
     },
     {
       id: 'pending-receive-expenses',
-      title: 'Pending Receive Expenses',
+      title: 'Receive Expenses',
       amount: stats.pendingReceiveExpenses,
       color: '#ed6c02',
-      icon: <PendingActionsIcon sx={{ fontSize: 32, color: '#ed6c02' }} />,
-      gridProps: { xs: 12, sm: 6, md: 6, lg: 6, xl: 6, '2xl': 6 },
+      bg: 'rgba(237, 108, 2, 0.08)',
+      icon: <PendingActionsIcon sx={{ fontSize: 24, color: '#ed6c02' }} />,
     },
     {
-      id: 'pending-pay-loans',
-      title: 'Pending Pay Loans',
-      amount: stats.pendingPayLoans,
-      color: '#c2185b',
-      icon: <ReceiptLongIcon sx={{ fontSize: 32, color: '#c2185b' }} />,
-      gridProps: { xs: 12, sm: 6, md: 6, lg: 6, xl: 6, '2xl': 6 },
+      id: 'pending-receive-loans',
+      title: 'Receive Loans',
+      amount: stats.pendingReceiveLoans,
+      color: '#7b1fa2',
+      bg: 'rgba(123, 31, 162, 0.08)',
+      icon: <MonetizationOnIcon sx={{ fontSize: 24, color: '#7b1fa2' }} />,
     },
     {
       id: 'pending-pay-expenses',
-      title: 'Pending Pay Expenses',
+      title: 'Pay Expenses',
       amount: stats.pendingPayExpenses,
       color: '#e65100',
-      icon: <PriceCheckIcon sx={{ fontSize: 32, color: '#e65100' }} />,
-      gridProps: { xs: 12, sm: 6, md: 6, lg: 6, xl: 6, '2xl': 6 },
+      bg: 'rgba(230, 81, 0, 0.08)',
+      icon: <PriceCheckIcon sx={{ fontSize: 24, color: '#e65100' }} />,
+    },
+    {
+      id: 'pending-pay-loans',
+      title: 'Pay Loans',
+      amount: stats.pendingPayLoans,
+      color: '#c2185b',
+      bg: 'rgba(194, 24, 91, 0.08)',
+      icon: <ReceiptLongIcon sx={{ fontSize: 24, color: '#c2185b' }} />,
     },
   ];
 
   return (
-    <Box sx={{ p: { xs: 1.5, xsm: 2, sm: 2.5, md: 3, '2xl': 3.5 } }}>
+    <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 3 }, maxWidth: 1200, mx: 'auto' }}>
       {/* Top Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 2, sm: 2.5 } }}>
+        <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: '1.25rem', sm: '1.5rem' }, color: '#0f172a' }}>
           Dashboard
         </Typography>
         <Tooltip title="Refresh stats">
-          <IconButton onClick={fetchStats} disabled={loading} color="primary">
-            <RefreshIcon />
+          <IconButton onClick={fetchStats} disabled={loading} color="primary" sx={{ bgcolor: 'background.paper', border: '1px solid #e2e8f0' }}>
+            <RefreshIcon sx={{ fontSize: 20 }} />
           </IconButton>
         </Tooltip>
       </Box>
 
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
+          <CircularProgress size={36} />
         </Box>
       ) : (
-        <Grid container spacing={2.5}>
-          {/* 1. Main 2-Column Grid for KPI Cards */}
-          {cards.map((card) => (
-            <Grid item {...card.gridProps} key={card.id}>
-              <Card
+        <Stack spacing={{ xs: 2, sm: 2.5 }}>
+          {/* 1. Hero Total Balance Card */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: { xs: 2.25, sm: 3 },
+              borderRadius: { xs: 3, sm: 4 },
+              background: 'linear-gradient(135deg, #1976d2 0%, #0d47a1 100%)',
+              color: '#ffffff',
+              boxShadow: '0 8px 24px -4px rgba(25, 118, 210, 0.35)',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+          >
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                <Typography variant="subtitle2" sx={{ opacity: 0.85, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', fontSize: '0.78rem' }}>
+                  Total Balance
+                </Typography>
+                <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <AccountBalanceWalletIcon sx={{ fontSize: 20, color: '#ffffff' }} />
+                </Box>
+              </Box>
+
+              <Typography
+                variant="h3"
                 sx={{
-                  height: '100%',
-                  p: 1.5,
-                  borderRadius: 2,
-                  transition: 'transform 0.2s, box-shadow 0.2s',
-                  '&:hover': {
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                  },
+                  fontWeight: 800,
+                  fontSize: { xs: '2rem', sm: '2.5rem', md: '2.75rem' },
+                  letterSpacing: '-0.5px',
+                  mb: { xs: 2.5, sm: 3 },
                 }}
               >
-                <CardContent sx={{ pb: '16px !important' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
-                    <Typography variant="subtitle1" color="text.secondary" sx={{ fontWeight: 600 }}>
-                      {card.title}
-                    </Typography>
-                    {card.icon}
-                  </Box>
+                ₹ {formatAmount(stats.totalBalance)}
+              </Typography>
 
-                  <Typography
-                    variant="h4"
+              {/* Quick Actions Row */}
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: { xs: 1, sm: 1.5 },
+                  pt: 1.5,
+                  borderTop: '1px solid rgba(255, 255, 255, 0.18)',
+                }}
+              >
+                {quickActions.map((qa) => (
+                  <Button
+                    key={qa.label}
+                    onClick={() => navigate(qa.path)}
                     sx={{
-                      fontWeight: 700,
-                      color: card.color,
-                      mb: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      py: 0.75,
+                      px: 0.5,
+                      minWidth: 0,
+                      color: '#ffffff',
+                      bgcolor: 'rgba(255, 255, 255, 0.12)',
+                      borderRadius: 2,
+                      textTransform: 'none',
+                      transition: 'all 0.15s ease',
+                      '&:hover': {
+                        bgcolor: 'rgba(255, 255, 255, 0.22)',
+                        transform: 'translateY(-1px)',
+                      },
                     }}
                   >
-                    ₹ {formatAmount(card.amount)}
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
+                    <Box sx={{ fontSize: 20, mb: 0.25, display: 'flex' }}>
+                      {React.cloneElement(qa.icon, { sx: { fontSize: 20 } })}
+                    </Box>
+                    <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      {qa.label}
+                    </Typography>
+                  </Button>
+                ))}
+              </Box>
+            </Box>
+          </Paper>
+
+          {/* 2. Responsive Metric Cards Grid */}
+          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+            {metricCards.map((card) => (
+              <Grid item xs={6} sm={6} md={4} key={card.id}>
+                <Card
+                  elevation={0}
+                  sx={{
+                    height: '100%',
+                    borderRadius: 3,
+                    border: '1px solid #e2e8f0',
+                    transition: 'all 0.2s ease',
+                    bgcolor: '#ffffff',
+                    '&:hover': {
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                      transform: 'translateY(-2px)',
+                    },
+                  }}
+                >
+                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, pb: { xs: '14px !important', sm: '16px !important' } }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                      <Box
+                        sx={{
+                          width: { xs: 32, sm: 36 },
+                          height: { xs: 32, sm: 36 },
+                          borderRadius: 2,
+                          bgcolor: card.bg,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {card.icon}
+                      </Box>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 600,
+                          color: '#64748b',
+                          fontSize: { xs: '0.74rem', sm: '0.82rem' },
+                          lineHeight: 1.2,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {card.title}
+                      </Typography>
+                    </Box>
+
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        fontWeight: 800,
+                        color: card.color,
+                        fontSize: { xs: '1.15rem', sm: '1.35rem' },
+                        mt: 0.5,
+                      }}
+                    >
+                      ₹ {formatAmount(card.amount)}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Stack>
       )}
     </Box>
   );

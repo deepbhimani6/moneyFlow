@@ -27,6 +27,8 @@ import {
   DialogContent,
   DialogActions,
   Divider,
+  Stack,
+  Avatar,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -445,7 +447,129 @@ const UsersPage = () => {
           bgcolor: "background.paper",
         }}
       >
-        <TableContainer sx={{ overflowX: "auto" }}>
+        {/* Mobile-First Card View (Screens < 768px) */}
+        <Box sx={{ display: { xs: "block", md: "none" } }}>
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress size={32} />
+            </Box>
+          ) : filteredUsers.length === 0 ? (
+            <Box sx={{ p: 4, textAlign: "center" }}>
+              <Typography variant="body2" color="text.secondary">
+                {users.length === 0 ? "No users registered." : "No users match the selected filter criteria."}
+              </Typography>
+            </Box>
+          ) : (
+            <Stack spacing={1.5} sx={{ p: 1.5 }}>
+              {sortedUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+                const isSelected = selectedIds.includes(row._id);
+                const hasJoined = Boolean(row.hasLoggedIn || row.joinDate);
+                const formattedJoinDate = hasJoined && row.joinDate ? formatDate(row.joinDate) : "—";
+                const isCurrent = isCurrentLoggedInUser(row, profile, user);
+                const disableDelete = isCurrent;
+                const deleteTooltip = isCurrent ? "You cannot delete your own logged-in account" : "Delete User";
+
+                return (
+                  <Paper
+                    key={row._id}
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      borderRadius: 3,
+                      border: isSelected ? "2px solid #1976d2" : "1px solid #e2e8f0",
+                      bgcolor: isSelected ? "rgba(25, 118, 210, 0.03)" : "#ffffff",
+                      transition: "all 0.15s ease",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 1 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
+                        {!isCurrent && (
+                          <Checkbox
+                            checked={isSelected}
+                            onChange={() => handleSelectOne(row._id)}
+                            size="small"
+                            sx={{ p: 0.25 }}
+                          />
+                        )}
+                        <Avatar sx={{ width: 34, height: 34, bgcolor: "#1976d2", fontSize: "0.85rem", fontWeight: 700 }}>
+                          {(row.fullName || "U")[0].toUpperCase()}
+                        </Avatar>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: "0.95rem", lineHeight: 1.3, color: "#1e293b" }} noWrap>
+                            {capitalizeName(row.fullName)}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.74rem" }}>
+                            {row.email || row.phoneNumber || "No contact info"}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {hasJoined ? (
+                        <Chip
+                          icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 14 } }} />}
+                          label="Joined"
+                          size="small"
+                          color="success"
+                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700 }}
+                        />
+                      ) : row.inviteSent ? (
+                        <Chip
+                          label="Invite Sent"
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600 }}
+                        />
+                      ) : (
+                        <Chip label="Pending" size="small" variant="outlined" sx={{ height: 22, fontSize: "0.7rem" }} />
+                      )}
+                    </Box>
+
+                    {/* Join date */}
+                    <Box sx={{ my: 1, bgcolor: "#f8fafc", p: 1, borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: "#64748b" }}>
+                        <strong>Joined:</strong> {formattedJoinDate}
+                      </Typography>
+                    </Box>
+
+                    {/* Actions */}
+                    <Divider sx={{ my: 1, borderColor: "#f1f5f9" }} />
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<EditIcon sx={{ fontSize: 14 }} />}
+                        onClick={() => setEditingUser(row)}
+                        sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
+                      >
+                        Edit
+                      </Button>
+                      <Tooltip title={deleteTooltip}>
+                        <span>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<DeleteOutlineIcon sx={{ fontSize: 14 }} />}
+                            onClick={() => handleOpenSingleDelete(row)}
+                            disabled={disableDelete}
+                            sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
+                          >
+                            Delete
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    </Box>
+                  </Paper>
+                );
+              })}
+            </Stack>
+          )}
+        </Box>
+
+        {/* Desktop Data Table (Screens >= 768px) */}
+        <TableContainer sx={{ display: { xs: "none", md: "block" }, overflowX: "auto" }}>
           <Table sx={{ minWidth: 750 }}>
             <TableHead
               sx={{

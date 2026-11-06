@@ -119,14 +119,19 @@ const theme = createTheme({
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 6,
+          borderRadius: 8,
+          textTransform: 'none',
+          fontWeight: 600,
+          '@media (max-width: 600px)': {
+            minHeight: '38px',
+          },
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 10,
+          borderRadius: 12,
           border: '1px solid #e2e8f0',
           boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.05)',
         },
@@ -139,8 +144,14 @@ const theme = createTheme({
       },
       styleOverrides: {
         paper: {
-          borderRadius: 12,
+          borderRadius: 16,
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          '@media (max-width: 600px)': {
+            margin: 12,
+            width: 'calc(100% - 24px)',
+            maxHeight: 'calc(100% - 32px)',
+            borderRadius: 16,
+          },
         },
       },
     },

@@ -22,6 +22,9 @@ import {
   Alert,
   TableSortLabel,
   Divider,
+  Fab,
+  Stack,
+  Grid,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -276,8 +279,111 @@ const ForSelfPage = () => {
           bgcolor: "background.paper",
         }}
       >
+        {/* Mobile-First Card View (Screens < 768px) */}
+        <Box sx={{ display: { xs: "block", md: "none" } }}>
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress size={32} />
+            </Box>
+          ) : entries.length === 0 ? (
+            <Box sx={{ p: 4, textAlign: "center" }}>
+              <Typography variant="body2" color="text.secondary">
+                No entries found. Tap <strong>+</strong> to add one.
+              </Typography>
+            </Box>
+          ) : (
+            <Stack spacing={1.5} sx={{ p: 1.5 }}>
+              {sortedEntries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+                const isSelected = selectedIds.includes(row._id);
+                const rowType = row.type || (["Expense", "Add Balance"].includes(row.status) ? row.status : "Expense");
+                const isAddBalance = (rowType || "").toLowerCase() === "add balance";
+
+                return (
+                  <Paper
+                    key={row._id}
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      borderRadius: 3,
+                      border: isSelected ? "2px solid #1976d2" : "1px solid #e2e8f0",
+                      bgcolor: isSelected ? "rgba(25, 118, 210, 0.03)" : "#ffffff",
+                      transition: "all 0.15s ease",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                    }}
+                  >
+                    {/* Top row: Checkbox, Type & Split badges, Amount */}
+                    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 1 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+                        <Checkbox
+                          checked={isSelected}
+                          onChange={() => handleSelectOne(row._id)}
+                          size="small"
+                          sx={{ p: 0.25 }}
+                        />
+                        {getTypeChip(rowType, row.isSplit)}
+                      </Box>
+
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 800,
+                          color: isAddBalance ? "primary.main" : "#d32f2f",
+                          fontSize: "1.1rem",
+                          flexShrink: 0,
+                        }}
+                      >
+                        ₹ {formatAmount(row.amount)}
+                      </Typography>
+                    </Box>
+
+                    {/* Date & Time */}
+                    <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 500, fontSize: "0.74rem", display: "block", mb: 0.75 }}>
+                      {formatDate(row.date)} • {formatTime(row.time)}
+                    </Typography>
+
+                    {/* Description */}
+                    {row.description && (
+                      <Box sx={{ bgcolor: "#f8fafc", p: 1, borderRadius: 1.5, borderLeft: `3px solid ${isAddBalance ? "#1976d2" : "#ed6c02"}`, my: 1 }}>
+                        <Typography variant="caption" sx={{ color: "#475569", fontStyle: "italic", fontSize: "0.78rem", display: "block" }}>
+                          "{row.description}"
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* Actions row */}
+                    <Divider sx={{ my: 1, borderColor: "#f1f5f9" }} />
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                        onClick={() => setEditingEntry(row)}
+                        sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        startIcon={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
+                        onClick={() => setItemToDelete(row._id)}
+                        sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
+                      >
+                        Delete
+                      </Button>
+                    </Box>
+                  </Paper>
+                );
+              })}
+            </Stack>
+          )}
+        </Box>
+
+        {/* Desktop Data Table (Screens >= 768px) */}
         <TableContainer
           sx={{
+            display: { xs: "none", md: "block" },
             width: "100%",
             overflowX: "auto",
             WebkitOverflowScrolling: "touch",
@@ -478,6 +584,25 @@ const ForSelfPage = () => {
           />
         </Box>
       </Paper>
+
+      {/* Mobile Floating Action Button */}
+      <Fab
+        color="primary"
+        aria-label="Add for self"
+        onClick={() => setIsAddOpen(true)}
+        sx={{
+          position: "fixed",
+          bottom: { xs: 76, lg: 32 },
+          right: 20,
+          zIndex: 1100,
+          display: { xs: "flex", lg: "none" },
+          bgcolor: "#2e7d32",
+          "&:hover": { bgcolor: "#1b5e20" },
+          boxShadow: "0 6px 16px rgba(46, 125, 50, 0.4)",
+        }}
+      >
+        <AddIcon />
+      </Fab>
 
       {/* Modals */}
       <AddForSelfModal

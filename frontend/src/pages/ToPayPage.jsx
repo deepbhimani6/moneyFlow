@@ -22,6 +22,8 @@ import {
   Alert,
   TableSortLabel,
   Divider,
+  Fab,
+  Stack,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -351,8 +353,144 @@ const ToPayPage = () => {
           bgcolor: "background.paper",
         }}
       >
+        {/* Mobile-First Card View (Screens < 768px) */}
+        <Box sx={{ display: { xs: "block", md: "none" } }}>
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress size={32} />
+            </Box>
+          ) : entries.length === 0 ? (
+            <Box sx={{ p: 4, textAlign: "center" }}>
+              <Typography variant="body2" color="text.secondary">
+                No entries found. Tap <strong>+</strong> to add one.
+              </Typography>
+            </Box>
+          ) : (
+            <Stack spacing={1.5} sx={{ p: 1.5 }}>
+              {sortedEntries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+                const isSelected = selectedIds.includes(row._id);
+                const rowType = row.type || (["Expense", "Loan"].includes(row.status) ? row.status : "Expense");
+                return (
+                  <Paper
+                    key={row._id}
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      borderRadius: 3,
+                      border: isSelected ? "2px solid #1976d2" : "1px solid #e2e8f0",
+                      bgcolor: isSelected ? "rgba(25, 118, 210, 0.03)" : "#ffffff",
+                      transition: "all 0.15s ease",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                    }}
+                  >
+                    {/* Top row: Checkbox, Name, Split tag, Amount */}
+                    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 1 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+                        <Checkbox
+                          checked={isSelected}
+                          onChange={() => handleSelectOne(row._id)}
+                          size="small"
+                          sx={{ p: 0.25 }}
+                        />
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: "0.95rem", lineHeight: 1.3, color: "#1e293b" }} noWrap>
+                            {capitalizeName(row.forFromName)}
+                          </Typography>
+                          {row.isSplit && (
+                            <Chip label="Split group" size="small" variant="outlined" sx={{ fontSize: "0.62rem", height: 16, textTransform: "none", mt: 0.25 }} />
+                          )}
+                        </Box>
+                      </Box>
+
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: "#d32f2f", fontSize: "1.1rem", flexShrink: 0 }}>
+                        ₹ {formatAmount(row.amount)}
+                      </Typography>
+                    </Box>
+
+                    {/* Middle row: Type & Status chips */}
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1, my: 1 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                        {getTypeChip(rowType)}
+                        {row.canEdit === false ? (
+                          <Tooltip title="Only the creator of this split entry can change the status">
+                            <span style={{ display: "inline-block", cursor: "not-allowed" }}>
+                              {getStatusChip(row.paymentStatus, undefined, true)}
+                            </span>
+                          </Tooltip>
+                        ) : (
+                          getStatusChip(row.paymentStatus, () => handleToggleStatus(row), false)
+                        )}
+                      </Box>
+
+                      <Typography variant="caption" sx={{ color: "#64748b", fontWeight: 500, fontSize: "0.74rem" }}>
+                        {formatDate(row.date)} • {formatTime(row.time)}
+                      </Typography>
+                    </Box>
+
+                    {/* Description/Reason row if available */}
+                    {row.description && (
+                      <Box sx={{ bgcolor: "#f8fafc", p: 1, borderRadius: 1.5, borderLeft: "3px solid #ed6c02", my: 1 }}>
+                        <Typography variant="caption" sx={{ color: "#475569", fontStyle: "italic", fontSize: "0.78rem", display: "block" }}>
+                          "{row.description}"
+                        </Typography>
+                      </Box>
+                    )}
+
+                    {/* Actions row */}
+                    <Divider sx={{ my: 1, borderColor: "#f1f5f9" }} />
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
+                      {row.canEdit === false ? (
+                        <>
+                          <Tooltip title="Only the creator of this split entry can edit it">
+                            <span style={{ display: "inline-block", cursor: "not-allowed" }}>
+                              <IconButton size="small" disabled sx={{ color: "action.disabled", p: 0.75 }}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          <Tooltip title="Only the creator of this split entry can delete it">
+                            <span style={{ display: "inline-block", cursor: "not-allowed" }}>
+                              <IconButton size="small" disabled sx={{ color: "action.disabled", p: 0.75 }}>
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </>
+                      ) : (
+                        <>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                            onClick={() => setEditingEntry(row)}
+                            sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
+                            onClick={() => setItemToDelete(row._id)}
+                            sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
+                          >
+                            Delete
+                          </Button>
+                        </>
+                      )}
+                    </Box>
+                  </Paper>
+                );
+              })}
+            </Stack>
+          )}
+        </Box>
+
+        {/* Desktop Data Table (Screens >= 768px) */}
         <TableContainer
           sx={{
+            display: { xs: "none", md: "block" },
             width: "100%",
             overflowX: "auto",
             WebkitOverflowScrolling: "touch",
@@ -580,6 +718,25 @@ const ToPayPage = () => {
           />
         </Box>
       </Paper>
+
+      {/* Mobile Floating Action Button */}
+      <Fab
+        color="primary"
+        aria-label="Add to pay"
+        onClick={() => setIsAddOpen(true)}
+        sx={{
+          position: "fixed",
+          bottom: { xs: 76, lg: 32 },
+          right: 20,
+          zIndex: 1100,
+          display: { xs: "flex", lg: "none" },
+          bgcolor: "#ed6c02",
+          "&:hover": { bgcolor: "#e65100" },
+          boxShadow: "0 6px 16px rgba(237, 108, 2, 0.4)",
+        }}
+      >
+        <AddIcon />
+      </Fab>
 
       {/* Modals */}
       <AddToPayModal

@@ -17,6 +17,7 @@ import Sidebar from './components/Sidebar';
 import OnlineDetector from './components/OnlineDetector';
 import HeaderProfileMenu from './components/HeaderProfileMenu';
 import NotificationBell from './components/NotificationBell';
+import MobileBottomNav from './components/MobileBottomNav';
 import { AuthProvider } from './context/AuthContext';
 import { ProfileProvider } from './context/ProfileContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -149,7 +150,7 @@ function MainAppLayout() {
         </AppBar>
 
         {/* Active Screen Routes */}
-        <Box sx={{ flexGrow: 1 }}>
+        <Box sx={{ flexGrow: 1, pb: { xs: 9, lg: 2 } }}>
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
@@ -164,6 +165,9 @@ function MainAppLayout() {
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Box>
+
+        {/* Mobile Bottom Navigation Bar */}
+        <MobileBottomNav />
       </Box>
     </Box>
   );

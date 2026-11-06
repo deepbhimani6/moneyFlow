@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, IconButton, Menu, MenuItem, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TableSortLabel, Dialog, DialogTitle, DialogContent, DialogActions, Divider } from "@mui/material";
+import { Box, Typography, Button, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, Paper, Checkbox, Chip, IconButton, Menu, MenuItem, CircularProgress, TablePagination, Tooltip, Snackbar, Alert, TableSortLabel, Dialog, DialogTitle, DialogContent, DialogActions, Divider, Fab, Stack, Avatar } from "@mui/material";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
@@ -536,8 +536,151 @@ const MembersPage = () => {
           bgcolor: "background.paper",
         }}
       >
+        {/* Mobile-First Card View (Screens < 768px) */}
+        <Box sx={{ display: { xs: "block", md: "none" } }}>
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress size={32} />
+            </Box>
+          ) : filteredMembers.length === 0 ? (
+            <Box sx={{ p: 4, textAlign: "center" }}>
+              <Typography variant="body2" color="text.secondary">
+                {displayedMembers.length === 0 ? "No members registered. Tap + to invite one." : "No members match the selected filter criteria."}
+              </Typography>
+            </Box>
+          ) : (
+            <Stack spacing={1.5} sx={{ p: 1.5 }}>
+              {sortedMembers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((row) => {
+                const isSelected = selectedIds.includes(row._id);
+                const formattedInviteDate = row.lastInviteSentAt ? formatDate(row.lastInviteSentAt) : "—";
+                const hasJoined = Boolean(row.hasLoggedIn || row.joinDate);
+                const formattedJoinDate = hasJoined && row.joinDate ? formatDate(row.joinDate) : "—";
+                const isCurrent = isCurrentLoggedInUser(row, profile, user);
+                const disableDelete = isCurrent;
+                const deleteTooltip = isCurrent ? "You cannot delete your own logged-in account" : "Delete Member";
+                const disableInvite = !row.email || sendingInviteId === row._id || hasJoined;
+                const inviteTooltip = hasJoined ? "Member has already joined the app" : !row.email ? "No email available to send invite" : "Send App Invite Link";
+
+                return (
+                  <Paper
+                    key={row._id}
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      borderRadius: 3,
+                      border: isSelected ? "2px solid #1976d2" : "1px solid #e2e8f0",
+                      bgcolor: isSelected ? "rgba(25, 118, 210, 0.03)" : "#ffffff",
+                      transition: "all 0.15s ease",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.03)",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1, mb: 1 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0 }}>
+                        {!isCurrent && (
+                          <Checkbox
+                            checked={isSelected}
+                            onChange={() => handleSelectOne(row._id)}
+                            size="small"
+                            sx={{ p: 0.25 }}
+                          />
+                        )}
+                        <Avatar sx={{ width: 34, height: 34, bgcolor: "#1976d2", fontSize: "0.85rem", fontWeight: 700 }}>
+                          {(row.fullName || "M")[0].toUpperCase()}
+                        </Avatar>
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 700, fontSize: "0.95rem", lineHeight: 1.3, color: "#1e293b" }} noWrap>
+                            {capitalizeName(row.fullName)}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.74rem" }}>
+                            {row.email || row.phoneNumber || "No contact info"}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {hasJoined ? (
+                        <Chip
+                          icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 14 } }} />}
+                          label="Joined"
+                          size="small"
+                          color="success"
+                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700 }}
+                        />
+                      ) : row.inviteSent ? (
+                        <Chip
+                          label="Invite Sent"
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600 }}
+                        />
+                      ) : (
+                        <Chip label="Pending" size="small" variant="outlined" sx={{ height: 22, fontSize: "0.7rem" }} />
+                      )}
+                    </Box>
+
+                    {/* Contact & Date info */}
+                    <Box sx={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 1, my: 1, bgcolor: "#f8fafc", p: 1, borderRadius: 2 }}>
+                      <Typography variant="caption" sx={{ color: "#64748b" }}>
+                        <strong>Invite:</strong> {formattedInviteDate}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "#64748b" }}>
+                        <strong>Joined:</strong> {formattedJoinDate}
+                      </Typography>
+                    </Box>
+
+                    {/* Actions */}
+                    <Divider sx={{ my: 1, borderColor: "#f1f5f9" }} />
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
+                      <Tooltip title={inviteTooltip}>
+                        <span>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={sendingInviteId === row._id ? <CircularProgress size={14} /> : <SendIcon sx={{ fontSize: 14 }} />}
+                            onClick={() => handleSendInvite(row._id, row.email)}
+                            disabled={disableInvite}
+                            sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
+                          >
+                            Invite
+                          </Button>
+                        </span>
+                      </Tooltip>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<EditIcon sx={{ fontSize: 14 }} />}
+                        onClick={() => handleOpenEditModal(row)}
+                        sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
+                      >
+                        Edit
+                      </Button>
+                      <Tooltip title={deleteTooltip}>
+                        <span>
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            color="error"
+                            startIcon={<DeleteOutlineIcon sx={{ fontSize: 14 }} />}
+                            onClick={() => handleOpenDeleteModal(row)}
+                            disabled={disableDelete}
+                            sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
+                          >
+                            Delete
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    </Box>
+                  </Paper>
+                );
+              })}
+            </Stack>
+          )}
+        </Box>
+
+        {/* Desktop Data Table (Screens >= 768px) */}
         <TableContainer
           sx={{
+            display: { xs: "none", md: "block" },
             width: "100%",
             overflowX: "auto",
             WebkitOverflowScrolling: "touch",
@@ -811,6 +954,24 @@ const MembersPage = () => {
           />
         </Box>
       </Paper>
+
+      {/* Mobile Floating Action Button */}
+      <Fab
+        color="primary"
+        aria-label="Invite member"
+        onClick={() => setIsInviteOpen(true)}
+        sx={{
+          position: "fixed",
+          bottom: { xs: 76, lg: 32 },
+          right: 20,
+          zIndex: 1100,
+          display: { xs: "flex", lg: "none" },
+          bgcolor: "#1976d2",
+          boxShadow: "0 6px 16px rgba(25, 118, 210, 0.4)",
+        }}
+      >
+        <PersonAddIcon />
+      </Fab>
 
       {/* Modals */}
       <MemberFilterModal
