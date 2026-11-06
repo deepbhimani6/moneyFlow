@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Box, Typography, Button, Paper, Chip, Avatar, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, TablePagination, Stack, CircularProgress, TextField, InputAdornment, Card, CardContent, Breadcrumbs, Link, Divider } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SearchIcon from "@mui/icons-material/Search";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import CallReceivedIcon from "@mui/icons-material/CallReceived";
 import PaymentIcon from "@mui/icons-material/Payment";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
@@ -12,6 +13,7 @@ import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { memberService } from "../services/api";
 import { formatDate, formatAmount, capitalizeName } from "../utils/formatters";
+import MemberDetailFilterModal, { defaultMemberDetailFilters } from "../modals/MemberDetailFilterModal";
 
 const MemberDetailPage = () => {
   const { id } = useParams();
@@ -19,13 +21,26 @@ const MemberDetailPage = () => {
 
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
-  const [directionFilter, setDirectionFilter] = useState("all"); // "all", "receive", "pay"
-  const [statusFilter, setStatusFilter] = useState("all"); // "all", "Pending", "Settled"
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [filters, setFilters] = useState(defaultMemberDetailFilters);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Pagination
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (filters.direction && filters.direction !== "all") count++;
+    if (filters.type && filters.type !== "All") count++;
+    if (filters.status && filters.status !== "All") count++;
+    if (filters.startDate) count++;
+    if (filters.endDate) count++;
+    if (filters.minAmount !== "" && filters.minAmount !== undefined && filters.minAmount !== null) count++;
+    if (filters.maxAmount !== "" && filters.maxAmount !== undefined && filters.maxAmount !== null) count++;
+    if (filters.description && filters.description.trim()) count++;
+    return count;
+  }, [filters]);
 
   const fetchMemberDetail = async () => {
     try {
@@ -62,29 +77,49 @@ const MemberDetailPage = () => {
   const filteredEntries = useMemo(() => {
     return entries.filter((e) => {
       // Direction filter
-      if (directionFilter === "receive" && e.directionType !== "receive") return false;
-      if (directionFilter === "pay" && e.directionType !== "pay") return false;
+      if (filters.direction === "receive" && e.directionType !== "receive") return false;
+      if (filters.direction === "pay" && e.directionType !== "pay") return false;
+
+      // Type filter
+      if (filters.type && filters.type !== "All") {
+        const t = (e.type || "").toLowerCase();
+        if (t !== filters.type.toLowerCase()) return false;
+      }
 
       // Status filter
-      if (statusFilter === "Pending" && e.paymentStatus !== "Pending") return false;
-      if (statusFilter === "Settled" && e.paymentStatus !== "Received" && e.paymentStatus !== "Paid") return false;
+      if (filters.status === "Pending" && e.paymentStatus !== "Pending") return false;
+      if (filters.status === "Settled" && e.paymentStatus !== "Received" && e.paymentStatus !== "Paid") return false;
+
+      // Date range filter
+      if (filters.startDate && (!e.date || e.date < filters.startDate)) return false;
+      if (filters.endDate && (!e.date || e.date > filters.endDate)) return false;
+
+      // Amount range filter
+      const amt = Number(e.amount) || 0;
+      if (filters.minAmount !== "" && filters.minAmount !== undefined && filters.minAmount !== null && amt < Number(filters.minAmount)) return false;
+      if (filters.maxAmount !== "" && filters.maxAmount !== undefined && filters.maxAmount !== null && amt > Number(filters.maxAmount)) return false;
+
+      // Description filter
+      if (filters.description && !(e.description || "").toLowerCase().includes(filters.description.toLowerCase().trim())) {
+        return false;
+      }
 
       // Search keyword
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
         const desc = (e.description || "").toLowerCase();
         const type = (e.type || "").toLowerCase();
-        const amt = String(e.amount);
+        const amtStr = String(e.amount);
         const date = (e.date || "").toLowerCase();
         const creator = (e.creatorName || "").toLowerCase();
-        if (!desc.includes(q) && !type.includes(q) && !amt.includes(q) && !date.includes(q) && !creator.includes(q)) {
+        if (!desc.includes(q) && !type.includes(q) && !amtStr.includes(q) && !date.includes(q) && !creator.includes(q)) {
           return false;
         }
       }
 
       return true;
     });
-  }, [entries, directionFilter, statusFilter, searchQuery]);
+  }, [entries, filters, searchQuery]);
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -329,13 +364,13 @@ const MemberDetailPage = () => {
           }}
         >
           <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
-            {/* Filter Tabs */}
+            {/* Filter Tabs & Filter Modal Button */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
               <Button
                 size="small"
-                variant={directionFilter === "all" ? "contained" : "outlined"}
+                variant={filters.direction === "all" ? "contained" : "outlined"}
                 onClick={() => {
-                  setDirectionFilter("all");
+                  setFilters((prev) => ({ ...prev, direction: "all" }));
                   setPage(0);
                 }}
                 sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
@@ -344,9 +379,9 @@ const MemberDetailPage = () => {
               </Button>
               <Button
                 size="small"
-                variant={directionFilter === "receive" ? "contained" : "outlined"}
+                variant={filters.direction === "receive" ? "contained" : "outlined"}
                 onClick={() => {
-                  setDirectionFilter("receive");
+                  setFilters((prev) => ({ ...prev, direction: "receive" }));
                   setPage(0);
                 }}
                 sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
@@ -355,9 +390,9 @@ const MemberDetailPage = () => {
               </Button>
               <Button
                 size="small"
-                variant={directionFilter === "pay" ? "contained" : "outlined"}
+                variant={filters.direction === "pay" ? "contained" : "outlined"}
                 onClick={() => {
-                  setDirectionFilter("pay");
+                  setFilters((prev) => ({ ...prev, direction: "pay" }));
                   setPage(0);
                 }}
                 sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
@@ -365,31 +400,20 @@ const MemberDetailPage = () => {
                 To Pay ({stats.payEntriesCount})
               </Button>
 
-              <Divider orientation="vertical" flexItem sx={{ mx: 0.5, display: { xs: "none", sm: "block" } }} />
-
+              {/* Filter Button like all pages have */}
               <Button
                 size="small"
-                variant={statusFilter === "all" ? "text" : "outlined"}
-                onClick={() => {
-                  setStatusFilter(statusFilter === "Pending" ? "all" : "Pending");
-                  setPage(0);
+                variant={activeFiltersCount > 0 ? "contained" : "outlined"}
+                startIcon={<FilterListIcon />}
+                onClick={() => setIsFilterOpen(true)}
+                sx={{
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
+                  ml: { xs: 0, sm: 0.5 },
                 }}
-                color={statusFilter === "Pending" ? "warning" : "inherit"}
-                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
               >
-                {statusFilter === "Pending" ? "✓ Pending Only" : "Pending Only"}
-              </Button>
-              <Button
-                size="small"
-                variant={statusFilter === "Settled" ? "contained" : "text"}
-                onClick={() => {
-                  setStatusFilter(statusFilter === "Settled" ? "all" : "Settled");
-                  setPage(0);
-                }}
-                color={statusFilter === "Settled" ? "success" : "inherit"}
-                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-              >
-                {statusFilter === "Settled" ? "✓ Settled Only" : "Settled Only"}
+                Filter{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}
               </Button>
             </Box>
 
@@ -594,6 +618,21 @@ const MemberDetailPage = () => {
           <TablePagination component="div" count={filteredEntries.length} page={page} onPageChange={handleChangePage} rowsPerPage={rowsPerPage} onRowsPerPageChange={handleChangeRowsPerPage} rowsPerPageOptions={[5, 10, 25, 50]} sx={{ borderTop: "1px solid #e2e8f0" }} />
         </Paper>
       </Stack>
+
+      {/* Filter Modal like all pages have */}
+      <MemberDetailFilterModal
+        open={isFilterOpen}
+        onClose={() => setIsFilterOpen(false)}
+        currentFilters={filters}
+        onApplyFilters={(applied) => {
+          setFilters(applied);
+          setPage(0);
+        }}
+        onResetFilters={() => {
+          setFilters(defaultMemberDetailFilters);
+          setPage(0);
+        }}
+      />
     </Box>
   );
 };
