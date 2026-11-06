@@ -15,6 +15,7 @@ import {
   Alert,
   CircularProgress,
   Chip,
+  Avatar,
 } from "@mui/material";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { toPayService } from "../services/api";
@@ -41,6 +42,15 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
   // Split group details
   const [splitGroupMembers, setSplitGroupMembers] = useState([]);
   const [loadingGroup, setLoadingGroup] = useState(false);
+  const [splitMode, setSplitMode] = useState("equal"); // "equal" | "separate"
+  const [memberAmounts, setMemberAmounts] = useState({}); // { [m._id]: string }
+
+  const getInitials = (name) => {
+    if (!name) return "?";
+    const parts = String(name).trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
 
   useEffect(() => {
     if (entry && open) {
@@ -64,6 +74,16 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
               const count = res.data.length || 1;
               const originalTotal = entry.originalTotalAmount || entry.amount * count;
               setTotalAmount(String(Math.trunc(originalTotal)));
+
+              // Check if member shares are unequal
+              const hasUnequal = res.data.some((m) => Math.trunc(m.amount) !== Math.trunc(res.data[0]?.amount));
+              setSplitMode(hasUnequal ? "separate" : "equal");
+
+              const amountsMap = {};
+              res.data.forEach((m) => {
+                amountsMap[m._id] = String(Math.trunc(m.amount));
+              });
+              setMemberAmounts(amountsMap);
             }
           })
           .catch(console.error)
@@ -71,9 +91,42 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
       } else {
         setSplitGroupMembers([]);
         setTotalAmount("");
+        setSplitMode("equal");
+        setMemberAmounts({});
       }
     }
   }, [entry, open]);
+
+  const handleSplitModeChange = (mode) => {
+    setSplitMode(mode);
+    if (mode === "separate") {
+      const currentNum = Math.trunc(parseFloat(totalAmount || amount) || 0);
+      const count = splitGroupMembers.length || 1;
+      const defaultShare = currentNum > 0 ? String(Math.trunc(currentNum / count)) : "";
+      setMemberAmounts((prev) => {
+        const next = { ...prev };
+        splitGroupMembers.forEach((m) => {
+          if (!next[m._id] || next[m._id] === "0") {
+            next[m._id] = defaultShare;
+          }
+        });
+        return next;
+      });
+    }
+  };
+
+  const handleMemberAmountChange = (id, val) => {
+    const nextAmounts = { ...memberAmounts, [id]: val };
+    setMemberAmounts(nextAmounts);
+
+    const sum = splitGroupMembers.reduce((acc, m) => {
+      const num = Math.trunc(parseFloat(nextAmounts[m._id]) || 0);
+      return acc + num;
+    }, 0);
+
+    setTotalAmount(sum > 0 ? String(sum) : "");
+    if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
+  };
 
   // Handle total amount change for split entries
   const handleTotalAmountChange = (newTotal) => {
@@ -100,11 +153,13 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
     setError("");
 
     const newErrors = {};
-    const numericAmount = Math.trunc(parseFloat(amount));
+    const numericAmount = Math.trunc(parseFloat(amount) || 0);
+    const numericTotalAmount = Math.trunc(parseFloat(totalAmount) || 0);
 
     const formattedForFromName = capitalizeName(forFromName);
     if (!formattedForFromName) newErrors.forFromName = true;
-    if (isNaN(numericAmount) || numericAmount <= 0) newErrors.amount = true;
+    if (!entry.isSplit && (!amount || numericAmount <= 0)) newErrors.amount = true;
+    if (entry.isSplit && splitMode === "equal" && (!totalAmount || numericTotalAmount <= 0)) newErrors.amount = true;
     if (!date || !date.trim()) newErrors.date = true;
     if (!time || !time.trim()) newErrors.time = true;
 
@@ -117,6 +172,17 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
       return;
     }
 
+    if (entry.isSplit && splitMode === "separate") {
+      const hasInvalid = splitGroupMembers.some((m) => {
+        const val = Math.trunc(parseFloat(memberAmounts[m._id]) || 0);
+        return isNaN(val) || val <= 0;
+      });
+      if (hasInvalid) {
+        setError("Please enter a valid amount (greater than ₹0) for all members.");
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
 
@@ -127,6 +193,15 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
         paymentStatus,
         amount: numericAmount,
         totalAmount: entry.isSplit ? parseFloat(totalAmount) || undefined : undefined,
+        splitMode: entry.isSplit ? splitMode : undefined,
+        splits: entry.isSplit && splitMode === "separate"
+          ? splitGroupMembers.map((m) => ({
+              _id: m._id,
+              memberId: m.memberId,
+              isMine: Boolean(m.isMine),
+              amount: Math.trunc(parseFloat(memberAmounts[m._id]) || 0),
+            }))
+          : undefined,
         date,
         time,
         description,
@@ -274,32 +349,140 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
 
           {/* 3. Amounts */}
           {isSplit ? (
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <TextField
-                label="Total Group Amount (₹)"
-                type="number"
-                value={totalAmount}
-                onChange={(e) => handleTotalAmountChange(e.target.value)}
-                fullWidth
-                required
-                inputProps={{ min: "0", step: "any" }}
-                helperText={`Divided equally across ${splitGroupMembers.length || 1} members`}
-              />
-              <TextField
-                label="Each Member's Share (₹)"
-                type="number"
-                value={amount}
-                inputRef={amountRef}
-                error={Boolean(errors.amount)}
-                helperText={typeof errors.amount === "string" ? errors.amount : (errors.amount ? "Please enter a valid amount" : "")}
-                onChange={(e) => {
-                  handlePerPersonChange(e.target.value);
-                  if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
-                }}
-                fullWidth
-                required
-                inputProps={{ min: "0", step: "any" }}
-              />
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {/* Split Mode Selector */}
+              <Box>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", display: "block", mb: 0.75 }}>
+                  Split Method:
+                </Typography>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Button
+                    size="small"
+                    variant={splitMode === "equal" ? "contained" : "outlined"}
+                    onClick={() => handleSplitModeChange("equal")}
+                    sx={{ textTransform: "none", fontSize: "0.8rem", borderRadius: 1.5, flex: 1, py: 0.5 }}
+                  >
+                    Split Equally
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={splitMode === "separate" ? "contained" : "outlined"}
+                    onClick={() => handleSplitModeChange("separate")}
+                    sx={{ textTransform: "none", fontSize: "0.8rem", borderRadius: 1.5, flex: 1, py: 0.5 }}
+                  >
+                    Split Separately (Member-wise)
+                  </Button>
+                </Box>
+              </Box>
+
+              {splitMode === "equal" ? (
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <TextField
+                    label="Total Group Amount (₹)"
+                    type="number"
+                    value={totalAmount}
+                    onChange={(e) => handleTotalAmountChange(e.target.value)}
+                    fullWidth
+                    required
+                    inputProps={{ min: "0", step: "any" }}
+                    helperText={`Divided equally across ${splitGroupMembers.length || 1} members`}
+                  />
+                  <TextField
+                    label="Each Member's Share (₹)"
+                    type="number"
+                    value={amount}
+                    inputRef={amountRef}
+                    error={Boolean(errors.amount)}
+                    helperText={typeof errors.amount === "string" ? errors.amount : (errors.amount ? "Please enter a valid amount" : "")}
+                    onChange={(e) => {
+                      handlePerPersonChange(e.target.value);
+                      if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
+                    }}
+                    fullWidth
+                    required
+                    inputProps={{ min: "0", step: "any" }}
+                  />
+                </Box>
+              ) : (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                    Adjust separate share for each participant in this split group:
+                  </Typography>
+
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 220, overflowY: "auto", pr: 0.5 }}>
+                    {splitGroupMembers.map((m) => {
+                      const isMe = Boolean(m.isMine);
+                      const name = m.forFromName || (isMe ? "Myself (You)" : "Participant");
+                      return (
+                        <Box
+                          key={m._id}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 1.5,
+                            p: 1,
+                            bgcolor: isMe ? "#fff8e1" : "background.paper",
+                            borderRadius: 1.5,
+                            border: isMe ? "1px solid #ffe082" : "1px solid #e0e0e0",
+                          }}
+                        >
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, flex: 1 }}>
+                            <Avatar
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                fontSize: "0.75rem",
+                                bgcolor: isMe ? "#f57c00" : "#1976d2",
+                              }}
+                            >
+                              {isMe ? "ME" : getInitials(name)}
+                            </Avatar>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 600,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                color: isMe ? "warning.dark" : "text.primary",
+                              }}
+                            >
+                              {name}
+                            </Typography>
+                          </Box>
+
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={memberAmounts[m._id] ?? ""}
+                            onChange={(e) => handleMemberAmountChange(m._id, e.target.value)}
+                            placeholder="0"
+                            InputProps={{
+                              startAdornment: (
+                                <Typography variant="caption" sx={{ mr: 0.5, color: "text.secondary", fontWeight: 700 }}>
+                                  ₹
+                                </Typography>
+                              ),
+                            }}
+                            sx={{ width: 120, "& .MuiInputBase-input": { py: 0.75, fontSize: "0.85rem", fontWeight: 600 } }}
+                            inputProps={{ min: "0", step: "any" }}
+                          />
+                        </Box>
+                      );
+                    })}
+                  </Box>
+
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pt: 1, borderTop: "1px dashed #90caf9" }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.dark" }}>
+                      Total Group Amount:
+                    </Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.main" }}>
+                      ₹ {formatAmount(parseFloat(totalAmount) || 0)}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
             </Box>
           ) : (
             <TextField

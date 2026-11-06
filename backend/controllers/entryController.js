@@ -210,15 +210,37 @@ const createEntry = async (req, res) => {
     // MULTI-MEMBER SPLIT LOGIC:
     const addSeparateMine = Boolean(includeMine);
     const totalParticipants = nameList.length + (addSeparateMine ? 1 : 0);
-    const splitAmount = Math.trunc(parsedAmount / totalParticipants);
     const splitGroupId = `split_${crypto.randomBytes(6).toString("hex")}`;
+    const isSeparateMode = req.body.splitMode === "separate" || nameList.some((item) => typeof item === "object" && item.amount !== undefined && item.amount !== null);
 
+    let totalGroupAmount = parsedAmount;
+    if (isSeparateMode) {
+      let sum = 0;
+      for (const item of nameList) {
+        if (typeof item === "object" && item.amount !== undefined && item.amount !== null) {
+          sum += Math.trunc(Number(item.amount) || 0);
+        }
+      }
+      if (addSeparateMine && req.body.myAmount !== undefined && req.body.myAmount !== null) {
+        sum += Math.trunc(Number(req.body.myAmount) || 0);
+      }
+      if (sum > 0) {
+        totalGroupAmount = sum;
+      }
+    }
+
+    const equalSplitAmount = Math.trunc(parsedAmount / totalParticipants);
     const createdEntries = [];
 
     // Create entry for each member in the list
     for (const item of nameList) {
       const memberName = typeof item === "object" ? (item.name || item.fullName) : item;
       const resolvedMemberId = await resolveOrCreateMember(item, req.user);
+
+      let memberAmount = equalSplitAmount;
+      if (isSeparateMode && typeof item === "object" && item.amount !== undefined && item.amount !== null) {
+        memberAmount = Math.trunc(Number(item.amount));
+      }
 
       const memberEntry = new Entry({
         userId: req.user._id,
@@ -227,13 +249,13 @@ const createEntry = async (req, res) => {
         type: "Split",
         status: "Split",
         paymentStatus: entryPaymentStatus,
-        amount: splitAmount,
+        amount: memberAmount,
         date: entryDate,
         time: entryTime,
         description: description ? description.trim() : '',
         isSplit: true,
         splitGroupId,
-        originalTotalAmount: parsedAmount,
+        originalTotalAmount: totalGroupAmount,
         isMine: false,
         creatorUserId: req.user._id,
       });
@@ -263,13 +285,13 @@ const createEntry = async (req, res) => {
           type: "Split",
           status: "Split",
           paymentStatus: "Pending",
-          amount: splitAmount,
+          amount: memberAmount,
           date: entryDate,
           time: entryTime,
           description: description ? description.trim() : '',
           isSplit: true,
           splitGroupId,
-          originalTotalAmount: parsedAmount,
+          originalTotalAmount: totalGroupAmount,
           isMine: false,
           creatorUserId: req.user._id,
         });
@@ -280,23 +302,30 @@ const createEntry = async (req, res) => {
 
     // If "Include myself in the split" was checked, automatically create an Expense in ForSelf
     if (addSeparateMine) {
+      let myAmount = equalSplitAmount;
+      if (isSeparateMode && req.body.myAmount !== undefined && req.body.myAmount !== null) {
+        myAmount = Math.trunc(Number(req.body.myAmount));
+      }
+
       await ForSelf.create({
         userId: req.user._id,
         type: "Expense",
-        amount: splitAmount,
+        amount: myAmount,
         date: entryDate,
         time: entryTime,
         description: description ? `${description.trim()} (Split share)` : "Split share",
         isSplit: true,
         splitGroupId,
-        originalTotalAmount: parsedAmount,
+        originalTotalAmount: totalGroupAmount,
         creatorUserId: req.user._id,
       });
     }
 
     res.status(201).json({
       success: true,
-      message: `Split across ${createdEntries.length} entries (₹${splitAmount} each).`,
+      message: isSeparateMode
+        ? `Split across ${createdEntries.length} entries with custom amounts (Total: ₹${totalGroupAmount}).`
+        : `Split across ${createdEntries.length} entries (₹${equalSplitAmount} each).`,
       data: createdEntries,
     });
   } catch (error) {
@@ -339,7 +368,7 @@ const updateEntry = async (req, res) => {
 
       // If not creator, only allow toggling payment status for their own record
       if (!isCreator) {
-        if (entryPaymentStatus && !totalAmount && !amount && !date && !time && description === undefined && !forFromName && !entryType) {
+        if (entryPaymentStatus && !totalAmount && !amount && !date && !time && description === undefined && !forFromName && !entryType && !req.body.splits) {
           entry.paymentStatus = entryPaymentStatus;
           await entry.save();
           return res.json({ success: true, data: entry, message: "Payment status updated successfully." });
@@ -350,6 +379,64 @@ const updateEntry = async (req, res) => {
         });
       }
 
+      // Check if separate/custom shares update is requested
+      const { splits } = req.body;
+      if (splits && Array.isArray(splits) && splits.length > 0) {
+        let newTotal = 0;
+        for (const sp of splits) {
+          newTotal += Math.trunc(Number(sp.amount) || 0);
+        }
+
+        const commonUpdate = {
+          originalTotalAmount: newTotal,
+        };
+        if (date) commonUpdate.date = date;
+        if (time) commonUpdate.time = time;
+        if (description !== undefined) commonUpdate.description = description ? description.trim() : '';
+
+        // Update common fields across all linked entries
+        await Entry.updateMany({ splitGroupId: entry.splitGroupId }, { $set: commonUpdate });
+        await ToPay.updateMany({ splitGroupId: entry.splitGroupId }, { $set: commonUpdate });
+        await ForSelf.updateMany({ splitGroupId: entry.splitGroupId }, { $set: commonUpdate });
+
+        // Update each member's specific share:
+        for (const sp of splits) {
+          const itemAmount = Math.trunc(Number(sp.amount) || 0);
+          if (sp.isMine) {
+            await ForSelf.updateMany(
+              { splitGroupId: entry.splitGroupId, userId: req.user._id },
+              { $set: { amount: itemAmount } }
+            );
+          } else {
+            // Update creator's entry
+            if (sp._id) {
+              await Entry.findByIdAndUpdate(sp._id, { $set: { amount: itemAmount } });
+            }
+            // Update reciprocal entry in recipient's ToPay
+            if (sp.memberId) {
+              await ToPay.updateMany(
+                { splitGroupId: entry.splitGroupId, userId: sp.memberId },
+                { $set: { amount: itemAmount } }
+              );
+            }
+          }
+        }
+
+        if (entryPaymentStatus) {
+          entry.paymentStatus = entryPaymentStatus;
+          await entry.save();
+        }
+
+        const updatedEntries = await Entry.find({ splitGroupId: entry.splitGroupId, userId: req.user._id });
+        return res.json({
+          success: true,
+          message: `Updated split entries with custom member amounts (Total: ₹${newTotal}).`,
+          isSplitGroupUpdate: true,
+          data: updatedEntries,
+        });
+      }
+
+      // EQUAL SPLIT UPDATE:
       // Count participants across Entry, ToPay, and ForSelf for this creator
       const creatorEntries = await Entry.find({ splitGroupId: entry.splitGroupId, userId: req.user._id });
       const creatorToPay = await ToPay.find({ splitGroupId: entry.splitGroupId, userId: req.user._id });

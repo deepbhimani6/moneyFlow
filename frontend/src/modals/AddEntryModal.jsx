@@ -18,6 +18,7 @@ import {
   FormControlLabel,
   Checkbox,
   CircularProgress,
+  Avatar,
 } from "@mui/material";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { memberService, entryService } from "../services/api";
@@ -37,6 +38,8 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [time, setTime] = useState(new Date().toTimeString().split(" ")[0].substring(0, 5));
   const [includeMine, setIncludeMine] = useState(false);
+  const [splitMode, setSplitMode] = useState("equal"); // "equal" | "separate"
+  const [memberAmounts, setMemberAmounts] = useState({}); // { [key]: string }
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -45,6 +48,13 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   const amountRef = useRef(null);
   const dateRef = useRef(null);
   const timeRef = useRef(null);
+
+  const getInitials = (name) => {
+    if (!name) return "?";
+    const parts = String(name).trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
 
   // Fetch available members for multi-select
   useEffect(() => {
@@ -67,6 +77,8 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
       setDate(new Date().toISOString().split("T")[0]);
       setTime(new Date().toTimeString().split(" ")[0].substring(0, 5));
       setIncludeMine(false);
+      setSplitMode("equal");
+      setMemberAmounts({});
       setErrors({});
       setError("");
     }
@@ -82,6 +94,50 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   const totalSplitCount = selectedNames.length + (includeMine ? 1 : 0);
   const numericAmount = Math.trunc(parseFloat(amount) || 0);
   const splitPerPerson = isSplitActive && totalSplitCount > 0 ? Math.trunc(numericAmount / totalSplitCount) : 0;
+
+  const participants = useMemo(() => {
+    const list = selectedNames.map((item, idx) => {
+      const name = typeof item === "string" ? item : (item.fullName || item.name || "");
+      const id = typeof item === "string" ? null : item._id;
+      const key = id ? String(id) : `name_${name.toLowerCase().trim()}_${idx}`;
+      return { key, name: capitalizeName(name), memberId: id, isMine: false };
+    });
+    if (includeMine) {
+      list.push({ key: "myself", name: "Myself (You)", memberId: null, isMine: true });
+    }
+    return list;
+  }, [selectedNames, includeMine]);
+
+  const handleSplitModeChange = (mode) => {
+    setSplitMode(mode);
+    if (mode === "separate") {
+      const currentNum = Math.trunc(parseFloat(amount) || 0);
+      const count = participants.length || 1;
+      const defaultShare = currentNum > 0 ? String(Math.trunc(currentNum / count)) : "";
+      setMemberAmounts((prev) => {
+        const next = { ...prev };
+        participants.forEach((p) => {
+          if (!next[p.key] || next[p.key] === "0") {
+            next[p.key] = defaultShare;
+          }
+        });
+        return next;
+      });
+    }
+  };
+
+  const handleMemberAmountChange = (key, val) => {
+    const nextAmounts = { ...memberAmounts, [key]: val };
+    setMemberAmounts(nextAmounts);
+
+    const sum = participants.reduce((acc, p) => {
+      const num = Math.trunc(parseFloat(nextAmounts[p.key]) || 0);
+      return acc + num;
+    }, 0);
+
+    setAmount(sum > 0 ? String(sum) : "");
+    if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
+  };
 
   // If split is active, auto-set to Split; else default to Expense if currently Split
   useEffect(() => {
@@ -107,6 +163,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
       }
     }
 
+    const isSplit = finalNames.length > 1 || (finalNames.length >= 1 && includeMine);
     const newErrors = {};
     if (finalNames.length === 0) newErrors.members = true;
     if (!amount || numericAmount <= 0) newErrors.amount = true;
@@ -122,14 +179,38 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
       return;
     }
 
+    if (isSplit && splitMode === "separate") {
+      const hasInvalid = participants.some((p) => {
+        const val = Math.trunc(parseFloat(memberAmounts[p.key]) || 0);
+        return isNaN(val) || val <= 0;
+      });
+      if (hasInvalid) {
+        setError("Please enter a valid amount (greater than ₹0) for all selected participants.");
+        return;
+      }
+    }
+
     try {
       setSubmitting(true);
-      const isSplit = finalNames.length > 1 || (finalNames.length >= 1 && includeMine);
       const res = await entryService.createEntry({
-        names: finalNames.map((item) => {
-          if (typeof item === "string") return capitalizeName(item);
-          return { name: capitalizeName(item.fullName), memberId: item._id };
+        names: finalNames.map((item, idx) => {
+          const name = typeof item === "string" ? capitalizeName(item) : capitalizeName(item.fullName || item.name || "");
+          const memberId = typeof item === "string" ? null : item._id;
+          const key = memberId ? String(memberId) : `name_${name.toLowerCase().trim()}_${idx}`;
+          const customAmount = (isSplit && splitMode === "separate")
+            ? Math.trunc(parseFloat(memberAmounts[key]) || 0)
+            : undefined;
+
+          return {
+            name,
+            memberId,
+            amount: customAmount,
+          };
         }),
+        splitMode: isSplit ? splitMode : undefined,
+        myAmount: (isSplit && includeMine && splitMode === "separate")
+          ? Math.trunc(parseFloat(memberAmounts.myself) || 0)
+          : undefined,
         type: isSplit ? "Split" : type,
         status: isSplit ? "Split" : type,
         amount: numericAmount,
@@ -287,25 +368,39 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
           {/* Split notification & Add myself checkbox */}
           {isSplitActive && (
             <Box sx={{ p: 2, bgcolor: "#e3f2fd", borderRadius: 2, border: "1px solid #90caf9" }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
-                <CallSplitIcon color="primary" fontSize="small" />
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, color: "primary.dark" }}>
-                  {includeMine && selectedNames.length === 1
-                    ? "Split with Myself Activated"
-                    : "Auto Split Activated"}
-                </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <CallSplitIcon color="primary" fontSize="small" />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.dark" }}>
+                    {includeMine && selectedNames.length === 1
+                      ? "Split with Myself"
+                      : "Split Expense"}
+                  </Typography>
+                </Box>
+                <Chip
+                  label={`${totalSplitCount} participants`}
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  sx={{ fontSize: "0.75rem", height: 22 }}
+                />
               </Box>
-
-              <Typography variant="body2" sx={{ mb: 1 }}>
-                Splitting amount equally across {totalSplitCount} participants.
-              </Typography>
 
               {/* Checkbox: Add myself */}
               <FormControlLabel
                 control={
                   <Checkbox
                     checked={includeMine}
-                    onChange={(e) => setIncludeMine(e.target.checked)}
+                    onChange={(e) => {
+                      setIncludeMine(e.target.checked);
+                      if (splitMode === "separate" && !e.target.checked) {
+                        setMemberAmounts((prev) => {
+                          const copy = { ...prev };
+                          delete copy.myself;
+                          return copy;
+                        });
+                      }
+                    }}
                     size="small"
                     color="primary"
                   />
@@ -316,20 +411,144 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                     sx: { fontSize: "0.82rem", fontWeight: 500, color: "text.primary" },
                   },
                 }}
-                sx={{
-                  mb: 0.5,
-                  "& .MuiFormControlLabel-label": {
-                    fontSize: "0.82rem",
-                    fontWeight: 500,
-                  },
-                }}
+                sx={{ mb: 1.5 }}
               />
 
-              {numericAmount > 0 && (
-                <Typography variant="body2" sx={{ fontWeight: 700, mt: 0.5, color: "primary.main" }}>
-                  ₹ {formatAmount(splitPerPerson)} per person ({totalSplitCount} participants
-                  {includeMine ? ", your share added to For Self" : ""})
+              {/* Split Mode Selector */}
+              <Box sx={{ mb: 1.5 }}>
+                <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", display: "block", mb: 0.75 }}>
+                  Split Method:
                 </Typography>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Button
+                    size="small"
+                    variant={splitMode === "equal" ? "contained" : "outlined"}
+                    onClick={() => handleSplitModeChange("equal")}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: "0.8rem",
+                      borderRadius: 1.5,
+                      flex: 1,
+                      py: 0.5,
+                    }}
+                  >
+                    Split Equally
+                  </Button>
+                  <Button
+                    size="small"
+                    variant={splitMode === "separate" ? "contained" : "outlined"}
+                    onClick={() => handleSplitModeChange("separate")}
+                    sx={{
+                      textTransform: "none",
+                      fontSize: "0.8rem",
+                      borderRadius: 1.5,
+                      flex: 1,
+                      py: 0.5,
+                    }}
+                  >
+                    Split Separately (Member-wise)
+                  </Button>
+                </Box>
+              </Box>
+
+              {/* Mode 1: Equal Split Summary */}
+              {splitMode === "equal" && (
+                <Box sx={{ p: 1.5, bgcolor: "rgba(25, 118, 210, 0.08)", borderRadius: 1.5, border: "1px dashed #90caf9" }}>
+                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                    Total amount is divided equally among <strong>{totalSplitCount} participants</strong>.
+                  </Typography>
+                  {numericAmount > 0 ? (
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.main" }}>
+                      ₹ {formatAmount(splitPerPerson)} per person
+                      {includeMine ? " (your share added to For Self)" : ""}
+                    </Typography>
+                  ) : (
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                      Enter total amount below to calculate per-person share.
+                    </Typography>
+                  )}
+                </Box>
+              )}
+
+              {/* Mode 2: Separate Member-wise Input */}
+              {splitMode === "separate" && (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary" }}>
+                    Enter separate share for each selected participant:
+                  </Typography>
+
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1, maxHeight: 220, overflowY: "auto", pr: 0.5 }}>
+                    {participants.map((p) => {
+                      const isMe = p.isMine;
+                      return (
+                        <Box
+                          key={p.key}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 1.5,
+                            p: 1,
+                            bgcolor: isMe ? "#fff8e1" : "background.paper",
+                            borderRadius: 1.5,
+                            border: isMe ? "1px solid #ffe082" : "1px solid #e0e0e0",
+                          }}
+                        >
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, flex: 1 }}>
+                            <Avatar
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                fontSize: "0.75rem",
+                                bgcolor: isMe ? "#f57c00" : "#1976d2",
+                              }}
+                            >
+                              {isMe ? "ME" : getInitials(p.name)}
+                            </Avatar>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                fontWeight: 600,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                color: isMe ? "warning.dark" : "text.primary",
+                              }}
+                            >
+                              {p.name}
+                            </Typography>
+                          </Box>
+
+                          <TextField
+                            size="small"
+                            type="number"
+                            value={memberAmounts[p.key] ?? ""}
+                            onChange={(e) => handleMemberAmountChange(p.key, e.target.value)}
+                            placeholder="0"
+                            InputProps={{
+                              startAdornment: (
+                                <Typography variant="caption" sx={{ mr: 0.5, color: "text.secondary", fontWeight: 700 }}>
+                                  ₹
+                                </Typography>
+                              ),
+                            }}
+                            sx={{ width: 120, "& .MuiInputBase-input": { py: 0.75, fontSize: "0.85rem", fontWeight: 600 } }}
+                            inputProps={{ min: "0", step: "any" }}
+                          />
+                        </Box>
+                      );
+                    })}
+                  </Box>
+
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pt: 1, mt: 0.5, borderTop: "1px dashed #90caf9" }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.dark" }}>
+                      Total Split Sum:
+                    </Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.main" }}>
+                      ₹ {formatAmount(numericAmount)}
+                    </Typography>
+                  </Box>
+                </Box>
               )}
             </Box>
           )}
@@ -361,12 +580,21 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
 
           {/* 3. Amount */}
           <TextField
-            label="Amount (₹)"
+            label={isSplitActive && splitMode === "separate" ? "Total Amount (₹) — Auto-calculated" : "Amount (₹)"}
             type="number"
             value={amount}
             inputRef={amountRef}
             error={Boolean(errors.amount)}
-            helperText={typeof errors.amount === "string" ? errors.amount : (errors.amount ? "Please enter a valid amount." : "")}
+            disabled={isSplitActive && splitMode === "separate"}
+            helperText={
+              isSplitActive && splitMode === "separate"
+                ? "Calculated automatically from separate member shares above"
+                : typeof errors.amount === "string"
+                ? errors.amount
+                : errors.amount
+                ? "Please enter a valid amount."
+                : ""
+            }
             onChange={(e) => {
               setAmount(e.target.value);
               if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
