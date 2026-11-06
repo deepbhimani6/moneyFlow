@@ -120,6 +120,12 @@ const MembersPage = () => {
     fetchMembers();
   }, [search]);
 
+  useEffect(() => {
+    if (page > 0 && page * rowsPerPage >= displayedMembers.length) {
+      setPage(Math.max(0, Math.ceil(displayedMembers.length / rowsPerPage) - 1));
+    }
+  }, [displayedMembers.length, page, rowsPerPage]);
+
   const selectableMembers = useMemo(() => {
     return displayedMembers;
   }, [displayedMembers]);
@@ -184,16 +190,18 @@ const MembersPage = () => {
   // Confirm delete single member & associated entries
   const handleConfirmSingleDelete = async () => {
     if (!singleDeleteState.member) return;
+    const deletedId = singleDeleteState.member._id;
     try {
       setActionLoading(true);
-      const res = await memberService.deleteMember(singleDeleteState.member._id);
+      const res = await memberService.deleteMember(deletedId);
       setSnackbar({
         open: true,
         message: res.message || "Member deleted successfully.",
         severity: "success",
       });
       setSingleDeleteState({ open: false, loadingSummary: false, member: null, summary: null });
-      setSelectedIds((prev) => prev.filter((id) => id !== singleDeleteState.member._id));
+      setSelectedIds((prev) => prev.filter((id) => id !== deletedId));
+      setMembers((prev) => prev.filter((m) => m._id !== deletedId));
       fetchMembers();
     } catch (err) {
       setSnackbar({
@@ -258,16 +266,18 @@ const MembersPage = () => {
   // Confirm bulk delete members & associated entries
   const handleConfirmBulkDelete = async () => {
     if (selectedIds.length === 0) return;
+    const idsToDelete = [...selectedIds];
     try {
       setActionLoading(true);
-      const res = await memberService.bulkDelete(selectedIds);
+      const res = await memberService.bulkDelete(idsToDelete);
       setSnackbar({
         open: true,
-        message: res.message || `${selectedIds.length} members deleted.`,
+        message: res.message || `${idsToDelete.length} members deleted.`,
         severity: "success",
       });
       setBulkDeleteState({ open: false, loadingSummary: false, summary: null });
       setSelectedIds([]);
+      setMembers((prev) => prev.filter((m) => !idsToDelete.includes(m._id)));
       fetchMembers();
     } catch (err) {
       setSnackbar({

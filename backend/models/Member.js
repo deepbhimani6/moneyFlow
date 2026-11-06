@@ -72,6 +72,11 @@ const memberSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    // Whether the inviter was automatically added to this user's member directory
+    inviterLinked: {
+      type: Boolean,
+      default: false,
+    },
     // The user who created this member in their contacts
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

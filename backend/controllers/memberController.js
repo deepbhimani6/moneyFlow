@@ -47,26 +47,23 @@ const getMembers = async (req, res) => {
     }
 
     const currentUser = await Member.findById(currentUserId);
-    // If invited by another user, automatically ensure inviter is in members list
-    if (currentUser && currentUser.invitedBy) {
+    // If invited by another user and not yet linked, automatically add inviter to members list
+    if (currentUser && currentUser.invitedBy && !currentUser.inviterLinked) {
       if (!currentUser.members) currentUser.members = [];
       const hasInviter = currentUser.members.some((mId) => String(mId) === String(currentUser.invitedBy));
       if (!hasInviter) {
         currentUser.members.push(currentUser.invitedBy);
-        await currentUser.save();
       }
+      currentUser.inviterLinked = true;
+      await currentUser.save();
     }
 
     const memberIds = (currentUser && Array.isArray(currentUser.members)) ? currentUser.members : [];
 
+    // Only return members currently active in the user's directory
     const andConditions = [
       { _id: { $ne: currentUserId } },
-      {
-        $or: [
-          { _id: { $in: memberIds } },
-          { createdBy: currentUserId },
-        ],
-      },
+      { _id: { $in: memberIds } },
     ];
 
     if (search && search.trim()) {
@@ -361,16 +358,22 @@ const deleteMember = async (req, res) => {
       $pull: { members: member._id },
     });
 
-    // If this contact was created by the user and is NOT a registered account (no password),
-    // and no other users have it in their members list, delete the record from collection
-    const isRegistered = Boolean(member.password && member.password.trim());
-    if (!isRegistered && String(member.createdBy) === String(req.user._id)) {
-      const otherUsers = await Member.countDocuments({
-        _id: { $ne: req.user._id },
-        members: member._id,
-      });
-      if (otherUsers === 0) {
-        await Member.findByIdAndDelete(req.params.id);
+    // Check if any other user has this member in their members list
+    const otherUsers = await Member.countDocuments({
+      _id: { $ne: req.user._id },
+      members: member._id,
+    });
+
+    if (otherUsers === 0) {
+      const isRegisteredAccount = Boolean(member.password && member.password.trim());
+      if (!isRegisteredAccount) {
+        await Member.findByIdAndDelete(member._id);
+      } else {
+        await Member.updateOne({ _id: member._id }, { $set: { createdBy: null } });
+      }
+    } else {
+      if (String(member.createdBy) === String(req.user._id)) {
+        await Member.updateOne({ _id: member._id }, { $set: { createdBy: null } });
       }
     }
 
@@ -400,6 +403,23 @@ const bulkDeleteMembers = async (req, res) => {
     await Member.findByIdAndUpdate(req.user._id, {
       $pull: { members: { $in: validIds } },
     });
+
+    for (const memberId of validIds) {
+      const otherUsers = await Member.countDocuments({
+        _id: { $ne: req.user._id },
+        members: memberId,
+      });
+      if (otherUsers === 0) {
+        const m = await Member.findById(memberId);
+        if (m && (!m.password || !m.password.trim())) {
+          await Member.findByIdAndDelete(memberId);
+        } else if (m) {
+          await Member.updateOne({ _id: memberId }, { $set: { createdBy: null } });
+        }
+      } else {
+        await Member.updateOne({ _id: memberId, createdBy: req.user._id }, { $set: { createdBy: null } });
+      }
+    }
 
     res.json({
       success: true,
