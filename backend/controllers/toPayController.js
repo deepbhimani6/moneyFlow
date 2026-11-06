@@ -4,7 +4,7 @@ const crypto = require("crypto");
 const { capitalizeName } = require("../utils/formatters");
 
 // Helper to resolve or auto-create a Member when a new participant name is used
-const resolveOrCreateMember = async (item) => {
+const resolveOrCreateMember = async (item, user) => {
   if (!item) return null;
   const rawName = typeof item === "object" ? (item.fullName || item.name || "") : String(item).trim();
   const memberName = capitalizeName(rawName);
@@ -17,13 +17,22 @@ const resolveOrCreateMember = async (item) => {
   // If already an existing MongoDB ObjectId, check if it exists
   if (existingMemberId && existingMemberId !== "myself") {
     const existing = await Member.findById(existingMemberId).catch(() => null);
-    if (existing) return existing._id;
+    if (existing) {
+      if (user && user._id) {
+        await Member.findByIdAndUpdate(user._id, { $addToSet: { members: existing._id } });
+      }
+      return existing._id;
+    }
   }
 
-  // Look for existing member by exact name (case-insensitive)
+  // Look for existing member within user's contacts or created by this user
   const escaped = memberName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
   let member = await Member.findOne({
     fullName: { $regex: new RegExp(`^${escaped}$`, "i") },
+    $or: [
+      { createdBy: user?._id },
+      { _id: { $in: user?.members || [] } },
+    ],
   });
 
   if (!member) {
@@ -33,9 +42,14 @@ const resolveOrCreateMember = async (item) => {
       phoneNumber: "",
       username: memberName.toLowerCase().replace(/[^a-z0-9]/g, ""),
       password: "",
+      createdBy: user ? user._id : null,
       joinDate: new Date(),
       inviteSent: false,
     });
+  }
+
+  if (user && user._id) {
+    await Member.findByIdAndUpdate(user._id, { $addToSet: { members: member._id } });
   }
 
   return member._id;
@@ -46,7 +60,7 @@ const resolveOrCreateMember = async (item) => {
 const getToPayEntries = async (req, res) => {
   try {
     const { status, type, paymentStatus, search, description, names, selectedNames, forFromName, name, personName, startDate, endDate, minAmount, maxAmount } = req.query;
-    let query = {};
+    let query = { userId: req.user._id };
     const andConditions = [];
 
     const targetType = type || (["Add Balance", "Expense", "Loan", "Split"].includes(status) ? status : null);
@@ -157,9 +171,10 @@ const createToPayEntry = async (req, res) => {
     // Single person entry (not split)
     if (nameList.length === 1 && !includeMine) {
       const singleName = typeof nameList[0] === "object" ? (nameList[0].name || nameList[0].fullName) : nameList[0];
-      const resolvedMemberId = await resolveOrCreateMember(nameList[0]);
+      const resolvedMemberId = await resolveOrCreateMember(nameList[0], req.user);
 
       const singleEntry = new ToPay({
+        userId: req.user._id,
         forFromName: singleName,
         memberId: resolvedMemberId,
         type: entryType,
@@ -196,9 +211,10 @@ const createToPayEntry = async (req, res) => {
     for (const item of nameList) {
       const memberName = typeof item === "object" ? (item.name || item.fullName) : item;
       const isThisMine = memberName.toLowerCase().includes('myself') || memberName.toLowerCase().includes('you (myself)');
-      const resolvedMemberId = isThisMine ? null : await resolveOrCreateMember(item);
+      const resolvedMemberId = isThisMine ? null : await resolveOrCreateMember(item, req.user);
 
       const memberEntry = new ToPay({
+        userId: req.user._id,
         forFromName: memberName,
         memberId: resolvedMemberId,
         type: isThisMine ? "Expense" : "Split",
@@ -220,6 +236,7 @@ const createToPayEntry = async (req, res) => {
 
     if (addSeparateMine) {
       const myEntry = new ToPay({
+        userId: req.user._id,
         forFromName: "You (Myself)",
         memberId: null,
         type: "Expense",
@@ -253,7 +270,7 @@ const createToPayEntry = async (req, res) => {
 // @route   GET /api/to-pay/split-group/:splitGroupId
 const getSplitGroupEntries = async (req, res) => {
   try {
-    const entries = await ToPay.find({ splitGroupId: req.params.splitGroupId });
+    const entries = await ToPay.find({ splitGroupId: req.params.splitGroupId, userId: req.user._id });
     res.json({ success: true, count: entries.length, data: entries });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -266,7 +283,7 @@ const updateToPayEntry = async (req, res) => {
   try {
     const { forFromName, type, status, paymentStatus, amount, date, time, description, updateAllSplit, totalAmount } = req.body;
 
-    const entry = await ToPay.findById(req.params.id);
+    const entry = await ToPay.findOne({ _id: req.params.id, userId: req.user._id });
     if (!entry) {
       return res.status(404).json({ success: false, message: "Entry not found." });
     }
@@ -276,13 +293,13 @@ const updateToPayEntry = async (req, res) => {
 
     // If part of split group and user requested syncing all split items
     if (entry.isSplit && entry.splitGroupId && updateAllSplit) {
-      const groupEntries = await ToPay.find({ splitGroupId: entry.splitGroupId });
+      const groupEntries = await ToPay.find({ splitGroupId: entry.splitGroupId, userId: req.user._id });
       const count = groupEntries.length || 1;
       const newTotal = totalAmount ? Math.trunc(Number(totalAmount)) : (amount ? Math.trunc(Number(amount)) * count : entry.originalTotalAmount);
       const splitAmount = Math.trunc(newTotal / count);
 
       await ToPay.updateMany(
-        { splitGroupId: entry.splitGroupId },
+        { splitGroupId: entry.splitGroupId, userId: req.user._id },
         {
           $set: {
             amount: splitAmount,
@@ -295,7 +312,7 @@ const updateToPayEntry = async (req, res) => {
         }
       );
 
-      const updated = await ToPay.findById(req.params.id);
+      const updated = await ToPay.findOne({ _id: req.params.id, userId: req.user._id });
       return res.json({
         success: true,
         message: `Updated ${count} split entries.`,
@@ -308,7 +325,7 @@ const updateToPayEntry = async (req, res) => {
       entry.forFromName = forFromName;
       const isMine = /myself/i.test(forFromName) || /you\s*\(myself\)/i.test(forFromName);
       entry.isMine = isMine;
-      entry.memberId = isMine ? null : await resolveOrCreateMember(forFromName);
+      entry.memberId = isMine ? null : await resolveOrCreateMember(forFromName, req.user);
     }
 
     if (nextType) {
@@ -344,12 +361,10 @@ const updateToPayEntry = async (req, res) => {
 // @route   DELETE /api/to-pay/:id
 const deleteToPayEntry = async (req, res) => {
   try {
-    const entry = await ToPay.findById(req.params.id);
+    const entry = await ToPay.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
     if (!entry) {
       return res.status(404).json({ success: false, message: "Entry not found." });
     }
-
-    await ToPay.findByIdAndDelete(req.params.id);
 
     res.json({
       success: true,
@@ -370,7 +385,7 @@ const bulkUpdateStatus = async (req, res) => {
     }
 
     await ToPay.updateMany(
-      { _id: { $in: ids } },
+      { _id: { $in: ids }, userId: req.user._id },
       { $set: { paymentStatus: status, status: status } }
     );
 
@@ -392,7 +407,16 @@ const bulkDelete = async (req, res) => {
       return res.status(400).json({ success: false, message: "No entries selected." });
     }
 
-    const result = await ToPay.deleteMany({ _id: { $in: ids } });
+    const result = await ToPay.deleteMany({ _id: { $in: ids }, userId: req.user._id });
+
+    res.json({
+      success: true,
+      message: `${result.deletedCount} entries deleted.`,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
     res.json({
       success: true,

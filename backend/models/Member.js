@@ -65,6 +65,27 @@ const memberSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    // The user who invited this member via email
+    invitedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Member',
+      default: null,
+      index: true,
+    },
+    // The user who created this member in their contacts
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Member',
+      default: null,
+      index: true,
+    },
+    // List of member contacts this user has in their personal member directory
+    members: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Member',
+      },
+    ],
   },
   { timestamps: true }
 );

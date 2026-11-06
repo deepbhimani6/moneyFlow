@@ -11,6 +11,9 @@ const {
   sendInviteToMember,
   bulkInviteMembers,
 } = require('../controllers/memberController');
+const { protect } = require('../middleware/authMiddleware');
+
+router.use(protect);
 
 router.route('/')
   .get(getMembers)

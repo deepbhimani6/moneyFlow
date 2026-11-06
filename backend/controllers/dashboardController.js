@@ -1,15 +1,19 @@
+const mongoose = require("mongoose");
 const Entry = require("../models/Entry");
 const ForSelf = require("../models/ForSelf");
 const ToPay = require("../models/ToPay");
 
-// @desc    Get aggregated stats for dashboard
+// @desc    Get aggregated stats for dashboard scoped to the authenticated user
 // @route   GET /api/dashboard/stats
 const getDashboardStats = async (req, res) => {
   try {
+    const userObjectId = new mongoose.Types.ObjectId(req.user._id);
+
     // 1. Added Balance: from ForSelf with Type: "Add Balance"
     const addedRes = await ForSelf.aggregate([
       {
         $match: {
+          userId: userObjectId,
           type: "Add Balance",
         },
       },
@@ -21,6 +25,7 @@ const getDashboardStats = async (req, res) => {
     const expenseRes = await ForSelf.aggregate([
       {
         $match: {
+          userId: userObjectId,
           $or: [
             { type: { $in: ["Expense", "Split"] } },
             { isSplit: true },
@@ -35,6 +40,7 @@ const getDashboardStats = async (req, res) => {
     const pendingReceiveLoansRes = await Entry.aggregate([
       {
         $match: {
+          userId: userObjectId,
           type: "Loan",
           $and: [
             {
@@ -61,6 +67,7 @@ const getDashboardStats = async (req, res) => {
     const pendingReceiveExpensesRes = await Entry.aggregate([
       {
         $match: {
+          userId: userObjectId,
           $or: [
             { type: { $in: ["Expense", "Split"] } },
             { isSplit: true },
@@ -93,6 +100,7 @@ const getDashboardStats = async (req, res) => {
     const pendingPayLoansRes = await ToPay.aggregate([
       {
         $match: {
+          userId: userObjectId,
           type: { $regex: /^loan$/i },
           $and: [
             {
@@ -119,6 +127,7 @@ const getDashboardStats = async (req, res) => {
     const pendingPayExpensesRes = await ToPay.aggregate([
       {
         $match: {
+          userId: userObjectId,
           type: { $regex: /^expenses?$/i },
           $and: [
             {
@@ -145,6 +154,7 @@ const getDashboardStats = async (req, res) => {
     const toPayPaidRes = await ToPay.aggregate([
       {
         $match: {
+          userId: userObjectId,
           type: { $in: ["Loan", "Expense", "Expenses", "Paid"] },
           $or: [
             { paymentStatus: "Paid" },

@@ -36,23 +36,51 @@ const getAppUrl = (req) => {
   return 'https://moneyflow-5a2a.onrender.com';
 };
 
-// @desc    Get all members
+// @desc    Get all members for the authenticated user
 // @route   GET /api/members
 const getMembers = async (req, res) => {
   try {
     const { search } = req.query;
-    let query = {};
-    if (search) {
-      query = {
-        $or: [
-          { fullName: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
-          { phoneNumber: { $regex: search, $options: 'i' } },
-          { username: { $regex: search, $options: 'i' } },
-        ],
-      };
+    const currentUserId = req.user ? req.user._id : null;
+    if (!currentUserId) {
+      return res.status(401).json({ success: false, message: 'Authentication required' });
     }
-    const members = await Member.find(query).sort({ createdAt: -1 });
+
+    const currentUser = await Member.findById(currentUserId);
+    // If invited by another user, automatically ensure inviter is in members list
+    if (currentUser && currentUser.invitedBy) {
+      if (!currentUser.members) currentUser.members = [];
+      const hasInviter = currentUser.members.some((mId) => String(mId) === String(currentUser.invitedBy));
+      if (!hasInviter) {
+        currentUser.members.push(currentUser.invitedBy);
+        await currentUser.save();
+      }
+    }
+
+    const memberIds = (currentUser && Array.isArray(currentUser.members)) ? currentUser.members : [];
+
+    const andConditions = [
+      { _id: { $ne: currentUserId } },
+      {
+        $or: [
+          { _id: { $in: memberIds } },
+          { createdBy: currentUserId },
+        ],
+      },
+    ];
+
+    if (search && search.trim()) {
+      andConditions.push({
+        $or: [
+          { fullName: { $regex: search.trim(), $options: 'i' } },
+          { email: { $regex: search.trim(), $options: 'i' } },
+          { phoneNumber: { $regex: search.trim(), $options: 'i' } },
+          { username: { $regex: search.trim(), $options: 'i' } },
+        ],
+      });
+    }
+
+    const members = await Member.find({ $and: andConditions }).sort({ createdAt: -1 });
     // Auto-heal and capitalize any member whose name in DB is not capitalized
     for (const m of members) {
       if (m.fullName) {
@@ -129,6 +157,8 @@ const createMember = async (req, res) => {
       email: cleanEmail,
       username: cleanUsername,
       password: temporaryPassword, // pre-save hook in Member will hash it with bcrypt
+      invitedBy: req.user ? req.user._id : null,
+      createdBy: req.user ? req.user._id : null,
       joinDate: new Date(),
     });
 
@@ -150,6 +180,13 @@ const createMember = async (req, res) => {
     }
 
     await member.save();
+
+    // Automatically add newly created/invited member to current user's members directory
+    if (req.user && req.user._id) {
+      await Member.findByIdAndUpdate(req.user._id, {
+        $addToSet: { members: member._id },
+      });
+    }
 
     res.status(201).json({
       success: true,
@@ -212,6 +249,7 @@ const getMemberEntriesSummary = async (req, res) => {
 
     const escapedName = member.fullName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
     const entryQuery = {
+      userId: req.user._id,
       $or: [
         { memberId: member._id },
         { forFromName: { $regex: new RegExp(`^${escapedName}$`, 'i') } },
@@ -254,6 +292,7 @@ const getBulkMembersEntriesSummary = async (req, res) => {
     const escapedNames = names.map((n) => n.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'));
 
     const entryQuery = {
+      userId: req.user._id,
       $or: [
         { memberId: { $in: ids } },
         { forFromName: { $in: names } },
@@ -317,7 +356,23 @@ const deleteMember = async (req, res) => {
       });
     }
 
-    await Member.findByIdAndDelete(req.params.id);
+    // Remove from current user's members directory
+    await Member.findByIdAndUpdate(req.user._id, {
+      $pull: { members: member._id },
+    });
+
+    // If this contact was created by the user and is NOT a registered account (no password),
+    // and no other users have it in their members list, delete the record from collection
+    const isRegistered = Boolean(member.password && member.password.trim());
+    if (!isRegistered && String(member.createdBy) === String(req.user._id)) {
+      const otherUsers = await Member.countDocuments({
+        _id: { $ne: req.user._id },
+        members: member._id,
+      });
+      if (otherUsers === 0) {
+        await Member.findByIdAndDelete(req.params.id);
+      }
+    }
 
     res.json({
       success: true,
@@ -338,31 +393,18 @@ const bulkDeleteMembers = async (req, res) => {
       return res.status(400).json({ success: false, message: 'No members selected.' });
     }
 
-    const membersToDelete = await Member.find({ _id: { $in: ids } }).lean();
-
-    // 1. Check if trying to delete current logged-in user
     const currentUserId = req.user ? String(req.user._id) : null;
-    const currentUserEmail = req.user && req.user.email ? req.user.email.toLowerCase().trim() : null;
+    const validIds = ids.filter((id) => String(id) !== currentUserId);
 
-    const containsCurrentLoggedIn = membersToDelete.some((m) => {
-      if (currentUserId && String(m._id) === currentUserId) return true;
-      if (currentUserEmail && m.email && m.email.toLowerCase().trim() === currentUserEmail) return true;
-      return false;
+    // Remove from current user's members list
+    await Member.findByIdAndUpdate(req.user._id, {
+      $pull: { members: { $in: validIds } },
     });
-
-    if (containsCurrentLoggedIn) {
-      return res.status(400).json({
-        success: false,
-        message: 'You cannot delete your logged-in account.',
-      });
-    }
-
-    const result = await Member.deleteMany({ _id: { $in: ids } });
 
     res.json({
       success: true,
-      message: `${result.deletedCount} member(s) deleted.`,
-      deletedMembersCount: result.deletedCount,
+      message: `${validIds.length} member(s) deleted.`,
+      deletedMembersCount: validIds.length,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

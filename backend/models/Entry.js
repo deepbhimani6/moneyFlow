@@ -3,6 +3,12 @@ const { capitalizeName } = require("../utils/formatters");
 
 const entrySchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Member",
+      index: true,
+      default: null,
+    },
     forFromName: {
       type: String,
       required: [true, "Member name is required"],

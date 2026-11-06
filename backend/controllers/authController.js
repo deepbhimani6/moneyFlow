@@ -182,6 +182,19 @@ const login = async (req, res) => {
       await user.save();
     }
 
+    // When an invited member logs in with email & password, automatically add 1 member (the inviter) into their members directory
+    if (user.invitedBy) {
+      const inviter = await Member.findById(user.invitedBy);
+      if (inviter) {
+        if (!user.members) user.members = [];
+        const hasInviter = user.members.some((mId) => String(mId) === String(inviter._id));
+        if (!hasInviter) {
+          user.members.push(inviter._id);
+          await user.save();
+        }
+      }
+    }
+
     const token = generateToken(user);
 
     res.json({

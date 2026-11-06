@@ -8,6 +8,9 @@ const {
   bulkDeleteForSelf,
   bulkUpdateStatusForSelf,
 } = require("../controllers/forSelfController");
+const { protect } = require("../middleware/authMiddleware");
+
+router.use(protect);
 
 router
   .route("/")

@@ -9,6 +9,9 @@ const {
   bulkUpdateStatus,
   bulkDeleteEntries,
 } = require('../controllers/entryController');
+const { protect } = require('../middleware/authMiddleware');
+
+router.use(protect);
 
 router.route('/')
   .get(getEntries)

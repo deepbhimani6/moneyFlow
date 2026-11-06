@@ -2,6 +2,12 @@ const mongoose = require("mongoose");
 
 const forSelfSchema = new mongoose.Schema(
   {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Member",
+      index: true,
+      default: null,
+    },
     forFromName: {
       type: String,
       trim: true,

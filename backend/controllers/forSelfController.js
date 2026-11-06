@@ -19,7 +19,7 @@ const getForSelfEntries = async (req, res) => {
       maxAmount,
     } = req.query;
 
-    const andConditions = [];
+    const andConditions = [{ userId: req.user._id }];
 
     // 1. Type / Status filter (Add Balance / Expense / Split)
     const effectiveType = type || status;
@@ -157,6 +157,7 @@ const createForSelfEntry = async (req, res) => {
     const entryTime = time || new Date().toTimeString().split(" ")[0].substring(0, 5);
 
     const newEntry = await ForSelf.create({
+      userId: req.user._id,
       forFromName: (forFromName && forFromName.trim()) || "Myself (You)",
       type: entryType,
       status: entryType,
@@ -185,7 +186,7 @@ const updateForSelfEntry = async (req, res) => {
   try {
     const { forFromName, type, status, paymentStatus, amount, totalAmount, date, time, description } = req.body;
 
-    const entry = await ForSelf.findById(req.params.id);
+    const entry = await ForSelf.findOne({ _id: req.params.id, userId: req.user._id });
     if (!entry) {
       return res.status(404).json({ success: false, message: "Entry not found." });
     }
@@ -204,15 +205,15 @@ const updateForSelfEntry = async (req, res) => {
         updateData.originalTotalAmount = Math.trunc(Number(totalAmount));
       }
 
-      await ForSelf.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
-      await Entry.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
+      await ForSelf.updateMany({ splitGroupId: entry.splitGroupId, userId: req.user._id }, { $set: updateData });
+      await Entry.updateMany({ splitGroupId: entry.splitGroupId, userId: req.user._id }, { $set: updateData });
 
       if (paymentStatus) {
         entry.paymentStatus = paymentStatus;
         await entry.save();
       }
 
-      const updated = await ForSelf.findById(req.params.id);
+      const updated = await ForSelf.findOne({ _id: req.params.id, userId: req.user._id });
       return res.json({
         success: true,
         message: "Split entry synchronized.",
@@ -248,12 +249,10 @@ const updateForSelfEntry = async (req, res) => {
 // @route   DELETE /api/for-self/:id
 const deleteForSelfEntry = async (req, res) => {
   try {
-    const entry = await ForSelf.findById(req.params.id);
+    const entry = await ForSelf.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
     if (!entry) {
       return res.status(404).json({ success: false, message: "Entry not found." });
     }
-
-    await ForSelf.findByIdAndDelete(req.params.id);
 
     res.json({
       success: true,
@@ -273,7 +272,7 @@ const bulkDeleteForSelf = async (req, res) => {
       return res.status(400).json({ success: false, message: "No entries selected." });
     }
 
-    const result = await ForSelf.deleteMany({ _id: { $in: ids } });
+    const result = await ForSelf.deleteMany({ _id: { $in: ids }, userId: req.user._id });
 
     res.json({
       success: true,
@@ -297,9 +296,18 @@ const bulkUpdateStatusForSelf = async (req, res) => {
     }
 
     const result = await ForSelf.updateMany(
-      { _id: { $in: ids } },
+      { _id: { $in: ids }, userId: req.user._id },
       { $set: { paymentStatus } }
     );
+
+    res.json({
+      success: true,
+      message: `Updated status for ${result.modifiedCount} entries to ${paymentStatus}.`,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
     res.json({
       success: true,

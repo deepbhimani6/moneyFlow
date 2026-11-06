@@ -9,6 +9,9 @@ const {
   bulkUpdateStatus,
   bulkDelete,
 } = require("../controllers/toPayController");
+const { protect } = require("../middleware/authMiddleware");
+
+router.use(protect);
 
 router
   .route("/")

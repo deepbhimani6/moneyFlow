@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const { capitalizeName } = require("../utils/formatters");
 
 // Helper to resolve or auto-create a Member when a new participant name is used
-const resolveOrCreateMember = async (item) => {
+const resolveOrCreateMember = async (item, user) => {
   if (!item) return null;
   const rawName = typeof item === "object" ? (item.fullName || item.name || "") : String(item).trim();
   const memberName = capitalizeName(rawName);
@@ -18,13 +18,22 @@ const resolveOrCreateMember = async (item) => {
   // If already an existing MongoDB ObjectId, check if it exists
   if (existingMemberId && existingMemberId !== "myself") {
     const existing = await Member.findById(existingMemberId).catch(() => null);
-    if (existing) return existing._id;
+    if (existing) {
+      if (user && user._id) {
+        await Member.findByIdAndUpdate(user._id, { $addToSet: { members: existing._id } });
+      }
+      return existing._id;
+    }
   }
 
-  // Look for existing member by exact name (case-insensitive)
+  // Look for existing member within user's contacts or created by this user
   const escaped = memberName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
   let member = await Member.findOne({
     fullName: { $regex: new RegExp(`^${escaped}$`, "i") },
+    $or: [
+      { createdBy: user?._id },
+      { _id: { $in: user?.members || [] } },
+    ],
   });
 
   if (!member) {
@@ -34,9 +43,14 @@ const resolveOrCreateMember = async (item) => {
       phoneNumber: "",
       username: memberName.toLowerCase().replace(/[^a-z0-9]/g, ""),
       password: "",
+      createdBy: user ? user._id : null,
       joinDate: new Date(),
       inviteSent: false,
     });
+  }
+
+  if (user && user._id) {
+    await Member.findByIdAndUpdate(user._id, { $addToSet: { members: member._id } });
   }
 
   return member._id;
@@ -47,7 +61,7 @@ const resolveOrCreateMember = async (item) => {
 const getEntries = async (req, res) => {
   try {
     const { status, type, paymentStatus, search, description, names, selectedNames, startDate, endDate, minAmount, maxAmount } = req.query;
-    let query = {};
+    let query = { userId: req.user._id };
     const andConditions = [];
 
     const targetType = type || (["Add Balance", "Expense", "Loan", "Split"].includes(status) ? status : null);
@@ -156,9 +170,10 @@ const createEntry = async (req, res) => {
     // Single person entry (not split)
     if (nameList.length === 1 && !includeMine) {
       const singleName = typeof nameList[0] === "object" ? (nameList[0].name || nameList[0].fullName) : nameList[0];
-      const resolvedMemberId = await resolveOrCreateMember(nameList[0]);
+      const resolvedMemberId = await resolveOrCreateMember(nameList[0], req.user);
 
       const singleEntry = new Entry({
+        userId: req.user._id,
         forFromName: singleName,
         memberId: resolvedMemberId,
         type: entryType,
@@ -190,9 +205,10 @@ const createEntry = async (req, res) => {
     // Create entry for each member in the list
     for (const item of nameList) {
       const memberName = typeof item === "object" ? (item.name || item.fullName) : item;
-      const resolvedMemberId = await resolveOrCreateMember(item);
+      const resolvedMemberId = await resolveOrCreateMember(item, req.user);
 
       const memberEntry = new Entry({
+        userId: req.user._id,
         forFromName: memberName,
         memberId: resolvedMemberId,
         type: "Split",
@@ -215,6 +231,7 @@ const createEntry = async (req, res) => {
     // If "Include myself in the split" was checked, automatically create an Expense in ForSelf
     if (addSeparateMine) {
       await ForSelf.create({
+        userId: req.user._id,
         type: "Expense",
         amount: splitAmount,
         date: entryDate,
@@ -240,8 +257,8 @@ const createEntry = async (req, res) => {
 // @route   GET /api/entries/split-group/:splitGroupId
 const getSplitGroupEntries = async (req, res) => {
   try {
-    const entryMembers = await Entry.find({ splitGroupId: req.params.splitGroupId });
-    const forSelfMembers = await ForSelf.find({ splitGroupId: req.params.splitGroupId });
+    const entryMembers = await Entry.find({ splitGroupId: req.params.splitGroupId, userId: req.user._id });
+    const forSelfMembers = await ForSelf.find({ splitGroupId: req.params.splitGroupId, userId: req.user._id });
     const allMembers = [...entryMembers, ...forSelfMembers];
     res.json({ success: true, count: allMembers.length, data: allMembers });
   } catch (error) {
@@ -254,7 +271,7 @@ const getSplitGroupEntries = async (req, res) => {
 const updateEntry = async (req, res) => {
   try {
     const { forFromName, status, type, paymentStatus, amount, totalAmount, date, time, description } = req.body;
-    const entry = await Entry.findById(req.params.id);
+    const entry = await Entry.findOne({ _id: req.params.id, userId: req.user._id });
 
     if (!entry) {
       return res.status(404).json({ success: false, message: "Entry not found." });
@@ -266,7 +283,7 @@ const updateEntry = async (req, res) => {
     // IF THIS IS A SPLIT ENTRY:
     // Update all entries in this split group together so they remain identical
     if (entry.isSplit && entry.splitGroupId) {
-      const groupEntries = await Entry.find({ splitGroupId: entry.splitGroupId });
+      const groupEntries = await Entry.find({ splitGroupId: entry.splitGroupId, userId: req.user._id });
       const groupCount = groupEntries.length || 1;
 
       let perPersonAmount = entry.amount;
@@ -290,8 +307,8 @@ const updateEntry = async (req, res) => {
       if (description !== undefined) updateData.description = description ? description.trim() : '';
 
       // Update group fields across all split members (and personal share in ForSelf if present)
-      await Entry.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
-      await ForSelf.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
+      await Entry.updateMany({ splitGroupId: entry.splitGroupId, userId: req.user._id }, { $set: updateData });
+      await ForSelf.updateMany({ splitGroupId: entry.splitGroupId, userId: req.user._id }, { $set: updateData });
 
       // Only update paymentStatus for this specific entry (not all split members)
       if (entryPaymentStatus) {
@@ -299,7 +316,7 @@ const updateEntry = async (req, res) => {
         await entry.save();
       }
 
-      const updatedEntries = await Entry.find({ splitGroupId: entry.splitGroupId });
+      const updatedEntries = await Entry.find({ splitGroupId: entry.splitGroupId, userId: req.user._id });
 
       return res.json({
         success: true,
@@ -314,7 +331,7 @@ const updateEntry = async (req, res) => {
       entry.forFromName = forFromName;
       const isMine = /myself/i.test(forFromName) || /you\s*\(myself\)/i.test(forFromName);
       if (!isMine) {
-        const resolvedId = await resolveOrCreateMember(forFromName);
+        const resolvedId = await resolveOrCreateMember(forFromName, req.user);
         if (resolvedId) entry.memberId = resolvedId;
       } else {
         entry.memberId = null;
@@ -343,12 +360,11 @@ const updateEntry = async (req, res) => {
 // @route   DELETE /api/entries/:id
 const deleteEntry = async (req, res) => {
   try {
-    const entry = await Entry.findById(req.params.id);
+    const entry = await Entry.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
     if (!entry) {
       return res.status(404).json({ success: false, message: "Entry not found." });
     }
 
-    await Entry.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: "Entry deleted successfully." });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -378,7 +394,7 @@ const bulkUpdateStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: "Valid status or type is required." });
     }
 
-    const result = await Entry.updateMany({ _id: { $in: ids } }, { $set: updateData });
+    const result = await Entry.updateMany({ _id: { $in: ids }, userId: req.user._id }, { $set: updateData });
     res.json({
       success: true,
       message: `${result.modifiedCount} entries updated.`,
@@ -397,7 +413,15 @@ const bulkDeleteEntries = async (req, res) => {
       return res.status(400).json({ success: false, message: "No entries selected." });
     }
 
-    const result = await Entry.deleteMany({ _id: { $in: ids } });
+    const result = await Entry.deleteMany({ _id: { $in: ids }, userId: req.user._id });
+    res.json({
+      success: true,
+      message: `${result.deletedCount} entries deleted.`,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
     res.json({
       success: true,
       message: `${result.deletedCount} entries deleted.`,
