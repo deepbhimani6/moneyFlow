@@ -45,6 +45,7 @@ const InviteMemberModal = ({
 
   const fullNameRef = useRef(null);
   const emailRef = useRef(null);
+  const autoFilledNameRef = useRef('');
 
   const isExistingAppMember = Boolean(
     existingMemberInfo?.exists && !existingMemberInfo?.isAlreadyInDirectory
@@ -64,6 +65,7 @@ const InviteMemberModal = ({
       setError('');
       setCheckingEmail(false);
       setExistingMemberInfo(null);
+      autoFilledNameRef.current = '';
     }
   }, [open]);
 
@@ -74,6 +76,15 @@ const InviteMemberModal = ({
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!clean || !emailRegex.test(clean)) {
+      if (existingMemberInfo) {
+        setFormData((prev) => ({
+          ...prev,
+          fullName: autoFilledNameRef.current && prev.fullName === autoFilledNameRef.current ? '' : prev.fullName,
+          phoneNumber: '',
+          username: '',
+        }));
+        autoFilledNameRef.current = '';
+      }
       setExistingMemberInfo(null);
       return;
     }
@@ -113,16 +124,31 @@ const InviteMemberModal = ({
             isAlreadyInDirectory: false,
             member: res.member,
           });
-          // Auto-fill member details
-          setFormData((prev) => ({
-            ...prev,
-            fullName: prev.fullName || res.member.fullName || '',
-            phoneNumber: prev.phoneNumber || res.member.phoneNumber || '',
-            username: prev.username || res.member.username || '',
-            sendLink: false,
-          }));
+          // Only auto-fill fullName if not entered; NEVER contaminate username or phoneNumber
+          setFormData((prev) => {
+            const shouldAutoFill = !prev.fullName.trim();
+            if (shouldAutoFill && res.member.fullName) {
+              autoFilledNameRef.current = res.member.fullName;
+            }
+            return {
+              ...prev,
+              fullName: shouldAutoFill ? (res.member.fullName || '') : prev.fullName,
+              phoneNumber: '',
+              username: '',
+              sendLink: false,
+            };
+          });
           setErrors((prev) => ({ ...prev, email: '' }));
         } else {
+          if (existingMemberInfo) {
+            setFormData((prev) => ({
+              ...prev,
+              fullName: autoFilledNameRef.current && prev.fullName === autoFilledNameRef.current ? '' : prev.fullName,
+              phoneNumber: '',
+              username: '',
+            }));
+            autoFilledNameRef.current = '';
+          }
           setExistingMemberInfo(null);
         }
       } catch (err) {
@@ -136,7 +162,7 @@ const InviteMemberModal = ({
       isCancelled = true;
       clearTimeout(timer);
     };
-  }, [formData.email, open, currentUserEmail, existingMembers]);
+  }, [formData.email, open, currentUserEmail, existingMembers, existingMemberInfo]);
 
   const validateEmailValue = (rawEmail) => {
     const clean = (rawEmail || '').trim().toLowerCase();
@@ -164,6 +190,27 @@ const InviteMemberModal = ({
     let { name, value, checked, type } = e.target;
     if (name === 'fullName' && typeof value === 'string') {
       value = capitalizeWordsInput(value);
+      if (autoFilledNameRef.current && value !== autoFilledNameRef.current) {
+        autoFilledNameRef.current = '';
+      }
+    }
+    if (name === 'email') {
+      // If user clears the email field, immediately reset existingMemberInfo and clean auto-filled details
+      if (!value || !value.trim()) {
+        if (existingMemberInfo) {
+          setExistingMemberInfo(null);
+          setFormData((prev) => ({
+            ...prev,
+            email: value,
+            fullName: autoFilledNameRef.current && prev.fullName === autoFilledNameRef.current ? '' : prev.fullName,
+            phoneNumber: '',
+            username: '',
+          }));
+          autoFilledNameRef.current = '';
+          if (errors.email) setErrors((prev) => ({ ...prev, email: '' }));
+          return;
+        }
+      }
     }
     setFormData((prev) => ({
       ...prev,
@@ -246,6 +293,7 @@ const InviteMemberModal = ({
         });
         setErrors({});
         setExistingMemberInfo(null);
+        autoFilledNameRef.current = '';
       } else {
         const msg = res.message || 'Failed to create member.';
         const lower = msg.toLowerCase();

@@ -144,6 +144,8 @@ const createMember = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Full name is required.' });
     }
 
+    const formattedFullName = capitalizeName(fullName.trim());
+
     const cleanEmail = email ? email.trim().toLowerCase() : '';
     if (!cleanEmail) {
       return res.status(400).json({ success: false, message: 'Email address is required.' });
@@ -231,7 +233,7 @@ const createMember = async (req, res) => {
       : generateSecurePassword();
 
     const member = new Member({
-      fullName: capitalizeName(fullName),
+      fullName: formattedFullName,
       phoneNumber: phoneNumber ? phoneNumber.trim() : '',
       email: cleanEmail,
       username: cleanUsername,
