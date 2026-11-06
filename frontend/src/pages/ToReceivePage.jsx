@@ -206,18 +206,57 @@ const ToReceivePage = () => {
     }
   };
 
+  const selectedEntries = useMemo(
+    () => entries.filter((e) => selectedIds.includes(e._id)),
+    [entries, selectedIds]
+  );
+  const validDeletableEntries = useMemo(
+    () => selectedEntries.filter((e) => e.canDelete !== false),
+    [selectedEntries]
+  );
+  const invalidDeletableEntries = useMemo(
+    () => selectedEntries.filter((e) => e.canDelete === false),
+    [selectedEntries]
+  );
+  const validEditableEntries = useMemo(
+    () => selectedEntries.filter((e) => e.canEdit !== false),
+    [selectedEntries]
+  );
+  const invalidEditableEntries = useMemo(
+    () => selectedEntries.filter((e) => e.canEdit === false),
+    [selectedEntries]
+  );
+
   const handleConfirmBulkDelete = async () => {
-    if (selectedIds.length === 0) return;
+    if (validDeletableEntries.length === 0) return;
     try {
       setActionLoading(true);
-      await entryService.bulkDelete(selectedIds);
-      setSnackbar({ open: true, message: `${selectedIds.length} entries deleted.`, severity: "success" });
+      const res = await entryService.bulkDelete(validDeletableEntries.map((e) => e._id));
+      const deletedCount = res.deletedCount || validDeletableEntries.length;
+      const skippedCount = invalidDeletableEntries.length;
+      if (skippedCount > 0) {
+        setSnackbar({
+          open: true,
+          message: `${deletedCount} entries deleted successfully. ${skippedCount} entries were skipped (only creator can delete).`,
+          severity: "info",
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: `${deletedCount} entries deleted successfully.`,
+          severity: "success",
+        });
+      }
       setSelectedIds([]);
       setConfirmBulkDeleteOpen(false);
       fetchEntries();
     } catch (err) {
       console.error(err);
-      setSnackbar({ open: true, message: "Failed bulk deletion.", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Failed bulk deletion.",
+        severity: "error",
+      });
     } finally {
       setActionLoading(false);
     }
@@ -225,17 +264,38 @@ const ToReceivePage = () => {
 
   const handleConfirmBulkStatusChange = async () => {
     const newStatus = confirmBulkStatus.newStatus;
-    if (selectedIds.length === 0 || !newStatus) return;
+    if (validEditableEntries.length === 0 || !newStatus) return;
     try {
       setActionLoading(true);
-      await entryService.bulkUpdateStatus(selectedIds, { paymentStatus: newStatus });
-      setSnackbar({ open: true, message: `Updated status for ${selectedIds.length} entries to ${newStatus}.`, severity: "success" });
+      const res = await entryService.bulkUpdateStatus(
+        validEditableEntries.map((e) => e._id),
+        { paymentStatus: newStatus }
+      );
+      const updatedCount = res.updatedCount || validEditableEntries.length;
+      const skippedCount = invalidEditableEntries.length;
+      if (skippedCount > 0) {
+        setSnackbar({
+          open: true,
+          message: `Updated status for ${updatedCount} entries to ${newStatus}. ${skippedCount} entries were skipped (only creator can modify).`,
+          severity: "info",
+        });
+      } else {
+        setSnackbar({
+          open: true,
+          message: `Updated status for ${updatedCount} entries to ${newStatus}.`,
+          severity: "success",
+        });
+      }
       setSelectedIds([]);
       setConfirmBulkStatus({ open: false, newStatus: "" });
       fetchEntries();
     } catch (err) {
       console.error(err);
-      setSnackbar({ open: true, message: "Failed bulk status update.", severity: "error" });
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Failed bulk status update.",
+        severity: "error",
+      });
     } finally {
       setActionLoading(false);
     }
@@ -245,7 +305,7 @@ const ToReceivePage = () => {
     if (row.canEdit === false) {
       setSnackbar({
         open: true,
-        message: "Only the creator of this split entry can change the status.",
+        message: "Only the creator of this entry can change the status.",
         severity: "warning",
       });
       return;
@@ -410,7 +470,7 @@ const ToReceivePage = () => {
                       <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                         {getTypeChip(rowType)}
                         {row.canEdit === false ? (
-                          <Tooltip title="Only the creator of this split entry can change the status">
+                          <Tooltip title="Only the creator of this entry can change the status">
                             <span style={{ display: "inline-block", cursor: "not-allowed" }}>
                               {getStatusChip(row.paymentStatus, undefined, true)}
                             </span>
@@ -439,14 +499,14 @@ const ToReceivePage = () => {
                     <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
                       {row.canEdit === false ? (
                         <>
-                          <Tooltip title="Only the creator of this split entry can edit it">
+                          <Tooltip title="Only the creator of this entry can edit it">
                             <span style={{ display: "inline-block", cursor: "not-allowed" }}>
                               <IconButton size="small" disabled sx={{ color: "action.disabled", p: 0.75 }}>
                                 <EditIcon fontSize="small" />
                               </IconButton>
                             </span>
                           </Tooltip>
-                          <Tooltip title="Only the creator of this split entry can delete it">
+                          <Tooltip title="Only the creator of this entry can delete it">
                             <span style={{ display: "inline-block", cursor: "not-allowed" }}>
                               <IconButton size="small" disabled sx={{ color: "action.disabled", p: 0.75 }}>
                                 <DeleteOutlineIcon fontSize="small" />
@@ -637,7 +697,7 @@ const ToReceivePage = () => {
                     <TableCell>{getTypeChip(rowType)}</TableCell>
                     <TableCell>
                       {row.canEdit === false ? (
-                        <Tooltip title="Only the creator of this split entry can change the status">
+                        <Tooltip title="Only the creator of this entry can change the status">
                           <span style={{ display: "inline-block", cursor: "not-allowed" }}>
                             {getStatusChip(row.paymentStatus, undefined, true)}
                           </span>
@@ -652,14 +712,14 @@ const ToReceivePage = () => {
                     <TableCell align="center">
                       {row.canEdit === false ? (
                         <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
-                          <Tooltip title="Only the creator of this split entry can edit it">
+                          <Tooltip title="Only the creator of this entry can edit it">
                             <span style={{ display: "inline-block", cursor: "not-allowed" }}>
                               <IconButton size="small" disabled sx={{ color: "action.disabled" }}>
                                 <EditIcon fontSize="small" />
                               </IconButton>
                             </span>
                           </Tooltip>
-                          <Tooltip title="Only the creator of this split entry can delete it">
+                          <Tooltip title="Only the creator of this entry can delete it">
                             <span style={{ display: "inline-block", cursor: "not-allowed" }}>
                               <IconButton size="small" disabled sx={{ color: "action.disabled" }}>
                                 <DeleteOutlineIcon fontSize="small" />
@@ -795,9 +855,37 @@ const ToReceivePage = () => {
         onClose={() => setConfirmBulkDeleteOpen(false)}
         onConfirm={handleConfirmBulkDelete}
         title="Confirm Bulk Deletion"
-        message={`Are you sure you want to delete ${selectedIds.length} selected entries? This action cannot be undone.`}
+        disableConfirm={validDeletableEntries.length === 0}
+        message={
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+            {validDeletableEntries.length === 0 ? (
+              <Alert severity="error">
+                None of the {selectedIds.length} selected entries can be deleted because they were created by another member. Only the creator can delete their entries.
+              </Alert>
+            ) : invalidDeletableEntries.length > 0 ? (
+              <>
+                <Typography variant="body1">
+                  Are you sure you want to delete <strong>{validDeletableEntries.length}</strong> selected entry/entries? This action cannot be undone.
+                </Typography>
+                <Alert severity="warning">
+                  <strong>{invalidDeletableEntries.length}</strong> entry/entries were created by other members and cannot be deleted by you. They will be skipped.
+                </Alert>
+              </>
+            ) : (
+              <Typography variant="body1">
+                Are you sure you want to delete all <strong>{selectedIds.length}</strong> selected entries? This action cannot be undone.
+              </Typography>
+            )}
+          </Box>
+        }
         loading={actionLoading}
-        confirmText={`Delete (${selectedIds.length})`}
+        confirmText={
+          validDeletableEntries.length === 0
+            ? "Cannot Delete"
+            : invalidDeletableEntries.length > 0
+            ? `Delete Valid (${validDeletableEntries.length})`
+            : `Delete (${selectedIds.length})`
+        }
       />
 
       {/* Bulk Status Change Confirmation Modal */}
@@ -806,10 +894,38 @@ const ToReceivePage = () => {
         onClose={() => setConfirmBulkStatus({ open: false, newStatus: "" })}
         onConfirm={handleConfirmBulkStatusChange}
         title="Confirm Status Change"
-        message={`Are you sure you want to set status to "${confirmBulkStatus.newStatus}" for ${selectedIds.length} selected entries?`}
-        loading={actionLoading}
-        confirmText="Update Status"
+        disableConfirm={validEditableEntries.length === 0}
         confirmColor="primary"
+        message={
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+            {validEditableEntries.length === 0 ? (
+              <Alert severity="error">
+                None of the {selectedIds.length} selected entries can be updated because they were created by another member. Only the creator can change payment status.
+              </Alert>
+            ) : invalidEditableEntries.length > 0 ? (
+              <>
+                <Typography variant="body1">
+                  Are you sure you want to set status to "<strong>{confirmBulkStatus.newStatus}</strong>" for <strong>{validEditableEntries.length}</strong> entry/entries?
+                </Typography>
+                <Alert severity="warning">
+                  <strong>{invalidEditableEntries.length}</strong> entry/entries were created by other members and cannot be updated by you. They will be skipped.
+                </Alert>
+              </>
+            ) : (
+              <Typography variant="body1">
+                Are you sure you want to set status to "<strong>{confirmBulkStatus.newStatus}</strong>" for all <strong>{selectedIds.length}</strong> selected entries?
+              </Typography>
+            )}
+          </Box>
+        }
+        loading={actionLoading}
+        confirmText={
+          validEditableEntries.length === 0
+            ? "Cannot Update"
+            : invalidEditableEntries.length > 0
+            ? `Update Valid (${validEditableEntries.length})`
+            : "Update Status"
+        }
       />
 
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}>

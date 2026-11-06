@@ -144,7 +144,7 @@ const getEntries = async (req, res) => {
     const entries = await Entry.find(query).sort({ date: -1, time: -1, createdAt: -1 });
     const formatted = entries.map((e) => {
       const obj = e.toObject ? e.toObject() : { ...e };
-      const isCreator = !obj.isSplit || !obj.creatorUserId || String(obj.creatorUserId) === String(req.user._id);
+      const isCreator = !obj.creatorUserId || String(obj.creatorUserId) === String(req.user._id);
       return {
         ...obj,
         canEdit: isCreator,
@@ -185,6 +185,8 @@ const createEntry = async (req, res) => {
     if (nameList.length === 1 && !includeMine) {
       const singleName = typeof nameList[0] === "object" ? (nameList[0].name || nameList[0].fullName) : nameList[0];
       const resolvedMemberId = await resolveOrCreateMember(nameList[0], req.user);
+      const isOtherRegisteredMember = resolvedMemberId && String(resolvedMemberId) !== String(req.user._id);
+      const linkGroupId = isOtherRegisteredMember ? `sync_${crypto.randomBytes(6).toString("hex")}` : null;
 
       const singleEntry = new Entry({
         userId: req.user._id,
@@ -198,6 +200,7 @@ const createEntry = async (req, res) => {
         time: entryTime,
         description: description ? description.trim() : '',
         isSplit: false,
+        splitGroupId: linkGroupId,
         creatorUserId: req.user._id,
       });
 
@@ -218,11 +221,44 @@ const createEntry = async (req, res) => {
         reason: cleanDescription,
         date: entryDate,
         time: entryTime,
+        splitGroupId: linkGroupId,
       }).catch((e) => console.error('[Notification Error]:', e.message));
 
-      // 2. In-app and email notification for the recipient if registered member
-      if (resolvedMemberId && String(resolvedMemberId) !== String(req.user._id)) {
+      // 2. Reciprocal entry and notifications for the recipient member
+      if (isOtherRegisteredMember) {
+        await Member.findByIdAndUpdate(resolvedMemberId, { $addToSet: { members: req.user._id } }).catch(() => null);
+
         const recipientMember = await Member.findById(resolvedMemberId).catch(() => null);
+        let creatorDisplayName = req.user.fullName;
+        if (recipientMember && recipientMember.memberCustomNames) {
+          const customName = typeof recipientMember.memberCustomNames.get === 'function'
+            ? recipientMember.memberCustomNames.get(String(req.user._id))
+            : recipientMember.memberCustomNames[String(req.user._id)];
+          if (customName) {
+            creatorDisplayName = customName;
+          }
+        }
+
+        const recipientPaymentStatus = entryPaymentStatus === "Received" ? "Paid" : "Pending";
+
+        const recipientToPay = new ToPay({
+          userId: resolvedMemberId,
+          forFromName: creatorDisplayName,
+          memberId: req.user._id,
+          type: entryType,
+          status: entryType,
+          paymentStatus: recipientPaymentStatus,
+          amount: parsedAmount,
+          date: entryDate,
+          time: entryTime,
+          description: description ? description.trim() : '',
+          isSplit: false,
+          splitGroupId: linkGroupId,
+          creatorUserId: req.user._id,
+        });
+
+        await recipientToPay.save();
+
         if (recipientMember) {
           await Notification.create({
             userId: recipientMember._id,
@@ -235,6 +271,7 @@ const createEntry = async (req, res) => {
             reason: cleanDescription,
             date: entryDate,
             time: entryTime,
+            splitGroupId: linkGroupId,
           }).catch((e) => console.error('[Notification Error]:', e.message));
 
           if (recipientMember.email) {
@@ -461,19 +498,19 @@ const updateEntry = async (req, res) => {
     const entryType = type || (["Add Balance", "Expense", "Loan", "Split"].includes(status) ? status : undefined);
     const entryPaymentStatus = paymentStatus || (["Received", "Pending"].includes(status) ? status : undefined);
 
+    const isCreator = !entry.creatorUserId || String(entry.creatorUserId) === String(req.user._id);
+
+    // If not creator, cannot edit or change status
+    if (!isCreator) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the creator of this entry can change the status or edit this entry.",
+      });
+    }
+
     // IF THIS IS A SPLIT ENTRY:
     // Update all entries in this split group together across all members
     if (entry.isSplit && entry.splitGroupId) {
-      const isCreator = !entry.creatorUserId || String(entry.creatorUserId) === String(req.user._id);
-
-      // If not creator, cannot edit or change status
-      if (!isCreator) {
-        return res.status(403).json({
-          success: false,
-          message: "Only the creator of this split can change the status or edit this entry.",
-        });
-      }
-
       // Check if separate/custom shares update is requested
       const { splits } = req.body;
       if (splits && Array.isArray(splits) && splits.length > 0) {
@@ -520,6 +557,31 @@ const updateEntry = async (req, res) => {
         if (entryPaymentStatus) {
           entry.paymentStatus = entryPaymentStatus;
           await entry.save();
+
+          // Sync status to recipient's ToPay
+          const reciprocalStatus = entryPaymentStatus === "Received" ? "Paid" : "Pending";
+          await ToPay.updateMany(
+            { splitGroupId: entry.splitGroupId, userId: { $ne: req.user._id } },
+            { $set: { paymentStatus: reciprocalStatus, status: reciprocalStatus } }
+          );
+
+          // Notify recipient members
+          const recipients = await ToPay.find({ splitGroupId: entry.splitGroupId, userId: { $ne: req.user._id } });
+          for (const recip of recipients) {
+            await Notification.create({
+              userId: recip.userId,
+              creatorUserId: req.user._id,
+              creatorName: req.user.fullName || 'Creator',
+              title: reciprocalStatus === "Paid" ? "Payment Received" : "Payment Status Updated",
+              message: `${req.user.fullName || 'Creator'} marked the payment of ₹${recip.amount} as ${reciprocalStatus === "Paid" ? "Received (Paid)" : "Pending"}.`,
+              entryType: "Split",
+              amount: recip.amount,
+              reason: recip.description || "Split status update",
+              date: recip.date,
+              time: recip.time,
+              splitGroupId: entry.splitGroupId,
+            }).catch((e) => console.error('[Notification Error]:', e.message));
+          }
         }
 
         const updatedEntries = await Entry.find({ splitGroupId: entry.splitGroupId, userId: req.user._id });
@@ -563,10 +625,34 @@ const updateEntry = async (req, res) => {
       await ToPay.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
       await ForSelf.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
 
-      // Only update paymentStatus for this specific entry
+      // Update paymentStatus for this specific entry and sync to recipient's ToPay
       if (entryPaymentStatus) {
         entry.paymentStatus = entryPaymentStatus;
         await entry.save();
+
+        const reciprocalStatus = entryPaymentStatus === "Received" ? "Paid" : "Pending";
+        await ToPay.updateMany(
+          { splitGroupId: entry.splitGroupId, userId: { $ne: req.user._id } },
+          { $set: { paymentStatus: reciprocalStatus, status: reciprocalStatus } }
+        );
+
+        // Notify recipient members
+        const recipients = await ToPay.find({ splitGroupId: entry.splitGroupId, userId: { $ne: req.user._id } });
+        for (const recip of recipients) {
+          await Notification.create({
+            userId: recip.userId,
+            creatorUserId: req.user._id,
+            creatorName: req.user.fullName || 'Creator',
+            title: reciprocalStatus === "Paid" ? "Payment Received" : "Payment Status Updated",
+            message: `${req.user.fullName || 'Creator'} marked the payment of ₹${recip.amount} as ${reciprocalStatus === "Paid" ? "Received (Paid)" : "Pending"}.`,
+            entryType: "Split",
+            amount: recip.amount,
+            reason: recip.description || "Split status update",
+            date: recip.date,
+            time: recip.time,
+            splitGroupId: entry.splitGroupId,
+          }).catch((e) => console.error('[Notification Error]:', e.message));
+        }
       }
 
       const updatedEntries = await Entry.find({ splitGroupId: entry.splitGroupId, userId: req.user._id });
@@ -603,6 +689,50 @@ const updateEntry = async (req, res) => {
     if (description !== undefined) entry.description = description ? description.trim() : '';
 
     await entry.save();
+
+    // If entry has a linked reciprocal ToPay entry (via splitGroupId)
+    if (entry.splitGroupId) {
+      const reciprocalUpdate = {};
+      if (amount !== undefined) reciprocalUpdate.amount = entry.amount;
+      if (entryType) {
+        reciprocalUpdate.type = entryType;
+        reciprocalUpdate.status = entryType;
+      }
+      if (date) reciprocalUpdate.date = date;
+      if (time) reciprocalUpdate.time = time;
+      if (description !== undefined) reciprocalUpdate.description = entry.description;
+      if (entryPaymentStatus) {
+        const reciprocalStatus = entryPaymentStatus === "Received" ? "Paid" : "Pending";
+        reciprocalUpdate.paymentStatus = reciprocalStatus;
+        reciprocalUpdate.status = reciprocalStatus;
+      }
+
+      await ToPay.updateMany(
+        { splitGroupId: entry.splitGroupId, userId: { $ne: req.user._id } },
+        { $set: reciprocalUpdate }
+      );
+
+      if (entryPaymentStatus) {
+        const reciprocalStatus = entryPaymentStatus === "Received" ? "Paid" : "Pending";
+        const recipients = await ToPay.find({ splitGroupId: entry.splitGroupId, userId: { $ne: req.user._id } });
+        for (const recip of recipients) {
+          await Notification.create({
+            userId: recip.userId,
+            creatorUserId: req.user._id,
+            creatorName: req.user.fullName || 'Creator',
+            title: reciprocalStatus === "Paid" ? "Payment Received" : "Payment Status Updated",
+            message: `${req.user.fullName || 'Creator'} marked the payment of ₹${entry.amount} as ${reciprocalStatus === "Paid" ? "Received (Paid)" : "Pending"}.`,
+            entryType: entry.type,
+            amount: entry.amount,
+            reason: entry.description || "Status update",
+            date: entry.date,
+            time: entry.time,
+            splitGroupId: entry.splitGroupId,
+          }).catch((e) => console.error('[Notification Error]:', e.message));
+        }
+      }
+    }
+
     res.json({ success: true, data: entry, message: "Entry updated successfully." });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -618,21 +748,38 @@ const deleteEntry = async (req, res) => {
       return res.status(404).json({ success: false, message: "Entry not found." });
     }
 
-    if (entry.isSplit && entry.splitGroupId) {
-      const isCreator = !entry.creatorUserId || String(entry.creatorUserId) === String(req.user._id);
-      if (!isCreator) {
-        return res.status(403).json({
-          success: false,
-          message: "Only the creator of this split can delete this entry.",
-        });
+    const isCreator = !entry.creatorUserId || String(entry.creatorUserId) === String(req.user._id);
+    if (!isCreator) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the creator of this entry can delete it.",
+      });
+    }
+
+    if (entry.splitGroupId) {
+      // Notify recipient members before deleting
+      const recipients = await ToPay.find({ splitGroupId: entry.splitGroupId, userId: { $ne: req.user._id } });
+      for (const recip of recipients) {
+        await Notification.create({
+          userId: recip.userId,
+          creatorUserId: req.user._id,
+          creatorName: req.user.fullName || 'A member',
+          title: "Entry Deleted",
+          message: `${req.user.fullName || 'A member'} deleted the ${entry.type || 'entry'} of ₹${recip.amount}.`,
+          entryType: entry.type,
+          amount: recip.amount,
+          reason: "Entry deleted by creator",
+          date: entry.date,
+          time: entry.time,
+        }).catch((e) => console.error('[Notification Error]:', e.message));
       }
 
-      // Cascade delete across all selected members in Entry, ToPay, and ForSelf
+      // Cascade delete across all linked entries in Entry, ToPay, and ForSelf
       await Entry.deleteMany({ splitGroupId: entry.splitGroupId });
       await ToPay.deleteMany({ splitGroupId: entry.splitGroupId });
       await ForSelf.deleteMany({ splitGroupId: entry.splitGroupId });
 
-      return res.json({ success: true, message: "Split entry deleted across all members successfully." });
+      return res.json({ success: true, message: "Entry deleted across all members successfully." });
     }
 
     await Entry.findByIdAndDelete(entry._id);
@@ -651,36 +798,79 @@ const bulkUpdateStatus = async (req, res) => {
       return res.status(400).json({ success: false, message: "No entries selected." });
     }
 
-    let updateData = {};
-    if (isTypeUpdate && (type || status)) {
-      const targetType = type || status;
-      updateData = { type: targetType, status: targetType };
-    } else if (paymentStatus || (["Received", "Pending"].includes(status) && !isTypeUpdate)) {
-      const targetStatus = paymentStatus || status;
-      updateData = { paymentStatus: targetStatus };
-    } else if (type || ["Add Balance", "Expense", "Loan", "Split"].includes(status)) {
-      const targetType = type || status;
-      updateData = { type: targetType, status: targetType };
-    } else {
-      return res.status(400).json({ success: false, message: "Valid status or type is required." });
+    // Find all selected entries belonging to this user
+    const selectedEntries = await Entry.find({ _id: { $in: ids }, userId: req.user._id });
+    const validEntries = [];
+    let skippedCount = 0;
+
+    for (const item of selectedEntries) {
+      const isCreator = !item.creatorUserId || String(item.creatorUserId) === String(req.user._id);
+      if (isCreator) {
+        validEntries.push(item);
+      } else {
+        skippedCount++;
+      }
     }
 
-    const result = await Entry.updateMany(
-      {
-        _id: { $in: ids },
-        userId: req.user._id,
-        $or: [
-          { isSplit: false },
-          { isSplit: { $exists: false } },
-          { isSplit: null },
-          { creatorUserId: req.user._id },
-        ],
-      },
-      { $set: updateData }
-    );
+    if (validEntries.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "None of the selected entries can be updated because you are not their creator.",
+        updatedCount: 0,
+        skippedCount,
+      });
+    }
+
+    const validIds = validEntries.map((e) => e._id);
+    let updateData = {};
+    const targetPaymentStatus = paymentStatus || (["Received", "Pending"].includes(status) && !isTypeUpdate ? status : null);
+    const targetType = type || (["Add Balance", "Expense", "Loan", "Split"].includes(status) || isTypeUpdate ? (type || status) : null);
+
+    if (targetType) {
+      updateData.type = targetType;
+      updateData.status = targetType;
+    }
+    if (targetPaymentStatus) {
+      updateData.paymentStatus = targetPaymentStatus;
+    }
+
+    await Entry.updateMany({ _id: { $in: validIds } }, { $set: updateData });
+
+    // Handle reciprocal entries in ToPay for entries with splitGroupId
+    const splitGroupIds = validEntries.filter((e) => e.splitGroupId).map((e) => e.splitGroupId);
+    if (splitGroupIds.length > 0 && targetPaymentStatus) {
+      const reciprocalStatus = targetPaymentStatus === "Received" ? "Paid" : "Pending";
+      await ToPay.updateMany(
+        { splitGroupId: { $in: splitGroupIds }, userId: { $ne: req.user._id } },
+        { $set: { paymentStatus: reciprocalStatus, status: reciprocalStatus } }
+      );
+
+      // Notify recipient members
+      const recipients = await ToPay.find({ splitGroupId: { $in: splitGroupIds }, userId: { $ne: req.user._id } });
+      for (const recip of recipients) {
+        await Notification.create({
+          userId: recip.userId,
+          creatorUserId: req.user._id,
+          creatorName: req.user.fullName || 'Creator',
+          title: reciprocalStatus === "Paid" ? "Payment Received" : "Payment Status Updated",
+          message: `${req.user.fullName || 'Creator'} marked the payment of ₹${recip.amount} as ${reciprocalStatus === "Paid" ? "Received (Paid)" : "Pending"}.`,
+          entryType: recip.type,
+          amount: recip.amount,
+          reason: recip.description || "Bulk status update",
+          date: recip.date,
+          time: recip.time,
+          splitGroupId: recip.splitGroupId,
+        }).catch((e) => console.error('[Notification Error]:', e.message));
+      }
+    }
+
     res.json({
       success: true,
-      message: `${result.modifiedCount} entries updated.`,
+      updatedCount: validEntries.length,
+      skippedCount,
+      message: skippedCount > 0
+        ? `${validEntries.length} entries updated. ${skippedCount} skipped (only creators can modify).`
+        : `${validEntries.length} entries updated successfully.`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -696,38 +886,75 @@ const bulkDeleteEntries = async (req, res) => {
       return res.status(400).json({ success: false, message: "No entries selected." });
     }
 
-    const entries = await Entry.find({ _id: { $in: ids }, userId: req.user._id });
+    const selectedEntries = await Entry.find({ _id: { $in: ids }, userId: req.user._id });
+    const validEntries = [];
+    let skippedCount = 0;
+
+    for (const item of selectedEntries) {
+      const isCreator = !item.creatorUserId || String(item.creatorUserId) === String(req.user._id);
+      if (isCreator) {
+        validEntries.push(item);
+      } else {
+        skippedCount++;
+      }
+    }
+
+    if (validEntries.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "None of the selected entries can be deleted because you are not their creator.",
+        deletedCount: 0,
+        skippedCount,
+      });
+    }
+
     const splitGroupIdsToDelete = new Set();
     const regularIdsToDelete = [];
 
-    for (const item of entries) {
-      if (item.isSplit && item.splitGroupId) {
-        const isCreator = !item.creatorUserId || String(item.creatorUserId) === String(req.user._id);
-        if (isCreator) {
-          splitGroupIdsToDelete.add(item.splitGroupId);
-        }
+    for (const item of validEntries) {
+      if (item.splitGroupId) {
+        splitGroupIdsToDelete.add(item.splitGroupId);
       } else {
         regularIdsToDelete.push(item._id);
       }
     }
 
-    let deletedCount = 0;
     if (splitGroupIdsToDelete.size > 0) {
       const groupIds = Array.from(splitGroupIdsToDelete);
-      const resEntry = await Entry.deleteMany({ splitGroupId: { $in: groupIds } });
+
+      // Notify recipients before deleting
+      const recipients = await ToPay.find({ splitGroupId: { $in: groupIds }, userId: { $ne: req.user._id } });
+      for (const recip of recipients) {
+        await Notification.create({
+          userId: recip.userId,
+          creatorUserId: req.user._id,
+          creatorName: req.user.fullName || 'A member',
+          title: "Entry Deleted",
+          message: `${req.user.fullName || 'A member'} deleted the ${recip.type || 'entry'} of ₹${recip.amount}.`,
+          entryType: recip.type,
+          amount: recip.amount,
+          reason: "Deleted by creator",
+          date: recip.date,
+          time: recip.time,
+        }).catch((e) => console.error('[Notification Error]:', e.message));
+      }
+
+      await Entry.deleteMany({ splitGroupId: { $in: groupIds } });
       await ToPay.deleteMany({ splitGroupId: { $in: groupIds } });
       await ForSelf.deleteMany({ splitGroupId: { $in: groupIds } });
-      deletedCount += resEntry.deletedCount;
     }
 
     if (regularIdsToDelete.length > 0) {
-      const resRegular = await Entry.deleteMany({ _id: { $in: regularIdsToDelete } });
-      deletedCount += resRegular.deletedCount;
+      await Entry.deleteMany({ _id: { $in: regularIdsToDelete } });
     }
 
     res.json({
       success: true,
-      message: `${deletedCount} entries deleted successfully.`,
+      deletedCount: validEntries.length,
+      skippedCount,
+      message: skippedCount > 0
+        ? `${validEntries.length} entries deleted. ${skippedCount} skipped (only creators can delete).`
+        : `${validEntries.length} entries deleted successfully.`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

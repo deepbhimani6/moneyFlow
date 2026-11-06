@@ -18,14 +18,19 @@ const DeleteConfirmModal = ({
   loading = false,
   confirmText = 'Delete',
   confirmColor = 'error',
+  disableConfirm = false,
 }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>{title}</DialogTitle>
       <DialogContent dividers sx={{ pt: 2.5, pb: 2.5 }}>
-        <DialogContentText sx={{ color: 'text.primary', fontSize: '1rem' }}>
-          {message}
-        </DialogContentText>
+        {typeof message === 'string' ? (
+          <DialogContentText sx={{ color: 'text.primary', fontSize: '1rem' }}>
+            {message}
+          </DialogContentText>
+        ) : (
+          message
+        )}
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
         <Button onClick={onClose} disabled={loading} color="inherit">
@@ -35,7 +40,7 @@ const DeleteConfirmModal = ({
           onClick={onConfirm}
           color={confirmColor}
           variant="contained"
-          disabled={loading}
+          disabled={loading || disableConfirm}
           startIcon={loading && <CircularProgress size={16} color="inherit" />}
         >
           {loading ? 'Processing...' : confirmText}
