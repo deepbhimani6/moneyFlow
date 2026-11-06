@@ -66,6 +66,12 @@ const entrySchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    creatorUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Member",
+      index: true,
+      default: null,
+    },
     description: {
       type: String,
       trim: true,

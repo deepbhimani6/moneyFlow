@@ -123,12 +123,15 @@ const getDashboardStats = async (req, res) => {
     ]);
     const pendingPayLoans = pendingPayLoansRes[0]?.total || 0;
 
-    // 6. Pending Pay Expenses: from To Pay Type: Expenses (Status: Pending)
+    // 6. Pending Pay Expenses: from To Pay Type: Expenses, Split (Status: Pending)
     const pendingPayExpensesRes = await ToPay.aggregate([
       {
         $match: {
           userId: userObjectId,
-          type: { $regex: /^expenses?$/i },
+          $or: [
+            { type: { $in: ["Expense", "Expenses", "Split"] } },
+            { isSplit: true },
+          ],
           $and: [
             {
               $or: [
@@ -150,12 +153,12 @@ const getDashboardStats = async (req, res) => {
     ]);
     const pendingPayExpenses = pendingPayExpensesRes[0]?.total || 0;
 
-    // To Pay (Loan & Expense (Status: Paid))
+    // To Pay (Loan & Expense & Split (Status: Paid))
     const toPayPaidRes = await ToPay.aggregate([
       {
         $match: {
           userId: userObjectId,
-          type: { $in: ["Loan", "Expense", "Expenses", "Paid"] },
+          type: { $in: ["Loan", "Expense", "Expenses", "Split", "Paid"] },
           $or: [
             { paymentStatus: "Paid" },
             { status: "Paid" },

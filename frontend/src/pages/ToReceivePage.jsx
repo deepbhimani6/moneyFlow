@@ -492,18 +492,26 @@ const ToReceivePage = () => {
                       ₹ {formatAmount(row.amount)}
                     </TableCell>
                     <TableCell align="center">
-                      <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
-                        <Tooltip title={row.isSplit ? "Edit split group entry" : "Edit entry"}>
-                          <IconButton size="small" color="primary" onClick={() => setEditingEntry(row)}>
-                            <EditIcon fontSize="small" />
-                          </IconButton>
+                      {row.canEdit === false ? (
+                        <Tooltip title="Only the creator of this split can edit or delete this entry">
+                          <Box component="span" sx={{ color: "text.disabled", fontSize: "0.85rem", cursor: "default" }}>
+                            —
+                          </Box>
                         </Tooltip>
-                        <Tooltip title="Delete entry">
-                          <IconButton size="small" color="error" onClick={() => setItemToDelete(row._id)}>
-                            <DeleteOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
+                      ) : (
+                        <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
+                          <Tooltip title={row.isSplit ? "Edit split group entry" : "Edit entry"}>
+                            <IconButton size="small" color="primary" onClick={() => setEditingEntry(row)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete entry">
+                            <IconButton size="small" color="error" onClick={() => setItemToDelete(row._id)}>
+                              <DeleteOutlineIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      )}
                     </TableCell>
                   </TableRow>
                 );

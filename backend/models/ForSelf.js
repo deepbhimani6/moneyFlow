@@ -68,6 +68,12 @@ const forSelfSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    creatorUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Member",
+      index: true,
+      default: null,
+    },
   },
   { timestamps: true }
 );

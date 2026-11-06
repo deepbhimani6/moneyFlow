@@ -1,6 +1,7 @@
 const Entry = require("../models/Entry");
 const Member = require("../models/Member");
 const ForSelf = require("../models/ForSelf");
+const ToPay = require("../models/ToPay");
 const crypto = require("crypto");
 const { capitalizeName } = require("../utils/formatters");
 
@@ -139,7 +140,17 @@ const getEntries = async (req, res) => {
     }
 
     const entries = await Entry.find(query).sort({ date: -1, time: -1, createdAt: -1 });
-    res.json({ success: true, count: entries.length, data: entries });
+    const formatted = entries.map((e) => {
+      const obj = e.toObject ? e.toObject() : { ...e };
+      const isCreator = !obj.isSplit || !obj.creatorUserId || String(obj.creatorUserId) === String(req.user._id);
+      return {
+        ...obj,
+        canEdit: isCreator,
+        canDelete: isCreator,
+        isCreator,
+      };
+    });
+    res.json({ success: true, count: formatted.length, data: formatted });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -185,6 +196,7 @@ const createEntry = async (req, res) => {
         time: entryTime,
         description: description ? description.trim() : '',
         isSplit: false,
+        creatorUserId: req.user._id,
       });
 
       await singleEntry.save();
@@ -223,10 +235,47 @@ const createEntry = async (req, res) => {
         splitGroupId,
         originalTotalAmount: parsedAmount,
         isMine: false,
+        creatorUserId: req.user._id,
       });
 
       await memberEntry.save();
       createdEntries.push(memberEntry);
+
+      // Reciprocal entry for selected registered member in their To Pay list:
+      if (resolvedMemberId && String(resolvedMemberId) !== String(req.user._id)) {
+        await Member.findByIdAndUpdate(resolvedMemberId, { $addToSet: { members: req.user._id } }).catch(() => null);
+
+        const recipientMember = await Member.findById(resolvedMemberId).catch(() => null);
+        let creatorDisplayName = req.user.fullName;
+        if (recipientMember && recipientMember.memberCustomNames) {
+          const customName = typeof recipientMember.memberCustomNames.get === 'function'
+            ? recipientMember.memberCustomNames.get(String(req.user._id))
+            : recipientMember.memberCustomNames[String(req.user._id)];
+          if (customName) {
+            creatorDisplayName = customName;
+          }
+        }
+
+        const recipientToPay = new ToPay({
+          userId: resolvedMemberId,
+          forFromName: creatorDisplayName,
+          memberId: req.user._id,
+          type: "Split",
+          status: "Split",
+          paymentStatus: "Pending",
+          amount: splitAmount,
+          date: entryDate,
+          time: entryTime,
+          description: description ? description.trim() : '',
+          isSplit: true,
+          splitGroupId,
+          originalTotalAmount: parsedAmount,
+          isMine: false,
+          creatorUserId: req.user._id,
+        });
+
+        await recipientToPay.save();
+      }
     }
 
     // If "Include myself in the split" was checked, automatically create an Expense in ForSelf
@@ -241,6 +290,7 @@ const createEntry = async (req, res) => {
         isSplit: true,
         splitGroupId,
         originalTotalAmount: parsedAmount,
+        creatorUserId: req.user._id,
       });
     }
 
@@ -259,8 +309,9 @@ const createEntry = async (req, res) => {
 const getSplitGroupEntries = async (req, res) => {
   try {
     const entryMembers = await Entry.find({ splitGroupId: req.params.splitGroupId, userId: req.user._id });
+    const toPayMembers = await ToPay.find({ splitGroupId: req.params.splitGroupId, userId: req.user._id });
     const forSelfMembers = await ForSelf.find({ splitGroupId: req.params.splitGroupId, userId: req.user._id });
-    const allMembers = [...entryMembers, ...forSelfMembers];
+    const allMembers = [...entryMembers, ...toPayMembers, ...forSelfMembers];
     res.json({ success: true, count: allMembers.length, data: allMembers });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -282,10 +333,28 @@ const updateEntry = async (req, res) => {
     const entryPaymentStatus = paymentStatus || (["Received", "Pending"].includes(status) ? status : undefined);
 
     // IF THIS IS A SPLIT ENTRY:
-    // Update all entries in this split group together so they remain identical
+    // Update all entries in this split group together across all members
     if (entry.isSplit && entry.splitGroupId) {
-      const groupEntries = await Entry.find({ splitGroupId: entry.splitGroupId, userId: req.user._id });
-      const groupCount = groupEntries.length || 1;
+      const isCreator = !entry.creatorUserId || String(entry.creatorUserId) === String(req.user._id);
+
+      // If not creator, only allow toggling payment status for their own record
+      if (!isCreator) {
+        if (entryPaymentStatus && !totalAmount && !amount && !date && !time && description === undefined && !forFromName && !entryType) {
+          entry.paymentStatus = entryPaymentStatus;
+          await entry.save();
+          return res.json({ success: true, data: entry, message: "Payment status updated successfully." });
+        }
+        return res.status(403).json({
+          success: false,
+          message: "Only the creator of this split can edit this entry.",
+        });
+      }
+
+      // Count participants across Entry, ToPay, and ForSelf for this creator
+      const creatorEntries = await Entry.find({ splitGroupId: entry.splitGroupId, userId: req.user._id });
+      const creatorToPay = await ToPay.find({ splitGroupId: entry.splitGroupId, userId: req.user._id });
+      const creatorForSelf = await ForSelf.find({ splitGroupId: entry.splitGroupId, userId: req.user._id });
+      const groupCount = (creatorEntries.length + creatorToPay.length + creatorForSelf.length) || 1;
 
       let perPersonAmount = entry.amount;
       let calculatedTotal = entry.originalTotalAmount || (entry.amount * groupCount);
@@ -307,11 +376,12 @@ const updateEntry = async (req, res) => {
       if (time) updateData.time = time;
       if (description !== undefined) updateData.description = description ? description.trim() : '';
 
-      // Update group fields across all split members (and personal share in ForSelf if present)
-      await Entry.updateMany({ splitGroupId: entry.splitGroupId, userId: req.user._id }, { $set: updateData });
-      await ForSelf.updateMany({ splitGroupId: entry.splitGroupId, userId: req.user._id }, { $set: updateData });
+      // Update group fields across all split members in Entry, ToPay, and ForSelf
+      await Entry.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
+      await ToPay.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
+      await ForSelf.updateMany({ splitGroupId: entry.splitGroupId }, { $set: updateData });
 
-      // Only update paymentStatus for this specific entry (not all split members)
+      // Only update paymentStatus for this specific entry
       if (entryPaymentStatus) {
         entry.paymentStatus = entryPaymentStatus;
         await entry.save();
@@ -321,7 +391,7 @@ const updateEntry = async (req, res) => {
 
       return res.json({
         success: true,
-        message: `Updated ${groupCount} split entries (₹${perPersonAmount} each).`,
+        message: `Updated split entries (₹${perPersonAmount} each).`,
         isSplitGroupUpdate: true,
         data: updatedEntries,
       });
@@ -361,11 +431,29 @@ const updateEntry = async (req, res) => {
 // @route   DELETE /api/entries/:id
 const deleteEntry = async (req, res) => {
   try {
-    const entry = await Entry.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
+    const entry = await Entry.findOne({ _id: req.params.id, userId: req.user._id });
     if (!entry) {
       return res.status(404).json({ success: false, message: "Entry not found." });
     }
 
+    if (entry.isSplit && entry.splitGroupId) {
+      const isCreator = !entry.creatorUserId || String(entry.creatorUserId) === String(req.user._id);
+      if (!isCreator) {
+        return res.status(403).json({
+          success: false,
+          message: "Only the creator of this split can delete this entry.",
+        });
+      }
+
+      // Cascade delete across all selected members in Entry, ToPay, and ForSelf
+      await Entry.deleteMany({ splitGroupId: entry.splitGroupId });
+      await ToPay.deleteMany({ splitGroupId: entry.splitGroupId });
+      await ForSelf.deleteMany({ splitGroupId: entry.splitGroupId });
+
+      return res.json({ success: true, message: "Split entry deleted across all members successfully." });
+    }
+
+    await Entry.findByIdAndDelete(entry._id);
     res.json({ success: true, message: "Entry deleted successfully." });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -414,10 +502,38 @@ const bulkDeleteEntries = async (req, res) => {
       return res.status(400).json({ success: false, message: "No entries selected." });
     }
 
-    const result = await Entry.deleteMany({ _id: { $in: ids }, userId: req.user._id });
+    const entries = await Entry.find({ _id: { $in: ids }, userId: req.user._id });
+    const splitGroupIdsToDelete = new Set();
+    const regularIdsToDelete = [];
+
+    for (const item of entries) {
+      if (item.isSplit && item.splitGroupId) {
+        const isCreator = !item.creatorUserId || String(item.creatorUserId) === String(req.user._id);
+        if (isCreator) {
+          splitGroupIdsToDelete.add(item.splitGroupId);
+        }
+      } else {
+        regularIdsToDelete.push(item._id);
+      }
+    }
+
+    let deletedCount = 0;
+    if (splitGroupIdsToDelete.size > 0) {
+      const groupIds = Array.from(splitGroupIdsToDelete);
+      const resEntry = await Entry.deleteMany({ splitGroupId: { $in: groupIds } });
+      await ToPay.deleteMany({ splitGroupId: { $in: groupIds } });
+      await ForSelf.deleteMany({ splitGroupId: { $in: groupIds } });
+      deletedCount += resEntry.deletedCount;
+    }
+
+    if (regularIdsToDelete.length > 0) {
+      const resRegular = await Entry.deleteMany({ _id: { $in: regularIdsToDelete } });
+      deletedCount += resRegular.deletedCount;
+    }
+
     res.json({
       success: true,
-      message: `${result.deletedCount} entries deleted.`,
+      message: `${deletedCount} entries deleted successfully.`,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
