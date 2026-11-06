@@ -53,6 +53,7 @@ const HeaderProfileMenu = () => {
           alignItems: "center",
           gap: 1,
           cursor: "pointer",
+          maxWidth: { md: 200 },
           p: 0.5,
           pl: { md: 0.75 },
           pr: { md: 1.25 },

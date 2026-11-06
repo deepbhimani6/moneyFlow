@@ -143,7 +143,8 @@ const DashboardPage = () => {
             sx={{
               display: "grid",
               gridTemplateColumns: {
-                xs: "repeat(2, 1fr)",
+                xs: "repeat(1, 1fr)",
+                xsm: "repeat(2, 1fr)",
                 md: "repeat(3, 1fr)",
               },
               gap: { xs: 1.5, sm: 2 },
