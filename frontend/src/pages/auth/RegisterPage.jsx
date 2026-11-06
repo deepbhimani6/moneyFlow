@@ -42,6 +42,7 @@ const RegisterPage = () => {
 
   const fullNameRef = useRef(null);
   const emailRef = useRef(null);
+  const usernameRef = useRef(null);
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
 
@@ -128,16 +129,40 @@ const RegisterPage = () => {
         }, 500);
       } else {
         const msg = res.message || 'Registration failed.';
-        setError(msg);
-        if (msg.toLowerCase().includes('email')) {
+        const lower = msg.toLowerCase();
+        if (lower.includes('email')) {
           setErrors((prev) => ({ ...prev, email: msg }));
+          if (emailRef.current) emailRef.current.focus();
+        } else if (lower.includes('username')) {
+          setErrors((prev) => ({ ...prev, username: msg }));
+          if (usernameRef.current) usernameRef.current.focus();
+        } else if (lower.includes('password')) {
+          setErrors((prev) => ({ ...prev, password: msg }));
+          if (passwordRef.current) passwordRef.current.focus();
+        } else if (lower.includes('name')) {
+          setErrors((prev) => ({ ...prev, fullName: msg }));
+          if (fullNameRef.current) fullNameRef.current.focus();
+        } else {
+          setError(msg);
         }
       }
     } catch (err) {
-      const msg = err.message || 'Registration failed.';
-      setError(msg);
-      if (msg.toLowerCase().includes('email')) {
+      const msg = err.response?.data?.message || err.message || 'Registration failed.';
+      const lower = msg.toLowerCase();
+      if (lower.includes('email')) {
         setErrors((prev) => ({ ...prev, email: msg }));
+        if (emailRef.current) emailRef.current.focus();
+      } else if (lower.includes('username')) {
+        setErrors((prev) => ({ ...prev, username: msg }));
+        if (usernameRef.current) usernameRef.current.focus();
+      } else if (lower.includes('password')) {
+        setErrors((prev) => ({ ...prev, password: msg }));
+        if (passwordRef.current) passwordRef.current.focus();
+      } else if (lower.includes('name')) {
+        setErrors((prev) => ({ ...prev, fullName: msg }));
+        if (fullNameRef.current) fullNameRef.current.focus();
+      } else {
+        setError(msg);
       }
     } finally {
       setLoading(false);
@@ -209,6 +234,9 @@ const RegisterPage = () => {
               placeholder="e.g. johndoe"
               value={formData.username}
               onChange={handleChange}
+              inputRef={usernameRef}
+              error={Boolean(errors.username)}
+              helperText={errors.username || ''}
               fullWidth
               disabled={loading}
             />
@@ -222,6 +250,8 @@ const RegisterPage = () => {
               placeholder="e.g. +91 9876543210"
               value={formData.phoneNumber}
               onChange={handleChange}
+              error={Boolean(errors.phoneNumber)}
+              helperText={errors.phoneNumber || ''}
               fullWidth
               disabled={loading}
             />

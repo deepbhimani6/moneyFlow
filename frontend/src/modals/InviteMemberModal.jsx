@@ -143,16 +143,37 @@ const InviteMemberModal = ({
         });
         setErrors({});
       } else {
-        setError(res.message || 'Failed to create member');
-        if (res.message && res.message.toLowerCase().includes('email')) {
-          setErrors((prev) => ({ ...prev, email: res.message }));
+        const msg = res.message || 'Failed to create member.';
+        const lower = msg.toLowerCase();
+        if (lower.includes('email')) {
+          setErrors((prev) => ({ ...prev, email: msg }));
+          if (emailRef.current) emailRef.current.focus();
+        } else if (lower.includes('name')) {
+          setErrors((prev) => ({ ...prev, fullName: msg }));
+          if (fullNameRef.current) fullNameRef.current.focus();
+        } else if (lower.includes('username')) {
+          setErrors((prev) => ({ ...prev, username: msg }));
+        } else if (lower.includes('phone') || lower.includes('mobile')) {
+          setErrors((prev) => ({ ...prev, phoneNumber: msg }));
+        } else {
+          setError(msg);
         }
       }
     } catch (err) {
-      const errMsg = err.response?.data?.message || err.message || 'Failed to create member';
-      setError(errMsg);
-      if (errMsg.toLowerCase().includes('email')) {
+      const errMsg = err.response?.data?.message || err.message || 'Failed to create member.';
+      const lower = errMsg.toLowerCase();
+      if (lower.includes('email')) {
         setErrors((prev) => ({ ...prev, email: errMsg }));
+        if (emailRef.current) emailRef.current.focus();
+      } else if (lower.includes('name')) {
+        setErrors((prev) => ({ ...prev, fullName: errMsg }));
+        if (fullNameRef.current) fullNameRef.current.focus();
+      } else if (lower.includes('username')) {
+        setErrors((prev) => ({ ...prev, username: errMsg }));
+      } else if (lower.includes('phone') || lower.includes('mobile')) {
+        setErrors((prev) => ({ ...prev, phoneNumber: errMsg }));
+      } else {
+        setError(errMsg);
       }
     } finally {
       setSubmitting(false);
@@ -187,6 +208,8 @@ const InviteMemberModal = ({
             label="Phone Number"
             name="phoneNumber"
             value={formData.phoneNumber}
+            error={Boolean(errors.phoneNumber)}
+            helperText={errors.phoneNumber || ''}
             onChange={handleChange}
             fullWidth
             placeholder="e.g. +91 9876543210"
@@ -213,6 +236,8 @@ const InviteMemberModal = ({
             label="Username (optional)"
             name="username"
             value={formData.username}
+            error={Boolean(errors.username)}
+            helperText={errors.username || ''}
             onChange={handleChange}
             fullWidth
             placeholder="e.g. johndoe (defaults to email username)"

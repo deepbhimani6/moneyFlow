@@ -188,6 +188,13 @@ export const isCurrentLoggedInUser = (member, profile, user) => {
     return true;
   }
 
+  // 4. Check by username
+  const authUsername = (user?.username || profile?.username || "").toLowerCase().trim();
+  const memberUsername = (typeof member === "object" ? (member.username || "") : "").toLowerCase().trim();
+  if (authUsername && memberUsername && authUsername === memberUsername) {
+    return true;
+  }
+
   return false;
 };
 

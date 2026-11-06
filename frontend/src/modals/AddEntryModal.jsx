@@ -143,10 +143,26 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
         onEntryCreated();
         onClose();
       } else {
-        setError(res.message || "Failed to create entry");
+        const msg = res.message || "Failed to create entry.";
+        const lower = msg.toLowerCase();
+        if (lower.includes("member") || lower.includes("name")) {
+          setErrors((prev) => ({ ...prev, members: msg }));
+        } else if (lower.includes("amount")) {
+          setErrors((prev) => ({ ...prev, amount: msg }));
+        } else {
+          setError(msg);
+        }
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      const msg = err.response?.data?.message || err.message || "Failed to create entry.";
+      const lower = msg.toLowerCase();
+      if (lower.includes("member") || lower.includes("name")) {
+        setErrors((prev) => ({ ...prev, members: msg }));
+      } else if (lower.includes("amount")) {
+        setErrors((prev) => ({ ...prev, amount: msg }));
+      } else {
+        setError(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -230,7 +246,9 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                   style: { textTransform: "capitalize" },
                 }}
                 helperText={
-                  errors.members
+                  typeof errors.members === "string"
+                    ? errors.members
+                    : errors.members
                     ? "Member name is required."
                     : "Select 1 or more members. If multiple are selected, amount will be split."
                 }
@@ -348,7 +366,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
             value={amount}
             inputRef={amountRef}
             error={Boolean(errors.amount)}
-            helperText={errors.amount ? "Please enter a valid amount" : ""}
+            helperText={typeof errors.amount === "string" ? errors.amount : (errors.amount ? "Please enter a valid amount." : "")}
             onChange={(e) => {
               setAmount(e.target.value);
               if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));

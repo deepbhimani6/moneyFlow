@@ -182,13 +182,16 @@ const ResetPasswordPage = () => {
       } else {
         setTokenValid(false);
         clearStoredResetSession();
-        setError(res.message || 'Password reset code is invalid or expired.');
+        const msg = res.message || 'Password reset code is invalid or expired.';
+        setErrors({ token: msg });
         if (tokenRef.current) tokenRef.current.focus();
       }
     } catch (err) {
       setTokenValid(false);
       clearStoredResetSession();
-      setError(err.message || 'Failed to verify reset code.');
+      const msg = err.response?.data?.message || err.message || 'Failed to verify reset code.';
+      setErrors({ token: msg });
+      if (tokenRef.current) tokenRef.current.focus();
     } finally {
       setVerifying(false);
     }
@@ -241,10 +244,14 @@ const ResetPasswordPage = () => {
         });
         return;
       } else {
-        setError(res.message || 'Failed to reset password.');
+        const msg = res.message || 'Failed to reset password.';
+        setErrors({ newPassword: msg });
+        if (newPasswordRef.current) newPasswordRef.current.focus();
       }
     } catch (err) {
-      setError(err.message || 'Failed to reset password.');
+      const msg = err.response?.data?.message || err.message || 'Failed to reset password.';
+      setErrors({ newPassword: msg });
+      if (newPasswordRef.current) newPasswordRef.current.focus();
     } finally {
       setLoading(false);
     }

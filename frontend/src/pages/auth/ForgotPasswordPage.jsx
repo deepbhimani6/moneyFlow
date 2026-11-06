@@ -61,10 +61,18 @@ const ForgotPasswordPage = () => {
           setDevToken(res.resetToken);
         }
       } else {
-        setError(res.message || 'Unable to process reset request.');
+        const msg = res.message || 'Unable to process reset request.';
+        setErrors({ email: msg });
+        if (emailRef.current) emailRef.current.focus();
       }
     } catch (err) {
-      setError(err.message || 'Unable to process reset request.');
+      const msg = err.response?.data?.message || err.message || 'Unable to process reset request.';
+      if (msg.toLowerCase().includes('email') || msg.toLowerCase().includes('account') || msg.toLowerCase().includes('address')) {
+        setErrors({ email: msg });
+        if (emailRef.current) emailRef.current.focus();
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }

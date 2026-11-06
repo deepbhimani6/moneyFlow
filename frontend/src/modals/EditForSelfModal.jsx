@@ -131,10 +131,26 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
         onEntryUpdated(res.message);
         onClose();
       } else {
-        setError(res.message || "Failed to update entry");
+        const msg = res.message || "Failed to update entry.";
+        const lower = msg.toLowerCase();
+        if (lower.includes("amount")) {
+          setErrors((prev) => ({ ...prev, amount: msg }));
+        } else if (lower.includes("type")) {
+          setErrors((prev) => ({ ...prev, type: msg }));
+        } else {
+          setError(msg);
+        }
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      const msg = err.response?.data?.message || err.message || "Failed to update entry.";
+      const lower = msg.toLowerCase();
+      if (lower.includes("amount")) {
+        setErrors((prev) => ({ ...prev, amount: msg }));
+      } else if (lower.includes("type")) {
+        setErrors((prev) => ({ ...prev, type: msg }));
+      } else {
+        setError(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -243,7 +259,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
                 value={amount}
                 inputRef={amountRef}
                 error={Boolean(errors.amount)}
-                helperText={errors.amount ? "Please enter a valid amount" : ""}
+                helperText={typeof errors.amount === "string" ? errors.amount : (errors.amount ? "Please enter a valid amount" : "")}
                 onChange={(e) => {
                   handlePerPersonChange(e.target.value);
                   if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
@@ -260,7 +276,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
               value={amount}
               inputRef={amountRef}
               error={Boolean(errors.amount)}
-              helperText={errors.amount ? "Please enter a valid amount" : ""}
+              helperText={typeof errors.amount === "string" ? errors.amount : (errors.amount ? "Please enter a valid amount" : "")}
               onChange={(e) => {
                 const val = e.target.value;
                 if (val === "" || /^[0-9]+$/.test(val)) {

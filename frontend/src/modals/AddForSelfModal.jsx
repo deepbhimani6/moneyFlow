@@ -80,10 +80,26 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
         onEntryCreated();
         onClose();
       } else {
-        setError(res.message || "Failed to create For Self entry");
+        const msg = res.message || "Failed to create For Self entry.";
+        const lower = msg.toLowerCase();
+        if (lower.includes("amount")) {
+          setErrors((prev) => ({ ...prev, amount: msg }));
+        } else if (lower.includes("type")) {
+          setErrors((prev) => ({ ...prev, type: msg }));
+        } else {
+          setError(msg);
+        }
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      const msg = err.response?.data?.message || err.message || "Failed to create For Self entry.";
+      const lower = msg.toLowerCase();
+      if (lower.includes("amount")) {
+        setErrors((prev) => ({ ...prev, amount: msg }));
+      } else if (lower.includes("type")) {
+        setErrors((prev) => ({ ...prev, type: msg }));
+      } else {
+        setError(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -125,7 +141,7 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
             value={amount}
             inputRef={amountRef}
             error={Boolean(errors.amount)}
-            helperText={errors.amount ? "Please enter a valid amount" : ""}
+            helperText={typeof errors.amount === "string" ? errors.amount : (errors.amount ? "Please enter a valid amount." : "")}
             onChange={(e) => {
               const val = e.target.value;
               if (val === "" || /^[0-9]+$/.test(val)) {

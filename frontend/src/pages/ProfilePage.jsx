@@ -49,6 +49,7 @@ const ProfilePage = () => {
   });
 
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState({});
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: '',
@@ -78,6 +79,9 @@ const ProfilePage = () => {
       ...prev,
       [field]: finalVal,
     }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: '' }));
+    }
   };
 
   const handleBlur = (field) => {
@@ -91,14 +95,23 @@ const ProfilePage = () => {
 
   const handleSave = async (e) => {
     if (e) e.preventDefault();
+    setErrors({});
 
     const formattedFullName = capitalizeName(formData.fullName);
+    const newErrors = {};
     if (!formattedFullName) {
-      setSnackbar({
-        open: true,
-        message: 'Full name is required.',
-        severity: 'error',
-      });
+      newErrors.fullName = 'Full name is required.';
+    }
+
+    if (formData.email && formData.email.trim()) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email.trim())) {
+        newErrors.email = 'Please enter a valid email address.';
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -115,18 +128,42 @@ const ProfilePage = () => {
           severity: 'success',
         });
       } else {
+        const msg = res.message || 'Failed to update profile.';
+        const lower = msg.toLowerCase();
+        if (lower.includes('email')) {
+          setErrors({ email: msg });
+        } else if (lower.includes('username')) {
+          setErrors({ username: msg });
+        } else if (lower.includes('name')) {
+          setErrors({ fullName: msg });
+        } else if (lower.includes('phone') || lower.includes('mobile')) {
+          setErrors({ phoneNumber: msg });
+        } else {
+          setSnackbar({
+            open: true,
+            message: msg,
+            severity: 'error',
+          });
+        }
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || err.message || 'Error updating profile.';
+      const lower = msg.toLowerCase();
+      if (lower.includes('email')) {
+        setErrors({ email: msg });
+      } else if (lower.includes('username')) {
+        setErrors({ username: msg });
+      } else if (lower.includes('name')) {
+        setErrors({ fullName: msg });
+      } else if (lower.includes('phone') || lower.includes('mobile')) {
+        setErrors({ phoneNumber: msg });
+      } else {
         setSnackbar({
           open: true,
-          message: res.message || 'Failed to update profile.',
+          message: msg,
           severity: 'error',
         });
       }
-    } catch (err) {
-      setSnackbar({
-        open: true,
-        message: err.message || 'Error updating profile.',
-        severity: 'error',
-      });
     } finally {
       setSaving(false);
     }
@@ -227,6 +264,8 @@ const ProfilePage = () => {
                   label="Full Name"
                   required
                   value={formData.fullName}
+                  error={Boolean(errors.fullName)}
+                  helperText={errors.fullName || ''}
                   onChange={(e) => handleChange('fullName', e.target.value)}
                   onBlur={() => handleBlur('fullName')}
                   inputProps={{ style: { textTransform: 'capitalize' } }}
@@ -240,6 +279,8 @@ const ProfilePage = () => {
                   fullWidth
                   label="Username"
                   value={formData.username}
+                  error={Boolean(errors.username)}
+                  helperText={errors.username || ''}
                   onChange={(e) => handleChange('username', e.target.value)}
                   placeholder="e.g. johndoe"
                 />
@@ -252,6 +293,8 @@ const ProfilePage = () => {
                   type="email"
                   label="Email Address"
                   value={formData.email}
+                  error={Boolean(errors.email)}
+                  helperText={errors.email || ''}
                   onChange={(e) => handleChange('email', e.target.value)}
                   placeholder="e.g. john@example.com"
                 />
@@ -263,6 +306,8 @@ const ProfilePage = () => {
                   fullWidth
                   label="Phone Number"
                   value={formData.phoneNumber}
+                  error={Boolean(errors.phoneNumber)}
+                  helperText={errors.phoneNumber || ''}
                   onChange={(e) => handleChange('phoneNumber', e.target.value)}
                   placeholder="e.g. +91 9876543210"
                 />

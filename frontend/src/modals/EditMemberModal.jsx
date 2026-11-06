@@ -92,10 +92,42 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
         onMemberUpdated(res.data);
         onClose();
       } else {
-        setError(res.message || 'Failed to update member.');
+        const msg = res.message || 'Failed to update member.';
+        const lower = msg.toLowerCase();
+        if (lower.includes('email')) {
+          setErrors((prev) => ({ ...prev, email: msg }));
+          if (emailRef.current) emailRef.current.focus();
+        } else if (lower.includes('name')) {
+          setErrors((prev) => ({ ...prev, fullName: msg }));
+          if (fullNameRef.current) fullNameRef.current.focus();
+        } else if (lower.includes('username')) {
+          setErrors((prev) => ({ ...prev, username: msg }));
+        } else if (lower.includes('phone') || lower.includes('mobile')) {
+          setErrors((prev) => ({ ...prev, phoneNumber: msg }));
+        } else if (lower.includes('password')) {
+          setErrors((prev) => ({ ...prev, password: msg }));
+        } else {
+          setError(msg);
+        }
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      const msg = err.response?.data?.message || err.message || 'Failed to update member.';
+      const lower = msg.toLowerCase();
+      if (lower.includes('email')) {
+        setErrors((prev) => ({ ...prev, email: msg }));
+        if (emailRef.current) emailRef.current.focus();
+      } else if (lower.includes('name')) {
+        setErrors((prev) => ({ ...prev, fullName: msg }));
+        if (fullNameRef.current) fullNameRef.current.focus();
+      } else if (lower.includes('username')) {
+        setErrors((prev) => ({ ...prev, username: msg }));
+      } else if (lower.includes('phone') || lower.includes('mobile')) {
+        setErrors((prev) => ({ ...prev, phoneNumber: msg }));
+      } else if (lower.includes('password')) {
+        setErrors((prev) => ({ ...prev, password: msg }));
+      } else {
+        setError(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -114,7 +146,7 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
             value={formData.fullName}
             inputRef={fullNameRef}
             error={Boolean(errors.fullName)}
-            helperText={errors.fullName ? 'Full name is required.' : ''}
+            helperText={typeof errors.fullName === 'string' ? errors.fullName : (errors.fullName ? 'Full name is required.' : '')}
             onChange={handleChange}
             onBlur={handleBlur}
             inputProps={{ style: { textTransform: 'capitalize' } }}
@@ -126,6 +158,8 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
             label="Phone Number"
             name="phoneNumber"
             value={formData.phoneNumber}
+            error={Boolean(errors.phoneNumber)}
+            helperText={errors.phoneNumber || ''}
             onChange={handleChange}
             fullWidth
           />
@@ -137,7 +171,7 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
             value={formData.email}
             inputRef={emailRef}
             error={Boolean(errors.email)}
-            helperText={errors.email ? 'Please enter a valid email address.' : ''}
+            helperText={typeof errors.email === 'string' ? errors.email : (errors.email ? 'Please enter a valid email address.' : '')}
             onChange={handleChange}
             fullWidth
             required
@@ -147,6 +181,8 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
             label="Username"
             name="username"
             value={formData.username}
+            error={Boolean(errors.username)}
+            helperText={errors.username || ''}
             onChange={handleChange}
             fullWidth
           />
@@ -156,6 +192,8 @@ const EditMemberModal = ({ open, onClose, member, onMemberUpdated }) => {
             name="password"
             type="password"
             value={formData.password}
+            error={Boolean(errors.password)}
+            helperText={errors.password || ''}
             onChange={handleChange}
             fullWidth
           />

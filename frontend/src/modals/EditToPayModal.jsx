@@ -138,10 +138,26 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
         onEntryUpdated(res.message || "To Pay entry updated successfully");
         onClose();
       } else {
-        setError(res.message || "Failed to update entry");
+        const msg = res.message || "Failed to update entry.";
+        const lower = msg.toLowerCase();
+        if (lower.includes("amount")) {
+          setErrors((prev) => ({ ...prev, amount: msg }));
+        } else if (lower.includes("member") || lower.includes("name")) {
+          setErrors((prev) => ({ ...prev, forFromName: msg }));
+        } else {
+          setError(msg);
+        }
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message);
+      const msg = err.response?.data?.message || err.message || "Failed to update entry.";
+      const lower = msg.toLowerCase();
+      if (lower.includes("amount")) {
+        setErrors((prev) => ({ ...prev, amount: msg }));
+      } else if (lower.includes("member") || lower.includes("name")) {
+        setErrors((prev) => ({ ...prev, forFromName: msg }));
+      } else {
+        setError(msg);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -275,7 +291,7 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
                 value={amount}
                 inputRef={amountRef}
                 error={Boolean(errors.amount)}
-                helperText={errors.amount ? "Please enter a valid amount" : ""}
+                helperText={typeof errors.amount === "string" ? errors.amount : (errors.amount ? "Please enter a valid amount" : "")}
                 onChange={(e) => {
                   handlePerPersonChange(e.target.value);
                   if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));
@@ -292,7 +308,7 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
               value={amount}
               inputRef={amountRef}
               error={Boolean(errors.amount)}
-              helperText={errors.amount ? "Please enter a valid amount" : ""}
+              helperText={typeof errors.amount === "string" ? errors.amount : (errors.amount ? "Please enter a valid amount" : "")}
               onChange={(e) => {
                 setAmount(e.target.value);
                 if (errors.amount) setErrors((prev) => ({ ...prev, amount: false }));

@@ -96,10 +96,18 @@ const LoginPage = () => {
           navigate(origin, { replace: true });
         }, 400);
       } else {
-        setError(res.message || 'Invalid email/username or password.');
+        const msg = res.message || 'Invalid email/username or password.';
+        setErrors({ identifier: msg, password: msg });
+        if (identifierRef.current) identifierRef.current.focus();
       }
     } catch (err) {
-      setError(err.message || 'Unable to sign in. Please try again.');
+      const msg = err.response?.data?.message || err.message || 'Unable to sign in. Please try again.';
+      if (msg.toLowerCase().includes('password') || msg.toLowerCase().includes('email') || msg.toLowerCase().includes('username') || msg.toLowerCase().includes('credential')) {
+        setErrors({ identifier: msg, password: msg });
+        if (identifierRef.current) identifierRef.current.focus();
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
