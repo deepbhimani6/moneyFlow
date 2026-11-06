@@ -1,29 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import {
-  Box,
-  Typography,
-  Button,
-  Paper,
-  Chip,
-  Avatar,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
-  TableContainer,
-  TablePagination,
-  Stack,
-  CircularProgress,
-  TextField,
-  InputAdornment,
-  Card,
-  CardContent,
-  Breadcrumbs,
-  Link,
-  Divider,
-} from "@mui/material";
+import { Box, Typography, Button, Paper, Chip, Avatar, Table, TableHead, TableBody, TableRow, TableCell, TableContainer, TablePagination, Stack, CircularProgress, TextField, InputAdornment, Card, CardContent, Breadcrumbs, Link, Divider } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SearchIcon from "@mui/icons-material/Search";
 import CallReceivedIcon from "@mui/icons-material/CallReceived";
@@ -103,13 +80,7 @@ const MemberDetailPage = () => {
         const amt = String(e.amount);
         const date = (e.date || "").toLowerCase();
         const creator = (e.creatorName || "").toLowerCase();
-        if (
-          !desc.includes(q) &&
-          !type.includes(q) &&
-          !amt.includes(q) &&
-          !date.includes(q) &&
-          !creator.includes(q)
-        ) {
+        if (!desc.includes(q) && !type.includes(q) && !amt.includes(q) && !date.includes(q) && !creator.includes(q)) {
           return false;
         }
       }
@@ -153,12 +124,7 @@ const MemberDetailPage = () => {
       {/* 1. Header & Navigation */}
       <Box sx={{ mb: 2.5 }}>
         <Breadcrumbs sx={{ mb: 1, fontSize: "0.85rem" }}>
-          <Link
-            underline="hover"
-            color="inherit"
-            onClick={() => navigate("/members")}
-            sx={{ cursor: "pointer", display: "flex", alignItems: "center" }}
-          >
+          <Link underline="hover" color="inherit" onClick={() => navigate("/members")} sx={{ cursor: "pointer", display: "flex", alignItems: "center" }}>
             Members
           </Link>
           <Typography color="text.primary" sx={{ fontWeight: 600 }}>
@@ -167,29 +133,11 @@ const MemberDetailPage = () => {
         </Breadcrumbs>
 
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1.5 }}>
-          <Button
-            startIcon={<ArrowBackIcon />}
-            onClick={() => navigate("/members")}
-            variant="outlined"
-            size="small"
-            sx={{ textTransform: "none", borderRadius: 2 }}
-          >
+          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/members")} variant="outlined" size="small" sx={{ textTransform: "none", borderRadius: 2 }}>
             Back to Members
           </Button>
 
-          {member.hasJoined ? (
-            <Chip
-              icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />}
-              label="Joined Member"
-              color="success"
-              size="small"
-              sx={{ fontWeight: 600 }}
-            />
-          ) : member.inviteSent ? (
-            <Chip label="Invite Sent" color="primary" variant="outlined" size="small" sx={{ fontWeight: 600 }} />
-          ) : (
-            <Chip label="Pending Registration" size="small" variant="outlined" />
-          )}
+          {member.hasJoined ? <Chip icon={<CheckCircleOutlineIcon sx={{ "&&": { fontSize: 16 } }} />} label="Joined Member" color="success" size="small" sx={{ fontWeight: 600 }} /> : member.inviteSent ? <Chip label="Invite Sent" color="primary" variant="outlined" size="small" sx={{ fontWeight: 600 }} /> : <Chip label="Pending Registration" size="small" variant="outlined" />}
         </Box>
       </Box>
 
@@ -271,7 +219,7 @@ const MemberDetailPage = () => {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: "#0284c7", textTransform: "uppercase", fontSize: "0.72rem" }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: "#0284c7", fontSize: "0.72rem" }}>
                 Pending Receive
               </Typography>
               <Box sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: "rgba(2, 132, 199, 0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -300,7 +248,7 @@ const MemberDetailPage = () => {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: "#ea580c", textTransform: "uppercase", fontSize: "0.72rem" }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: "#ea580c", fontSize: "0.72rem" }}>
                 Pending Pay
               </Typography>
               <Box sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: "rgba(234, 88, 12, 0.15)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -320,19 +268,8 @@ const MemberDetailPage = () => {
             elevation={0}
             sx={{
               borderRadius: 3,
-              border: `1px solid ${
-                stats.pendingReceiveAmount > stats.pendingPayAmount
-                  ? "#bbf7d0"
-                  : stats.pendingPayAmount > stats.pendingReceiveAmount
-                  ? "#fed7aa"
-                  : "#e2e8f0"
-              }`,
-              bgcolor:
-                stats.pendingReceiveAmount > stats.pendingPayAmount
-                  ? "#f0fdf4"
-                  : stats.pendingPayAmount > stats.pendingReceiveAmount
-                  ? "#fff7ed"
-                  : "#ffffff",
+              border: `1px solid ${stats.pendingReceiveAmount > stats.pendingPayAmount ? "#bbf7d0" : stats.pendingPayAmount > stats.pendingReceiveAmount ? "#fed7aa" : "#e2e8f0"}`,
+              bgcolor: stats.pendingReceiveAmount > stats.pendingPayAmount ? "#f0fdf4" : stats.pendingPayAmount > stats.pendingReceiveAmount ? "#fff7ed" : "#ffffff",
               p: 1.5,
               display: "flex",
               flexDirection: "column",
@@ -344,33 +281,18 @@ const MemberDetailPage = () => {
                 variant="caption"
                 sx={{
                   fontWeight: 700,
-                  color:
-                    stats.pendingReceiveAmount > stats.pendingPayAmount
-                      ? "#16a34a"
-                      : stats.pendingPayAmount > stats.pendingReceiveAmount
-                      ? "#ea580c"
-                      : "#475569",
-                  textTransform: "uppercase",
+                  color: stats.pendingReceiveAmount > stats.pendingPayAmount ? "#16a34a" : stats.pendingPayAmount > stats.pendingReceiveAmount ? "#ea580c" : "#475569",
                   fontSize: "0.72rem",
                 }}
               >
-                {stats.pendingReceiveAmount > stats.pendingPayAmount
-                  ? "Final Receive"
-                  : stats.pendingPayAmount > stats.pendingReceiveAmount
-                  ? "Final Pay"
-                  : "Final Receive"}
+                {stats.pendingReceiveAmount > stats.pendingPayAmount ? "Final Receive" : stats.pendingPayAmount > stats.pendingReceiveAmount ? "Final Pay" : "Final Receive"}
               </Typography>
               <Box
                 sx={{
                   width: 28,
                   height: 28,
                   borderRadius: "50%",
-                  bgcolor:
-                    stats.pendingReceiveAmount > stats.pendingPayAmount
-                      ? "rgba(22, 163, 74, 0.15)"
-                      : stats.pendingPayAmount > stats.pendingReceiveAmount
-                      ? "rgba(234, 88, 12, 0.15)"
-                      : "rgba(71, 85, 105, 0.12)",
+                  bgcolor: stats.pendingReceiveAmount > stats.pendingPayAmount ? "rgba(22, 163, 74, 0.15)" : stats.pendingPayAmount > stats.pendingReceiveAmount ? "rgba(234, 88, 12, 0.15)" : "rgba(71, 85, 105, 0.12)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -379,12 +301,7 @@ const MemberDetailPage = () => {
                 <AccountBalanceWalletIcon
                   sx={{
                     fontSize: 16,
-                    color:
-                      stats.pendingReceiveAmount > stats.pendingPayAmount
-                        ? "#16a34a"
-                        : stats.pendingPayAmount > stats.pendingReceiveAmount
-                        ? "#ea580c"
-                        : "#475569",
+                    color: stats.pendingReceiveAmount > stats.pendingPayAmount ? "#16a34a" : stats.pendingPayAmount > stats.pendingReceiveAmount ? "#ea580c" : "#475569",
                   }}
                 />
               </Box>
@@ -393,23 +310,14 @@ const MemberDetailPage = () => {
               variant="h6"
               sx={{
                 fontWeight: 800,
-                color:
-                  stats.pendingReceiveAmount > stats.pendingPayAmount
-                    ? "#16a34a"
-                    : stats.pendingPayAmount > stats.pendingReceiveAmount
-                    ? "#ea580c"
-                    : "#475569",
+                color: stats.pendingReceiveAmount > stats.pendingPayAmount ? "#16a34a" : stats.pendingPayAmount > stats.pendingReceiveAmount ? "#ea580c" : "#475569",
                 fontSize: { xs: "1.15rem", sm: "1.3rem" },
               }}
             >
               ₹ {formatAmount(Math.abs(stats.pendingReceiveAmount - stats.pendingPayAmount))}
             </Typography>
             <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.7rem", mt: 0.25 }}>
-              {stats.pendingReceiveAmount > stats.pendingPayAmount
-                ? "You will receive"
-                : stats.pendingPayAmount > stats.pendingReceiveAmount
-                ? "You will pay"
-                : "All settled"}
+              {stats.pendingReceiveAmount > stats.pendingPayAmount ? "You will receive" : stats.pendingPayAmount > stats.pendingReceiveAmount ? "You will pay" : "All settled"}
             </Typography>
           </Card>
 
@@ -427,7 +335,7 @@ const MemberDetailPage = () => {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: "#475569", textTransform: "uppercase", fontSize: "0.72rem" }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: "#475569", fontSize: "0.72rem" }}>
                 Total Received
               </Typography>
               <Box sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: "rgba(22, 163, 74, 0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -457,7 +365,7 @@ const MemberDetailPage = () => {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: "#475569", textTransform: "uppercase", fontSize: "0.72rem" }}>
+              <Typography variant="caption" sx={{ fontWeight: 700, color: "#475569", fontSize: "0.72rem" }}>
                 Total Paid
               </Typography>
               <Box sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: "rgba(100, 116, 139, 0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -489,7 +397,10 @@ const MemberDetailPage = () => {
               <Button
                 size="small"
                 variant={directionFilter === "all" ? "contained" : "outlined"}
-                onClick={() => { setDirectionFilter("all"); setPage(0); }}
+                onClick={() => {
+                  setDirectionFilter("all");
+                  setPage(0);
+                }}
                 sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
               >
                 All Entries ({stats.totalEntries})
@@ -497,7 +408,10 @@ const MemberDetailPage = () => {
               <Button
                 size="small"
                 variant={directionFilter === "receive" ? "contained" : "outlined"}
-                onClick={() => { setDirectionFilter("receive"); setPage(0); }}
+                onClick={() => {
+                  setDirectionFilter("receive");
+                  setPage(0);
+                }}
                 sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
               >
                 To Receive ({stats.receiveEntriesCount})
@@ -505,7 +419,10 @@ const MemberDetailPage = () => {
               <Button
                 size="small"
                 variant={directionFilter === "pay" ? "contained" : "outlined"}
-                onClick={() => { setDirectionFilter("pay"); setPage(0); }}
+                onClick={() => {
+                  setDirectionFilter("pay");
+                  setPage(0);
+                }}
                 sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
               >
                 To Pay ({stats.payEntriesCount})
@@ -516,7 +433,10 @@ const MemberDetailPage = () => {
               <Button
                 size="small"
                 variant={statusFilter === "all" ? "text" : "outlined"}
-                onClick={() => { setStatusFilter(statusFilter === "Pending" ? "all" : "Pending"); setPage(0); }}
+                onClick={() => {
+                  setStatusFilter(statusFilter === "Pending" ? "all" : "Pending");
+                  setPage(0);
+                }}
                 color={statusFilter === "Pending" ? "warning" : "inherit"}
                 sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
               >
@@ -525,7 +445,10 @@ const MemberDetailPage = () => {
               <Button
                 size="small"
                 variant={statusFilter === "Settled" ? "contained" : "text"}
-                onClick={() => { setStatusFilter(statusFilter === "Settled" ? "all" : "Settled"); setPage(0); }}
+                onClick={() => {
+                  setStatusFilter(statusFilter === "Settled" ? "all" : "Settled");
+                  setPage(0);
+                }}
                 color={statusFilter === "Settled" ? "success" : "inherit"}
                 sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
               >
@@ -538,7 +461,10 @@ const MemberDetailPage = () => {
               size="small"
               placeholder="Search transactions..."
               value={searchQuery}
-              onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(0);
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -590,35 +516,12 @@ const MemberDetailPage = () => {
                     >
                       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                          <Chip
-                            label={entry.direction}
-                            size="small"
-                            color={isReceive ? "primary" : "warning"}
-                            sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700 }}
-                          />
-                          <Chip
-                            label={entry.type}
-                            size="small"
-                            variant="outlined"
-                            sx={{ height: 22, fontSize: "0.7rem" }}
-                          />
-                          {entry.isSplit && (
-                            <Chip
-                              icon={<CallSplitIcon sx={{ "&&": { fontSize: 13 } }} />}
-                              label="Split"
-                              size="small"
-                              sx={{ height: 22, fontSize: "0.68rem" }}
-                            />
-                          )}
+                          <Chip label={entry.direction} size="small" color={isReceive ? "primary" : "warning"} sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700 }} />
+                          <Chip label={entry.type} size="small" variant="outlined" sx={{ height: 22, fontSize: "0.7rem" }} />
+                          {entry.isSplit && <Chip icon={<CallSplitIcon sx={{ "&&": { fontSize: 13 } }} />} label="Split" size="small" sx={{ height: 22, fontSize: "0.68rem" }} />}
                         </Box>
 
-                        <Chip
-                          label={entry.paymentStatus}
-                          size="small"
-                          color={isPending ? "warning" : "success"}
-                          variant={isPending ? "outlined" : "filled"}
-                          sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700 }}
-                        />
+                        <Chip label={entry.paymentStatus} size="small" color={isPending ? "warning" : "success"} variant={isPending ? "outlined" : "filled"} sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700 }} />
                       </Box>
 
                       <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", my: 1 }}>
@@ -667,7 +570,9 @@ const MemberDetailPage = () => {
                     <TableCell sx={{ fontWeight: 600, color: "#475467" }}>Creator / Source</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: "#475467" }}>Description</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: "#475467" }}>Status</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600, color: "#475467" }}>Amount</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, color: "#475467" }}>
+                      Amount
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -689,26 +594,14 @@ const MemberDetailPage = () => {
                       return (
                         <TableRow key={entry._id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                           <TableCell>
-                            <Chip
-                              label={entry.direction}
-                              size="small"
-                              color={isReceive ? "primary" : "warning"}
-                              sx={{ height: 24, fontSize: "0.75rem", fontWeight: 700 }}
-                            />
+                            <Chip label={entry.direction} size="small" color={isReceive ? "primary" : "warning"} sx={{ height: 24, fontSize: "0.75rem", fontWeight: 700 }} />
                           </TableCell>
                           <TableCell>
                             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                 {entry.type}
                               </Typography>
-                              {entry.isSplit && (
-                                <Chip
-                                  icon={<CallSplitIcon sx={{ "&&": { fontSize: 13 } }} />}
-                                  label="Split"
-                                  size="small"
-                                  sx={{ height: 20, fontSize: "0.68rem" }}
-                                />
-                              )}
+                              {entry.isSplit && <Chip icon={<CallSplitIcon sx={{ "&&": { fontSize: 13 } }} />} label="Split" size="small" sx={{ height: 20, fontSize: "0.68rem" }} />}
                             </Box>
                           </TableCell>
                           <TableCell sx={{ whiteSpace: "nowrap" }}>
@@ -739,13 +632,7 @@ const MemberDetailPage = () => {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Chip
-                              label={entry.paymentStatus}
-                              size="small"
-                              color={isPending ? "warning" : "success"}
-                              variant={isPending ? "outlined" : "filled"}
-                              sx={{ height: 22, fontSize: "0.72rem", fontWeight: 700 }}
-                            />
+                            <Chip label={entry.paymentStatus} size="small" color={isPending ? "warning" : "success"} variant={isPending ? "outlined" : "filled"} sx={{ height: 22, fontSize: "0.72rem", fontWeight: 700 }} />
                           </TableCell>
                           <TableCell align="right">
                             <Typography
@@ -767,16 +654,7 @@ const MemberDetailPage = () => {
             </TableContainer>
           </Box>
 
-          <TablePagination
-            component="div"
-            count={filteredEntries.length}
-            page={page}
-            onPageChange={handleChangePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            rowsPerPageOptions={[5, 10, 25, 50]}
-            sx={{ borderTop: "1px solid #e2e8f0" }}
-          />
+          <TablePagination component="div" count={filteredEntries.length} page={page} onPageChange={handleChangePage} rowsPerPage={rowsPerPage} onRowsPerPageChange={handleChangeRowsPerPage} rowsPerPageOptions={[5, 10, 25, 50]} sx={{ borderTop: "1px solid #e2e8f0" }} />
         </Paper>
       </Stack>
     </Box>
