@@ -309,15 +309,6 @@ const bulkUpdateStatusForSelf = async (req, res) => {
   }
 };
 
-    res.json({
-      success: true,
-      message: `Updated status for ${result.modifiedCount} entries to ${paymentStatus}.`,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 module.exports = {
   getForSelfEntries,
   createForSelfEntry,

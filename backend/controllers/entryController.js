@@ -422,14 +422,6 @@ const bulkDeleteEntries = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-    res.json({
-      success: true,
-      message: `${result.deletedCount} entries deleted.`,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
 
 module.exports = {
   getEntries,

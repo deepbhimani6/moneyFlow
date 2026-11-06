@@ -97,8 +97,13 @@ const LoginPage = () => {
         }, 400);
       } else {
         const msg = res.message || 'Invalid email/username or password.';
-        setErrors({ identifier: msg, password: msg });
-        if (identifierRef.current) identifierRef.current.focus();
+        const lower = msg.toLowerCase();
+        if (lower.includes('invalid') || lower.includes('password') || lower.includes('email') || lower.includes('username') || lower.includes('credential')) {
+          setErrors({ identifier: msg, password: msg });
+          if (identifierRef.current) identifierRef.current.focus();
+        } else {
+          setError(msg);
+        }
       }
     } catch (err) {
       const msg = err.response?.data?.message || err.message || 'Unable to sign in. Please try again.';
