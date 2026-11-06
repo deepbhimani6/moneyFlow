@@ -10,18 +10,27 @@ import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import CallReceivedIcon from '@mui/icons-material/CallReceived';
 import PaymentIcon from '@mui/icons-material/Payment';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
-
-const navItems = [
-  { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
-  { label: 'For Self', path: '/for-self', icon: <AccountCircleIcon /> },
-  { label: 'Receive', path: '/to-receive', icon: <CallReceivedIcon /> },
-  { label: 'Pay', path: '/to-pay', icon: <PaymentIcon /> },
-  { label: 'Members', path: '/members', icon: <PeopleAltIcon /> },
-];
+import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import { useProfile } from '../context/ProfileContext';
+import { useAuth } from '../context/AuthContext';
 
 const MobileBottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { profile } = useProfile();
+  const { user } = useAuth();
+
+  const currentEmail = (profile?.email || user?.email || '').toLowerCase().trim();
+  const isAdmin = currentEmail === 'deepbhimani6@gmail.com' || profile?.role === 'Admin' || user?.role === 'Admin';
+
+  const navItems = [
+    { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
+    { label: 'For Self', path: '/for-self', icon: <AccountCircleIcon /> },
+    { label: 'Receive', path: '/to-receive', icon: <CallReceivedIcon /> },
+    { label: 'Pay', path: '/to-pay', icon: <PaymentIcon /> },
+    { label: 'Members', path: '/members', icon: <PeopleAltIcon /> },
+    ...(isAdmin ? [{ label: 'Users', path: '/users', icon: <ManageAccountsIcon /> }] : []),
+  ];
 
   const getActiveIndex = () => {
     const current = location.pathname;
@@ -62,7 +71,7 @@ const MobileBottomNav = () => {
           backgroundColor: 'transparent',
           '& .MuiBottomNavigationAction-root': {
             minWidth: 0,
-            padding: '6px 0',
+            padding: '4px 1px',
             color: '#64748b',
             transition: 'all 0.15s ease',
             '&.Mui-selected': {
@@ -74,12 +83,13 @@ const MobileBottomNav = () => {
             },
           },
           '& .MuiBottomNavigationAction-label': {
-            fontSize: '0.72rem !important',
+            fontSize: '0.68rem !important',
             fontWeight: 600,
             mt: 0.25,
+            whiteSpace: 'nowrap',
           },
           '& .MuiSvgIcon-root': {
-            fontSize: 22,
+            fontSize: 21,
             transition: 'transform 0.15s ease',
           },
         }}
