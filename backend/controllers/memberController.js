@@ -83,20 +83,48 @@ const getMembers = async (req, res) => {
 
     const members = await Member.find({ $and: andConditions }).sort({ createdAt: -1 });
     const customNames = currentUser && currentUser.memberCustomNames ? currentUser.memberCustomNames : null;
+    const inviteDates = currentUser && currentUser.memberInviteDates ? currentUser.memberInviteDates : null;
+    const currentUserIdStr = currentUserId.toString();
 
     const formattedMembers = members.map((m) => {
       const mObj = m.toObject ? m.toObject() : { ...m };
+      const mIdStr = m._id.toString();
+
+      // 1. Name preservation: caller's custom member name ("without only name")
       let customName = null;
       if (customNames) {
         customName = typeof customNames.get === 'function'
-          ? customNames.get(m._id.toString())
-          : customNames[m._id.toString()];
+          ? customNames.get(mIdStr)
+          : customNames[mIdStr];
       }
       if (customName) {
         mObj.fullName = capitalizeName(customName);
       } else {
         mObj.fullName = capitalizeName(mObj.fullName);
       }
+
+      // 2. Invite Sent Date: only show if the CURRENT USER actually invited this member
+      let callerInviteDate = null;
+      if (inviteDates) {
+        callerInviteDate = typeof inviteDates.get === 'function'
+          ? inviteDates.get(mIdStr)
+          : inviteDates[mIdStr];
+      }
+
+      const wasInvitedByCaller = Boolean(m.invitedBy && m.invitedBy.toString() === currentUserIdStr);
+
+      if (callerInviteDate) {
+        mObj.lastInviteSentAt = callerInviteDate;
+        mObj.inviteSent = true;
+      } else if (wasInvitedByCaller && m.lastInviteSentAt) {
+        mObj.lastInviteSentAt = m.lastInviteSentAt;
+        mObj.inviteSent = Boolean(m.inviteSent);
+      } else {
+        // Current user did NOT send an invite to this member -> do not show invite sent date
+        mObj.lastInviteSentAt = null;
+        mObj.inviteSent = false;
+      }
+
       return mObj;
     });
 
@@ -238,11 +266,15 @@ const createMember = async (req, res) => {
       if (currentUser) {
         if (!currentUser.members) currentUser.members = [];
         if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
+        if (!currentUser.memberInviteDates) currentUser.memberInviteDates = new Map();
         const newIdStr = member._id.toString();
         if (!currentUser.members.some((id) => String(id) === newIdStr)) {
           currentUser.members.push(member._id);
         }
         currentUser.memberCustomNames.set(newIdStr, formattedFullName);
+        if (sendLink && member.lastInviteSentAt) {
+          currentUser.memberInviteDates.set(newIdStr, member.lastInviteSentAt);
+        }
         await currentUser.save();
       }
     }
@@ -528,9 +560,18 @@ const sendInviteToMember = async (req, res) => {
       return res.status(500).json({ success: false, message: `Email failed: ${emailResult.error}` });
     }
 
+    const inviteDate = new Date();
     member.inviteSent = true;
-    member.lastInviteSentAt = new Date();
+    member.lastInviteSentAt = inviteDate;
+    member.invitedBy = req.user._id;
     await member.save();
+
+    const currentUser = await Member.findById(req.user._id);
+    if (currentUser) {
+      if (!currentUser.memberInviteDates) currentUser.memberInviteDates = new Map();
+      currentUser.memberInviteDates.set(member._id.toString(), inviteDate);
+      await currentUser.save();
+    }
 
     res.json({ success: true, message: `Invite sent to ${member.email}.` });
   } catch (error) {
@@ -574,6 +615,12 @@ const bulkInviteMembers = async (req, res) => {
     }
 
     // Send emails in parallel with concurrency control
+    const inviteDate = new Date();
+    const currentUser = await Member.findById(req.user._id);
+    if (currentUser && !currentUser.memberInviteDates) {
+      currentUser.memberInviteDates = new Map();
+    }
+
     const results = await Promise.allSettled(
       validMembers.map(async (member) => {
         let temporaryPassword = member.password;
@@ -592,15 +639,23 @@ const bulkInviteMembers = async (req, res) => {
         });
 
         if (emailResult.success) {
+          member.invitedBy = req.user._id;
           member.inviteSent = true;
-          member.lastInviteSentAt = new Date();
+          member.lastInviteSentAt = inviteDate;
           await member.save();
+          if (currentUser) {
+            currentUser.memberInviteDates.set(member._id.toString(), inviteDate);
+          }
           return { success: true, email: member.email };
         } else {
           throw new Error(emailResult.error || 'Failed to deliver email');
         }
       })
     );
+
+    if (currentUser) {
+      await currentUser.save();
+    }
 
     let sentCount = 0;
     let failedCount = 0;

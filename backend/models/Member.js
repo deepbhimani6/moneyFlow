@@ -102,6 +102,12 @@ const memberSchema = new mongoose.Schema(
       of: String,
       default: {},
     },
+    // Invite sent dates recorded by this user for members in their directory
+    memberInviteDates: {
+      type: Map,
+      of: Date,
+      default: {},
+    },
   },
   { timestamps: true }
 );
