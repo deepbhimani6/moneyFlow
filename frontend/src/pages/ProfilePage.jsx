@@ -181,7 +181,7 @@ const ProfilePage = () => {
   };
 
   return (
-    <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 3, '2xl': 4 }, maxWidth: { xs: '100%', lg: 1024, xl: 1152, '2xl': 1280 }, mx: 'auto' }}>
+    <Box sx={{ p: { xs: 1.5, xsm: 2, sm: 2.5, md: 3, '2xl': 4 }, maxWidth: { xs: '100%', lg: 1024, xl: 1152, '2xl': 1280 }, mx: 'auto' }}>
       {/* Top Banner / Hero Card */}
       <Card
         sx={{

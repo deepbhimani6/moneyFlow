@@ -3,7 +3,8 @@ import { createTheme } from '@mui/material/styles';
 const theme = createTheme({
   breakpoints: {
     values: {
-      xs: 448,
+      xs: 0,
+      xsm: 448,
       sm: 576,
       md: 768,
       lg: 1024,
@@ -153,21 +154,5 @@ const theme = createTheme({
     },
   },
 });
-
-// Ensure base mobile-first rules start at 0px while retaining xs: 448px value & down('xs') query
-const originalUp = theme.breakpoints.up;
-theme.breakpoints.up = (key) => {
-  if (key === 'xs') return '@media (min-width:0px)';
-  return originalUp(key);
-};
-
-const originalBetween = theme.breakpoints.between;
-theme.breakpoints.between = (start, end) => {
-  if (start === 'xs') {
-    const endVal = theme.breakpoints.values[end] !== undefined ? theme.breakpoints.values[end] : end;
-    return `@media (min-width:0px) and (max-width:${endVal - 0.05}px)`;
-  }
-  return originalBetween(start, end);
-};
 
 export default theme;

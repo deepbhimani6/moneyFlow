@@ -116,7 +116,7 @@ const DashboardPage = () => {
   ];
 
   return (
-    <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 3, '2xl': 3.5 } }}>
+    <Box sx={{ p: { xs: 1.5, xsm: 2, sm: 2.5, md: 3, '2xl': 3.5 } }}>
       {/* Top Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
