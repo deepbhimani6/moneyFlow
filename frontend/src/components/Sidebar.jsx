@@ -50,7 +50,17 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
   const drawerContent = (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Box
-        sx={{ p: 2.5, display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}
+        sx={{
+          height: { xs: 56, sm: 64 },
+          minHeight: { xs: 56, sm: 64 },
+          boxSizing: 'border-box',
+          px: 2.5,
+          py: { xs: '9px', sm: '13px' },
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          cursor: 'pointer',
+        }}
         onClick={() => {
           navigate('/dashboard');
           if (onMobileClose) onMobileClose();
@@ -77,7 +87,7 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
         </Typography>
       </Box>
 
-      <Divider />
+      <Divider sx={{ borderColor: '#e2e8f0' }} />
 
       <List sx={{ px: 1.5, py: 2 }}>
         {menuItems.map((item) => {
