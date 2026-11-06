@@ -210,7 +210,7 @@ const ForSelfPage = () => {
   const isIndeterminate = selectedIds.length > 0 && selectedIds.length < entries.length;
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+    <Box sx={{ p: { xs: 1.5, sm: 2, md: 3, '2xl': 3.5 } }}>
       {/* Top Header & Actions */}
       <Box
         sx={{
@@ -218,8 +218,8 @@ const ForSelfPage = () => {
           flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
           alignItems: { xs: "flex-start", sm: "center" },
-          gap: 2,
-          mb: 3,
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2, sm: 3 },
         }}
       >
         <Typography variant="h5" sx={{ fontWeight: 700 }}>

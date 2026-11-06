@@ -66,7 +66,7 @@ const DashboardPage = () => {
       color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f',
       icon: <AccountBalanceWalletIcon sx={{ fontSize: 32, color: stats.totalBalance >= 0 ? '#1976d2' : '#d32f2f' }} />,
       subtitle: 'For Self (Add balance) - Total Expenses - To Receive (Split, Loan & Expense (Status: Pending)) - To Pay (Loan & Expense (Status: Paid))',
-      gridProps: { xs: 12, sm: 6, md: 6 },
+      gridProps: { xs: 12, sm: 6, md: 6, lg: 4, xl: 4, '2xl': 4 },
     },
     {
       id: 'expenses',
@@ -75,7 +75,7 @@ const DashboardPage = () => {
       color: '#d32f2f',
       icon: <TrendingDownIcon sx={{ fontSize: 32, color: '#d32f2f' }} />,
       subtitle: 'For Self (Expense, Split)',
-      gridProps: { xs: 12, sm: 6, md: 6 },
+      gridProps: { xs: 12, sm: 6, md: 6, lg: 4, xl: 4, '2xl': 4 },
     },
     {
       id: 'pending-receive-loans',
@@ -84,7 +84,7 @@ const DashboardPage = () => {
       color: '#7b1fa2',
       icon: <MonetizationOnIcon sx={{ fontSize: 32, color: '#7b1fa2' }} />,
       subtitle: 'To Receive (Type: Loan) (Status: Pending)',
-      gridProps: { xs: 12, sm: 6, md: 6 },
+      gridProps: { xs: 12, sm: 6, md: 6, lg: 4, xl: 4, '2xl': 4 },
     },
     {
       id: 'pending-receive-expenses',
@@ -93,7 +93,7 @@ const DashboardPage = () => {
       color: '#ed6c02',
       icon: <PendingActionsIcon sx={{ fontSize: 32, color: '#ed6c02' }} />,
       subtitle: 'To Receive (Type: Split, Expenses) (Status: Pending)',
-      gridProps: { xs: 12, sm: 6, md: 6 },
+      gridProps: { xs: 12, sm: 6, md: 6, lg: 4, xl: 4, '2xl': 4 },
     },
     {
       id: 'pending-pay-loans',
@@ -102,7 +102,7 @@ const DashboardPage = () => {
       color: '#c2185b',
       icon: <ReceiptLongIcon sx={{ fontSize: 32, color: '#c2185b' }} />,
       subtitle: 'To Pay (Type: Loan) (Status: Pending)',
-      gridProps: { xs: 12, sm: 6, md: 6 },
+      gridProps: { xs: 12, sm: 6, md: 6, lg: 4, xl: 4, '2xl': 4 },
     },
     {
       id: 'pending-pay-expenses',
@@ -111,12 +111,12 @@ const DashboardPage = () => {
       color: '#e65100',
       icon: <PriceCheckIcon sx={{ fontSize: 32, color: '#e65100' }} />,
       subtitle: 'To Pay (Type: Expenses) (Status: Pending)',
-      gridProps: { xs: 12, sm: 6, md: 6 },
+      gridProps: { xs: 12, sm: 6, md: 6, lg: 4, xl: 4, '2xl': 4 },
     },
   ];
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3 } }}>
+    <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 3, '2xl': 3.5 } }}>
       {/* Top Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Typography variant="h5" sx={{ fontWeight: 700 }}>
