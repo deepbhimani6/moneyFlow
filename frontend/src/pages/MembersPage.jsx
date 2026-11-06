@@ -513,11 +513,6 @@ const MembersPage = () => {
             Invite Members
           </Button>
 
-          {/* Bulk Actions Button */}
-          <Button variant="outlined" color="secondary" disabled={selectedIds.length === 0} onClick={(e) => setBulkAnchorEl(e.currentTarget)} size="small">
-            Bulk Actions ({selectedIds.length})
-          </Button>
-
           {/* Bulk Actions Menu */}
           <Menu anchorEl={bulkAnchorEl} open={Boolean(bulkAnchorEl)} onClose={() => setBulkAnchorEl(null)}>
             <MenuItem onClick={handleBulkSendInvites}>Send Invite Link</MenuItem>
@@ -568,9 +563,27 @@ const MembersPage = () => {
               </Typography>
             </Box>
             {selectedIds.length > 0 && (
-              <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main" }}>
-                {selectedIds.length} selected
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main" }}>
+                  {selectedIds.length} selected
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="secondary"
+                  onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+                  sx={{
+                    py: 0.25,
+                    px: 1,
+                    fontSize: "0.75rem",
+                    borderRadius: 1.5,
+                    textTransform: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Bulk Actions
+                </Button>
+              </Box>
             )}
           </Box>
 
@@ -627,7 +640,9 @@ const MembersPage = () => {
                     sx={{
                       p: { xs: 2, sm: 2.25 },
                       borderRadius: 3,
-                      border: isSelected ? "2px solid #1976d2" : "1px solid #e2e8f0",
+                      border: "1px solid #e2e8f0",
+                      outline: isSelected ? "2px solid #1976d2" : "none",
+                      outlineOffset: "-2px",
                       bgcolor: isSelected ? "rgba(25, 118, 210, 0.03)" : "#ffffff",
                       transition: "all 0.15s ease",
                       boxShadow: "0 1px 3px rgba(0,0,0,0.03)",

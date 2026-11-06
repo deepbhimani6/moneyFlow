@@ -41,7 +41,6 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
-import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
 import { memberService, entryService, toPayService } from "../services/api";
 import { formatDate, formatAmount, capitalizeName } from "../utils/formatters";
 import MemberDetailFilterModal, { defaultMemberDetailFilters } from "../modals/MemberDetailFilterModal";
@@ -99,6 +98,15 @@ const MemberDetailPage = () => {
       nextStatus = current === "Paid" ? "Pending" : "Paid";
     }
 
+    // Optimistically update status locally immediately for instant feedback
+    setData((prev) => {
+      if (!prev) return prev;
+      const updatedEntries = (prev.entries || []).map((item) =>
+        item._id === entry._id ? { ...item, paymentStatus: nextStatus } : item
+      );
+      return { ...prev, entries: updatedEntries };
+    });
+
     try {
       if (isReceive) {
         await entryService.updateEntry(entry._id, { paymentStatus: nextStatus });
@@ -112,9 +120,18 @@ const MemberDetailPage = () => {
         severity: "success",
       });
 
-      fetchMemberDetail();
+      // Background silent sync without full screen loading spinner
+      fetchMemberDetail(false);
     } catch (err) {
       console.error(err);
+      // Revert status on failure
+      setData((prev) => {
+        if (!prev) return prev;
+        const revertedEntries = (prev.entries || []).map((item) =>
+          item._id === entry._id ? { ...item, paymentStatus: current } : item
+        );
+        return { ...prev, entries: revertedEntries };
+      });
       setSnackbar({
         open: true,
         message: err.response?.data?.message || "Failed to update status.",
@@ -168,7 +185,8 @@ const MemberDetailPage = () => {
         severity: "success",
       });
       setSelectedIds([]);
-      fetchMemberDetail();
+      // Silent refresh without full-page spinner
+      fetchMemberDetail(false);
     } catch (err) {
       console.error(err);
       setSnackbar({
@@ -223,9 +241,9 @@ const MemberDetailPage = () => {
     return count;
   }, [filters]);
 
-  const fetchMemberDetail = async () => {
+  const fetchMemberDetail = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) setLoading(true);
       const res = await memberService.getMemberEntriesDetail(id);
       if (res.success) {
         setData(res.data);
@@ -233,7 +251,7 @@ const MemberDetailPage = () => {
     } catch (err) {
       console.error("Error fetching member details:", err);
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -545,43 +563,8 @@ const MemberDetailPage = () => {
           }}
         >
           <Box sx={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
-            {/* Filter Tabs & Filter Modal Button */}
+            {/* Filter Modal Button */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-              <Button
-                size="small"
-                variant={filters.direction === "all" ? "contained" : "outlined"}
-                onClick={() => {
-                  setFilters((prev) => ({ ...prev, direction: "all" }));
-                  setPage(0);
-                }}
-                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-              >
-                All Entries ({stats.totalEntries})
-              </Button>
-              <Button
-                size="small"
-                variant={filters.direction === "receive" ? "contained" : "outlined"}
-                onClick={() => {
-                  setFilters((prev) => ({ ...prev, direction: "receive" }));
-                  setPage(0);
-                }}
-                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-              >
-                To Receive ({stats.receiveEntriesCount})
-              </Button>
-              <Button
-                size="small"
-                variant={filters.direction === "pay" ? "contained" : "outlined"}
-                onClick={() => {
-                  setFilters((prev) => ({ ...prev, direction: "pay" }));
-                  setPage(0);
-                }}
-                sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
-              >
-                To Pay ({stats.payEntriesCount})
-              </Button>
-
-              {/* Filter Button like all pages have */}
               <Button
                 size="small"
                 variant={activeFiltersCount > 0 ? "contained" : "outlined"}
@@ -591,26 +574,9 @@ const MemberDetailPage = () => {
                   borderRadius: 2,
                   textTransform: "none",
                   fontWeight: 600,
-                  ml: { xs: 0, sm: 0.5 },
                 }}
               >
                 Filter{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}
-              </Button>
-
-              {/* Bulk Actions Button */}
-              <Button
-                size="small"
-                variant="outlined"
-                color="secondary"
-                disabled={selectedIds.length === 0}
-                onClick={(e) => setBulkAnchorEl(e.currentTarget)}
-                sx={{
-                  borderRadius: 2,
-                  textTransform: "none",
-                  fontWeight: 600,
-                }}
-              >
-                Bulk Actions ({selectedIds.length})
               </Button>
 
               {/* Bulk Actions Menu */}
@@ -677,6 +643,55 @@ const MemberDetailPage = () => {
         >
           {/* Mobile Card View */}
           <Box sx={{ display: { xs: "block", md: "none" } }}>
+            {/* Subheader Toolbar with Select All */}
+            <Box
+              sx={{
+                px: { xs: 2, sm: 2.5 },
+                py: 1.5,
+                bgcolor: "#f8fafc",
+                borderBottom: "1px solid #e2e8f0",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Checkbox
+                  size="small"
+                  indeterminate={selectedIds.length > 0 && selectedIds.length < filteredEntries.length}
+                  checked={filteredEntries.length > 0 && selectedIds.length === filteredEntries.length}
+                  onChange={handleSelectAll}
+                  sx={{ p: 0.25 }}
+                />
+                <Typography variant="body2" sx={{ fontWeight: 600, color: "#475467" }}>
+                  Select All ({filteredEntries.length})
+                </Typography>
+              </Box>
+              {selectedIds.length > 0 && (
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="caption" sx={{ fontWeight: 700, color: "primary.main" }}>
+                    {selectedIds.length} selected
+                  </Typography>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    color="secondary"
+                    onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+                    sx={{
+                      py: 0.25,
+                      px: 1,
+                      fontSize: "0.75rem",
+                      borderRadius: 1.5,
+                      textTransform: "none",
+                      fontWeight: 600,
+                    }}
+                  >
+                    Bulk Actions
+                  </Button>
+                </Box>
+              )}
+            </Box>
+
             {filteredEntries.length === 0 ? (
               <Box sx={{ p: 4, textAlign: "center" }}>
                 <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
@@ -691,6 +706,7 @@ const MemberDetailPage = () => {
                 {filteredEntries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((entry) => {
                   const isReceive = entry.directionType === "receive";
                   const isPending = entry.paymentStatus === "Pending";
+                  const isSelected = selectedIds.includes(entry._id);
                   return (
                     <Paper
                       key={entry._id}
@@ -699,14 +715,17 @@ const MemberDetailPage = () => {
                         p: 1.75,
                         borderRadius: 2.5,
                         border: "1px solid #e2e8f0",
-                        bgcolor: "#ffffff",
+                        outline: isSelected ? "2px solid #1976d2" : "none",
+                        outlineOffset: "-2px",
+                        bgcolor: isSelected ? "rgba(25, 118, 210, 0.03)" : "#ffffff",
+                        transition: "all 0.15s ease",
                       }}
                     >
                       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                           <Checkbox
                             size="small"
-                            checked={selectedIds.includes(entry._id)}
+                            checked={isSelected}
                             onChange={() => handleSelectOne(entry._id)}
                             sx={{ p: 0.25 }}
                           />
@@ -739,24 +758,11 @@ const MemberDetailPage = () => {
                         <Typography variant="caption" sx={{ color: "#64748b" }}>
                           Source: <strong>{entry.creatorName}</strong>
                         </Typography>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                          {entry.description && (
-                            <Typography variant="caption" sx={{ color: "#64748b", fontStyle: "italic", maxWidth: 120 }} noWrap>
-                              {entry.description}
-                            </Typography>
-                          )}
-                          {entry.canEdit !== false && (
-                            <Button
-                              size="small"
-                              variant="text"
-                              startIcon={<SwapHorizIcon sx={{ fontSize: 14 }} />}
-                              onClick={() => handleToggleStatus(entry)}
-                              sx={{ textTransform: "none", fontSize: "0.72rem", py: 0.2, px: 0.75 }}
-                            >
-                              Toggle
-                            </Button>
-                          )}
-                        </Box>
+                        {entry.description && (
+                          <Typography variant="caption" sx={{ color: "#64748b", fontStyle: "italic", maxWidth: 180 }} noWrap>
+                            {entry.description}
+                          </Typography>
+                        )}
                       </Box>
                     </Paper>
                   );
@@ -767,6 +773,39 @@ const MemberDetailPage = () => {
 
           {/* Desktop Table View */}
           <Box sx={{ display: { xs: "none", md: "block" } }}>
+            {selectedIds.length > 0 && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  px: 2.5,
+                  py: 1.25,
+                  bgcolor: "#f8fafc",
+                  borderBottom: "1px solid #e2e8f0",
+                }}
+              >
+                <Typography variant="body2" sx={{ fontWeight: 700, color: "primary.main" }}>
+                  {selectedIds.length} selected
+                </Typography>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="secondary"
+                  onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+                  sx={{
+                    py: 0.25,
+                    px: 1.25,
+                    fontSize: "0.75rem",
+                    borderRadius: 1.5,
+                    textTransform: "none",
+                    fontWeight: 600,
+                  }}
+                >
+                  Bulk Actions
+                </Button>
+              </Box>
+            )}
             <TableContainer>
               <Table sx={{ minWidth: 700 }}>
                 <TableHead sx={{ bgcolor: "#f8fafc" }}>
@@ -788,15 +827,12 @@ const MemberDetailPage = () => {
                     <TableCell align="right" sx={{ fontWeight: 600, color: "#475467" }}>
                       Amount
                     </TableCell>
-                    <TableCell align="center" sx={{ fontWeight: 600, color: "#475467" }}>
-                      Action
-                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
                   {filteredEntries.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} align="center" sx={{ py: 6, color: "text.secondary" }}>
+                      <TableCell colSpan={8} align="center" sx={{ py: 6, color: "text.secondary" }}>
                         <Typography variant="body1" sx={{ fontWeight: 600, color: "text.secondary" }}>
                           No entries found
                         </Typography>
@@ -869,21 +905,6 @@ const MemberDetailPage = () => {
                             >
                               ₹ {formatAmount(entry.amount)}
                             </Typography>
-                          </TableCell>
-                          <TableCell align="center">
-                            <Tooltip title={entry.canEdit !== false ? `Change status to ${isReceive ? (isPending ? 'Received' : 'Pending') : (isPending ? 'Paid' : 'Pending')}` : "Only creator can change status"}>
-                              <span>
-                                <IconButton
-                                  size="small"
-                                  disabled={entry.canEdit === false}
-                                  onClick={() => handleToggleStatus(entry)}
-                                  color={isPending ? "primary" : "default"}
-                                  sx={{ border: "1px solid #e2e8f0", p: 0.5 }}
-                                >
-                                  <SwapHorizIcon fontSize="small" />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
                           </TableCell>
                         </TableRow>
                       );

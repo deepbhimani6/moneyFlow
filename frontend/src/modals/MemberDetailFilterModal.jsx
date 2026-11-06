@@ -62,7 +62,7 @@ const MemberDetailFilterModal = ({
       <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Filter Member Transactions</DialogTitle>
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
         {/* Category / Direction */}
-        <FormControl fullWidth size="small">
+        <FormControl fullWidth>
           <InputLabel id="filter-direction-label">Category</InputLabel>
           <Select
             labelId="filter-direction-label"
@@ -77,7 +77,7 @@ const MemberDetailFilterModal = ({
         </FormControl>
 
         {/* Type Filter */}
-        <FormControl fullWidth size="small">
+        <FormControl fullWidth>
           <InputLabel id="filter-type-label">Type</InputLabel>
           <Select
             labelId="filter-type-label"
@@ -93,7 +93,7 @@ const MemberDetailFilterModal = ({
         </FormControl>
 
         {/* Status Filter */}
-        <FormControl fullWidth size="small">
+        <FormControl fullWidth>
           <InputLabel id="filter-status-label">Payment Status</InputLabel>
           <Select
             labelId="filter-status-label"
@@ -109,7 +109,6 @@ const MemberDetailFilterModal = ({
 
         {/* Description Filter */}
         <TextField
-          size="small"
           label="Description"
           value={filters.description || ""}
           onChange={(e) => handleChange("description", e.target.value)}
@@ -120,7 +119,6 @@ const MemberDetailFilterModal = ({
         {/* Date Range */}
         <Box sx={{ display: "flex", gap: 1.5 }}>
           <TextField
-            size="small"
             label="From Date"
             type="date"
             value={filters.startDate || ""}
@@ -129,7 +127,6 @@ const MemberDetailFilterModal = ({
             fullWidth
           />
           <TextField
-            size="small"
             label="To Date"
             type="date"
             value={filters.endDate || ""}
@@ -142,7 +139,6 @@ const MemberDetailFilterModal = ({
         {/* Amount Range */}
         <Box sx={{ display: "flex", gap: 1.5 }}>
           <TextField
-            size="small"
             label="Min Amount (₹)"
             type="number"
             value={filters.minAmount || ""}
@@ -150,7 +146,6 @@ const MemberDetailFilterModal = ({
             fullWidth
           />
           <TextField
-            size="small"
             label="Max Amount (₹)"
             type="number"
             value={filters.maxAmount || ""}
