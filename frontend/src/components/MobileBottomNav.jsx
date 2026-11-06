@@ -38,6 +38,7 @@ const MobileBottomNav = () => {
       if (item.path === '/dashboard' && current === '/') return true;
       if (item.path === '/to-receive' && current === '/entries') return true;
       if (item.path === '/to-pay' && current === '/borrowed') return true;
+      if (item.path === '/members' && current.startsWith('/members')) return true;
       return item.path === current;
     });
     return index !== -1 ? index : 0;

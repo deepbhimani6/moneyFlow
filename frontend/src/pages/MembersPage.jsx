@@ -599,7 +599,26 @@ const MembersPage = () => {
                 const deleteTooltip = isCurrent ? "You cannot delete your own logged-in account" : "Delete Member";
                 const disableInvite = !row.email || sendingInviteId === row._id || hasJoined;
                 const inviteTooltip = hasJoined ? "Member has already joined the app" : !row.email ? "No email available to send invite" : "Send App Invite Link";
-                const totalMoney = Math.abs((row.pendingReceiveAmount || 0) - (row.pendingPayAmount || 0));
+
+                const pendingReceive = Number(row.pendingReceiveAmount) || 0;
+                const pendingPay = Number(row.pendingPayAmount) || 0;
+                const netDiff = pendingReceive - pendingPay;
+                const totalMoney = Math.abs(netDiff);
+
+                const isMoreReceive = pendingReceive > pendingPay;
+                const isMorePay = pendingPay > pendingReceive;
+
+                const finalTitle = isMoreReceive
+                  ? "Final Receive"
+                  : isMorePay
+                  ? "Final Pay"
+                  : "Final Receive";
+
+                const finalColor = isMoreReceive
+                  ? "#16a34a"
+                  : isMorePay
+                  ? "#ea580c"
+                  : "#64748b";
 
                 return (
                   <Paper
@@ -627,41 +646,55 @@ const MembersPage = () => {
                             sx={{ p: 0.25 }}
                           />
                         )}
-                        <Avatar sx={{ width: 36, height: 36, bgcolor: "#1976d2", fontSize: "0.9rem", fontWeight: 700, flexShrink: 0 }}>
-                          {(row.fullName || "M")[0].toUpperCase()}
-                        </Avatar>
-                        <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
-                          <Typography
-                            variant="subtitle1"
-                            onClick={() => navigate(`/members/${row._id}`)}
-                            sx={{
-                              fontWeight: 700,
-                              fontSize: "0.95rem",
-                              lineHeight: 1.3,
-                              color: "primary.main",
-                              cursor: "pointer",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              display: "block",
-                              "&:hover": { textDecoration: "underline" },
-                            }}
-                          >
-                            {capitalizeName(row.fullName)}
-                          </Typography>
-                          <Typography
-                            variant="caption"
-                            sx={{
-                              color: "#64748b",
-                              fontSize: "0.74rem",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              whiteSpace: "nowrap",
-                              display: "block",
-                            }}
-                          >
-                            {row.email || row.phoneNumber || "No contact info"}
-                          </Typography>
+                        <Box
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/members/${row._id}`);
+                          }}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1.25,
+                            minWidth: 0,
+                            flex: 1,
+                            overflow: "hidden",
+                            cursor: "pointer",
+                          }}
+                        >
+                          <Avatar sx={{ width: 36, height: 36, bgcolor: "#1976d2", fontSize: "0.9rem", fontWeight: 700, flexShrink: 0 }}>
+                            {(row.fullName || "M")[0].toUpperCase()}
+                          </Avatar>
+                          <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: "0.95rem",
+                                lineHeight: 1.3,
+                                color: "primary.main",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                display: "block",
+                                "&:hover": { textDecoration: "underline" },
+                              }}
+                            >
+                              {capitalizeName(row.fullName)}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: "#64748b",
+                                fontSize: "0.74rem",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                                display: "block",
+                              }}
+                            >
+                              {row.email || row.phoneNumber || "No contact info"}
+                            </Typography>
+                          </Box>
                         </Box>
                       </Box>
 
@@ -686,9 +719,12 @@ const MembersPage = () => {
                       )}
                     </Box>
 
-                    {/* Financial pending balances & Total Money */}
+                    {/* Financial pending balances & Final Pay/Receive */}
                     <Box
-                      onClick={() => navigate(`/members/${row._id}`)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/members/${row._id}`);
+                      }}
                       sx={{
                         display: "grid",
                         gridTemplateColumns: "repeat(3, 1fr)",
@@ -699,30 +735,31 @@ const MembersPage = () => {
                         borderRadius: 2,
                         border: "1px solid #f1f5f9",
                         cursor: "pointer",
-                        "&:hover": { bgcolor: "#f1f5f9" },
+                        transition: "all 0.15s ease",
+                        "&:hover": { bgcolor: "#f1f5f9", borderColor: "#e2e8f0" },
                       }}
                     >
                       <Box>
                         <Typography variant="caption" sx={{ color: "#0284c7", fontSize: "0.7rem", fontWeight: 700, display: "block" }}>
                           Pending Receive
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: (row.pendingReceiveAmount || 0) > 0 ? "#0369a1" : "#475569" }}>
-                          ₹ {formatAmount(row.pendingReceiveAmount || 0)}
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingReceive > 0 ? "#0369a1" : "#475569" }}>
+                          ₹ {formatAmount(pendingReceive)}
                         </Typography>
                       </Box>
                       <Box>
                         <Typography variant="caption" sx={{ color: "#ea580c", fontSize: "0.7rem", fontWeight: 700, display: "block" }}>
                           Pending Pay
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: (row.pendingPayAmount || 0) > 0 ? "#c2410c" : "#475569" }}>
-                          ₹ {formatAmount(row.pendingPayAmount || 0)}
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingPay > 0 ? "#c2410c" : "#475569" }}>
+                          ₹ {formatAmount(pendingPay)}
                         </Typography>
                       </Box>
                       <Box>
-                        <Typography variant="caption" sx={{ color: "#16a34a", fontSize: "0.7rem", fontWeight: 700, display: "block" }}>
-                          Total Money
+                        <Typography variant="caption" sx={{ color: finalColor, fontSize: "0.7rem", fontWeight: 700, display: "block" }}>
+                          {finalTitle}
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: totalMoney > 0 ? "#16a34a" : "#475569" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: totalMoney > 0 ? finalColor : "#475569" }}>
                           ₹ {formatAmount(totalMoney)}
                         </Typography>
                       </Box>
@@ -752,7 +789,10 @@ const MembersPage = () => {
                             size="small"
                             variant="outlined"
                             startIcon={sendingInviteId === row._id ? <CircularProgress size={14} /> : <SendIcon sx={{ fontSize: 14 }} />}
-                            onClick={() => handleSendInvite(row._id, row.email)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSendInvite(row._id, row.email);
+                            }}
                             disabled={disableInvite}
                             sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
                           >
@@ -764,7 +804,10 @@ const MembersPage = () => {
                         size="small"
                         variant="outlined"
                         startIcon={<EditIcon sx={{ fontSize: 14 }} />}
-                        onClick={() => handleOpenEditModal(row)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditModal(row);
+                        }}
                         sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
                       >
                         Edit
@@ -776,7 +819,10 @@ const MembersPage = () => {
                             variant="outlined"
                             color="error"
                             startIcon={<DeleteOutlineIcon sx={{ fontSize: 14 }} />}
-                            onClick={() => handleOpenDeleteModal(row)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenDeleteModal(row);
+                            }}
                             disabled={disableDelete}
                             sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
                           >

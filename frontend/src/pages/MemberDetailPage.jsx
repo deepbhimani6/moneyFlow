@@ -22,6 +22,7 @@ import {
   CardContent,
   Breadcrumbs,
   Link,
+  Divider,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SearchIcon from "@mui/icons-material/Search";
@@ -314,13 +315,24 @@ const MemberDetailPage = () => {
             </Typography>
           </Card>
 
-          {/* Card 3: Net Balance */}
+          {/* Card 3: Final Receive / Final Pay */}
           <Card
             elevation={0}
             sx={{
               borderRadius: 3,
-              border: "1px solid #e2e8f0",
-              bgcolor: "#ffffff",
+              border: `1px solid ${
+                stats.pendingReceiveAmount > stats.pendingPayAmount
+                  ? "#bbf7d0"
+                  : stats.pendingPayAmount > stats.pendingReceiveAmount
+                  ? "#fed7aa"
+                  : "#e2e8f0"
+              }`,
+              bgcolor:
+                stats.pendingReceiveAmount > stats.pendingPayAmount
+                  ? "#f0fdf4"
+                  : stats.pendingPayAmount > stats.pendingReceiveAmount
+                  ? "#fff7ed"
+                  : "#ffffff",
               p: 1.5,
               display: "flex",
               flexDirection: "column",
@@ -328,25 +340,76 @@ const MemberDetailPage = () => {
             }}
           >
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1 }}>
-              <Typography variant="caption" sx={{ fontWeight: 700, color: "#475569", textTransform: "uppercase", fontSize: "0.72rem" }}>
-                Net Balance
+              <Typography
+                variant="caption"
+                sx={{
+                  fontWeight: 700,
+                  color:
+                    stats.pendingReceiveAmount > stats.pendingPayAmount
+                      ? "#16a34a"
+                      : stats.pendingPayAmount > stats.pendingReceiveAmount
+                      ? "#ea580c"
+                      : "#475569",
+                  textTransform: "uppercase",
+                  fontSize: "0.72rem",
+                }}
+              >
+                {stats.pendingReceiveAmount > stats.pendingPayAmount
+                  ? "Final Receive"
+                  : stats.pendingPayAmount > stats.pendingReceiveAmount
+                  ? "Final Pay"
+                  : "Final Receive"}
               </Typography>
-              <Box sx={{ width: 28, height: 28, borderRadius: "50%", bgcolor: "rgba(71, 85, 105, 0.12)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <AccountBalanceWalletIcon sx={{ fontSize: 16, color: "#475569" }} />
+              <Box
+                sx={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: "50%",
+                  bgcolor:
+                    stats.pendingReceiveAmount > stats.pendingPayAmount
+                      ? "rgba(22, 163, 74, 0.15)"
+                      : stats.pendingPayAmount > stats.pendingReceiveAmount
+                      ? "rgba(234, 88, 12, 0.15)"
+                      : "rgba(71, 85, 105, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <AccountBalanceWalletIcon
+                  sx={{
+                    fontSize: 16,
+                    color:
+                      stats.pendingReceiveAmount > stats.pendingPayAmount
+                        ? "#16a34a"
+                        : stats.pendingPayAmount > stats.pendingReceiveAmount
+                        ? "#ea580c"
+                        : "#475569",
+                  }}
+                />
               </Box>
             </Box>
             <Typography
               variant="h6"
               sx={{
                 fontWeight: 800,
-                color: stats.netBalance > 0 ? "#16a34a" : stats.netBalance < 0 ? "#dc2626" : "#475569",
+                color:
+                  stats.pendingReceiveAmount > stats.pendingPayAmount
+                    ? "#16a34a"
+                    : stats.pendingPayAmount > stats.pendingReceiveAmount
+                    ? "#ea580c"
+                    : "#475569",
                 fontSize: { xs: "1.15rem", sm: "1.3rem" },
               }}
             >
-              ₹ {formatAmount(Math.abs(stats.netBalance))}
+              ₹ {formatAmount(Math.abs(stats.pendingReceiveAmount - stats.pendingPayAmount))}
             </Typography>
             <Typography variant="caption" sx={{ color: "#64748b", fontSize: "0.7rem", mt: 0.25 }}>
-              {stats.netBalance > 0 ? "You will receive" : stats.netBalance < 0 ? "You will pay" : "All settled"}
+              {stats.pendingReceiveAmount > stats.pendingPayAmount
+                ? "You will receive"
+                : stats.pendingPayAmount > stats.pendingReceiveAmount
+                ? "You will pay"
+                : "All settled"}
             </Typography>
           </Card>
 
@@ -506,7 +569,7 @@ const MemberDetailPage = () => {
                   No entries found
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  No transaction entries found for this member
+                  Try adjusting your filters or create a new entry
                 </Typography>
               </Box>
             ) : (
@@ -615,7 +678,7 @@ const MemberDetailPage = () => {
                           No entries found
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                          No transaction entries found for this member
+                          Try adjusting your filters or create a new entry
                         </Typography>
                       </TableCell>
                     </TableRow>
