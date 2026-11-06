@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   Box,
   CssBaseline,
@@ -7,10 +7,9 @@ import {
   AppBar,
   Toolbar,
   Typography,
-  IconButton,
   Button,
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import theme from './theme';
 import Sidebar from './components/Sidebar';
@@ -41,20 +40,8 @@ import ProfilePage from './pages/ProfilePage';
 const drawerWidth = 240;
 
 function MainAppLayout() {
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [installPrompt, setInstallPrompt] = useState(null);
-  const location = useLocation();
-
-  // Dynamically determine current active page title from URL
-  const getPageTitle = () => {
-    if (location.pathname.startsWith('/profile')) return 'Profile';
-    if (location.pathname.startsWith('/for-self')) return 'For Self';
-    if (location.pathname.startsWith('/to-receive') || location.pathname.startsWith('/entries')) return 'To Receive';
-    if (location.pathname.startsWith('/to-pay') || location.pathname.startsWith('/topay')) return 'To Pay';
-    if (location.pathname.startsWith('/members')) return 'Members';
-    if (location.pathname.startsWith('/users')) return 'Users';
-    return 'Dashboard';
-  };
+  const navigate = useNavigate();
 
   // Listen for PWA install prompt event
   useEffect(() => {
@@ -75,17 +62,10 @@ function MainAppLayout() {
     }
   };
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* Navigation Sidebar with URL Route Sync */}
-      <Sidebar
-        mobileOpen={mobileOpen}
-        onMobileClose={() => setMobileOpen(false)}
-      />
+      {/* Navigation Sidebar (Desktop permanent drawer) */}
+      <Sidebar />
 
       {/* Main Content Area */}
       <Box
@@ -111,20 +91,48 @@ function MainAppLayout() {
           }}
         >
           <Toolbar sx={{ justifyContent: 'space-between' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <IconButton
-                color="inherit"
-                aria-label="open drawer"
-                edge="start"
-                onClick={handleDrawerToggle}
-                sx={{ mr: 2, display: { lg: 'none' } }}
+            {/* Logo on responsive (where page name used to be) */}
+            <Box
+              onClick={() => navigate('/dashboard')}
+              sx={{
+                display: { xs: 'flex', lg: 'none' },
+                alignItems: 'center',
+                gap: 1.25,
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              <Box
+                sx={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 2,
+                  bgcolor: 'primary.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  boxShadow: '0 2px 6px rgba(25, 118, 210, 0.28)',
+                  flexShrink: 0,
+                }}
               >
-                <MenuIcon />
-              </IconButton>
-              <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 700 }}>
-                {getPageTitle()}
+                <AccountBalanceWalletIcon sx={{ fontSize: 20 }} />
+              </Box>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 800,
+                  letterSpacing: '-0.5px',
+                  fontSize: '1.15rem',
+                  color: '#1e293b',
+                }}
+              >
+                MoneyFlow
               </Typography>
             </Box>
+
+            {/* Desktop spacer: page title removed on all pages */}
+            <Box sx={{ display: { xs: 'none', lg: 'block' } }} />
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
               {/* PWA Install Button if available */}

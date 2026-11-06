@@ -31,7 +31,7 @@ const baseMenuItems = [
   { id: 'members', path: '/members', label: 'Members', icon: <PeopleAltIcon /> },
 ];
 
-const Sidebar = ({ mobileOpen, onMobileClose }) => {
+const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
@@ -60,10 +60,7 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
           gap: 1.5,
           cursor: 'pointer',
         }}
-        onClick={() => {
-          navigate('/dashboard');
-          if (onMobileClose) onMobileClose();
-        }}
+        onClick={() => navigate('/dashboard')}
       >
         <Box
           sx={{
@@ -139,23 +136,13 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
   return (
     <Box
       component="nav"
-      sx={{ width: { lg: drawerWidth }, flexShrink: { lg: 0 } }}
+      sx={{
+        width: { lg: drawerWidth },
+        flexShrink: { lg: 0 },
+        display: { xs: 'none', lg: 'block' },
+      }}
       aria-label="navigation tabs"
     >
-      {/* Mobile drawer */}
-      <Drawer
-        variant="temporary"
-        open={mobileOpen}
-        onClose={onMobileClose}
-        ModalProps={{ keepMounted: true }}
-        sx={{
-          display: { xs: 'block', lg: 'none' },
-          '& .MuiDrawer-paper': { boxSizing: 'border-box', width: drawerWidth },
-        }}
-      >
-        {drawerContent}
-      </Drawer>
-
       {/* Desktop permanent drawer */}
       <Drawer
         variant="permanent"

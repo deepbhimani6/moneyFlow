@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Box, Avatar, Menu, MenuItem, ListItemIcon, ListItemText, Typography, Divider } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import LogoutIcon from "@mui/icons-material/Logout";
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { useProfile } from "../context/ProfileContext";
@@ -11,9 +12,12 @@ import { useAuth } from "../context/AuthContext";
 const HeaderProfileMenu = () => {
   const navigate = useNavigate();
   const { profile, initials } = useProfile();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
+
+  const currentEmail = (profile?.email || user?.email || "").toLowerCase().trim();
+  const isAdmin = currentEmail === "deepbhimani6@gmail.com" || profile?.role === "Admin" || user?.role === "Admin";
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -50,7 +54,8 @@ const HeaderProfileMenu = () => {
           gap: 1,
           cursor: "pointer",
           p: 0.5,
-          pr: { lg: 1.25 },
+          pl: { md: 0.75 },
+          pr: { md: 1.25 },
           borderRadius: "24px",
           transition: "all 0.2s ease-in-out",
           backgroundColor: open ? "rgba(25, 118, 210, 0.13)" : "rgba(25, 118, 210, 0.07)",
@@ -182,6 +187,28 @@ const HeaderProfileMenu = () => {
           </Box>
           <ChevronRightIcon sx={{ color: "text.secondary", fontSize: 18, ml: 1, flexShrink: 0 }} />
         </MenuItem>
+
+        {isAdmin && (
+          <MenuItem
+            onClick={() => handleNavigate("/users")}
+            sx={{
+              py: 1.2,
+              px: 2,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              "&:hover": { bgcolor: "rgba(25, 118, 210, 0.08)" },
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, minWidth: 0 }}>
+              <ListItemIcon sx={{ color: "primary.main", minWidth: "auto" }}>
+                <ManageAccountsIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText primary="Manage Users" secondary="Admin user directory" primaryTypographyProps={{ fontWeight: 600, fontSize: "0.9rem" }} secondaryTypographyProps={{ fontSize: "0.75rem" }} sx={{ m: 0 }} />
+            </Box>
+            <ChevronRightIcon sx={{ color: "text.secondary", fontSize: 18, ml: 1, flexShrink: 0 }} />
+          </MenuItem>
+        )}
 
         <Divider />
 
