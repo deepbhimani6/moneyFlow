@@ -90,7 +90,7 @@ function MainAppLayout() {
         component="main"
         sx={{
           flexGrow: 1,
-          width: { sm: `calc(100% - ${drawerWidth}px)` },
+          width: { lg: `calc(100% - ${drawerWidth}px)` },
           maxWidth: '100%',
           overflowX: 'hidden',
           minHeight: '100vh',
@@ -115,7 +115,7 @@ function MainAppLayout() {
                 aria-label="open drawer"
                 edge="start"
                 onClick={handleDrawerToggle}
-                sx={{ mr: 2, display: { sm: 'none' } }}
+                sx={{ mr: 2, display: { lg: 'none' } }}
               >
                 <MenuIcon />
               </IconButton>
