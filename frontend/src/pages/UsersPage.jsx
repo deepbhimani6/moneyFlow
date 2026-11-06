@@ -216,8 +216,8 @@ const UsersPage = () => {
   }, [filteredUsers.length, page, rowsPerPage]);
 
   const selectableUsers = useMemo(() => {
-    return filteredUsers;
-  }, [filteredUsers]);
+    return filteredUsers.filter((u) => !isCurrentLoggedInUser(u, profile, user));
+  }, [filteredUsers, profile, user]);
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
@@ -461,6 +461,7 @@ const UsersPage = () => {
                 indeterminate={isIndeterminate}
                 checked={isAllSelected}
                 onChange={handleSelectAll}
+                disabled={selectableUsers.length === 0}
                 size="small"
                 sx={{ p: 0.25 }}
               />
@@ -674,6 +675,7 @@ const UsersPage = () => {
                     indeterminate={isIndeterminate}
                     checked={isAllSelected}
                     onChange={handleSelectAll}
+                    disabled={selectableUsers.length === 0}
                     size="small"
                   />
                 </TableCell>

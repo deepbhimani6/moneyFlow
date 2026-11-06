@@ -215,8 +215,8 @@ const MembersPage = () => {
   }, [filteredMembers.length, page, rowsPerPage]);
 
   const selectableMembers = useMemo(() => {
-    return filteredMembers;
-  }, [filteredMembers]);
+    return filteredMembers.filter((m) => !isCurrentLoggedInUser(m, profile, user));
+  }, [filteredMembers, profile, user]);
 
   const handleSelectAll = (e) => {
     if (e.target.checked) {
