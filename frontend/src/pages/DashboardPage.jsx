@@ -1,34 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   Box,
-  Grid,
   Card,
   CardContent,
   Typography,
   CircularProgress,
-  IconButton,
-  Tooltip,
-  Button,
   Paper,
   Stack,
 } from '@mui/material';
-import RefreshIcon from '@mui/icons-material/Refresh';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import PriceCheckIcon from '@mui/icons-material/PriceCheck';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import CallReceivedIcon from '@mui/icons-material/CallReceived';
-import PaymentIcon from '@mui/icons-material/Payment';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
-import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import { dashboardService } from '../services/api';
 import { formatAmount } from '../utils/formatters';
 
 const DashboardPage = () => {
-  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalBalance: 0,
     totalExpenses: 0,
@@ -59,13 +48,6 @@ const DashboardPage = () => {
   useEffect(() => {
     fetchStats();
   }, []);
-
-  const quickActions = [
-    { label: 'Receive', path: '/to-receive', icon: <CallReceivedIcon />, color: '#1976d2', bg: 'rgba(25, 118, 210, 0.1)' },
-    { label: 'Pay', path: '/to-pay', icon: <PaymentIcon />, color: '#ed6c02', bg: 'rgba(237, 108, 2, 0.1)' },
-    { label: 'For Self', path: '/for-self', icon: <AccountCircleIcon />, color: '#2e7d32', bg: 'rgba(46, 125, 50, 0.1)' },
-    { label: 'Members', path: '/members', icon: <PeopleAltIcon />, color: '#9c27b0', bg: 'rgba(156, 39, 176, 0.1)' },
-  ];
 
   const metricCards = [
     {
@@ -113,15 +95,10 @@ const DashboardPage = () => {
   return (
     <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 3 }, maxWidth: 1200, mx: 'auto', width: '100%', boxSizing: 'border-box' }}>
       {/* Top Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 2, sm: 2.5 } }}>
+      <Box sx={{ mb: { xs: 2, sm: 2.5 } }}>
         <Typography variant="h5" sx={{ fontWeight: 800, fontSize: { xs: '1.25rem', sm: '1.5rem' }, color: '#0f172a' }}>
           Dashboard
         </Typography>
-        <Tooltip title="Refresh stats">
-          <IconButton onClick={fetchStats} disabled={loading} color="primary" sx={{ bgcolor: 'background.paper', border: '1px solid #e2e8f0' }}>
-            <RefreshIcon sx={{ fontSize: 20 }} />
-          </IconButton>
-        </Tooltip>
       </Box>
 
       {loading ? (
@@ -129,7 +106,7 @@ const DashboardPage = () => {
           <CircularProgress size={36} />
         </Box>
       ) : (
-        <Stack spacing={{ xs: 2, sm: 2.5 }}>
+        <Stack spacing={{ xs: 2, sm: 2.5 }} sx={{ width: '100%', boxSizing: 'border-box' }}>
           {/* 1. Hero Total Balance Card */}
           <Paper
             elevation={0}
@@ -141,6 +118,8 @@ const DashboardPage = () => {
               boxShadow: '0 8px 24px -4px rgba(25, 118, 210, 0.35)',
               position: 'relative',
               overflow: 'hidden',
+              boxSizing: 'border-box',
+              width: '100%',
             }}
           >
             <Box sx={{ position: 'relative', zIndex: 1 }}>
@@ -159,124 +138,93 @@ const DashboardPage = () => {
                   fontWeight: 800,
                   fontSize: { xs: '2rem', sm: '2.5rem', md: '2.75rem' },
                   letterSpacing: '-0.5px',
-                  mb: { xs: 2.5, sm: 3 },
+                  mb: 0,
                 }}
               >
                 ₹ {formatAmount(stats.totalBalance)}
               </Typography>
-
-              {/* Quick Actions Row */}
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: { xs: 1, sm: 1.5 },
-                  pt: 1.5,
-                  borderTop: '1px solid rgba(255, 255, 255, 0.18)',
-                }}
-              >
-                {quickActions.map((qa) => (
-                  <Button
-                    key={qa.label}
-                    onClick={() => navigate(qa.path)}
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      py: 0.75,
-                      px: 0.5,
-                      minWidth: 0,
-                      color: '#ffffff',
-                      bgcolor: 'rgba(255, 255, 255, 0.12)',
-                      borderRadius: 2,
-                      textTransform: 'none',
-                      transition: 'all 0.15s ease',
-                      '&:hover': {
-                        bgcolor: 'rgba(255, 255, 255, 0.22)',
-                        transform: 'translateY(-1px)',
-                      },
-                    }}
-                  >
-                    <Box sx={{ fontSize: 20, mb: 0.25, display: 'flex' }}>
-                      {React.cloneElement(qa.icon, { sx: { fontSize: 20 } })}
-                    </Box>
-                    <Typography variant="caption" sx={{ fontSize: '0.7rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
-                      {qa.label}
-                    </Typography>
-                  </Button>
-                ))}
-              </Box>
             </Box>
           </Paper>
 
           {/* 2. Responsive Metric Cards Grid */}
-          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'repeat(2, 1fr)',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(3, 1fr)',
+              },
+              gap: { xs: 1.5, sm: 2 },
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
             {metricCards.map((card) => (
-              <Grid item xs={6} sm={6} md={4} key={card.id}>
-                <Card
-                  elevation={0}
-                  sx={{
-                    height: '100%',
-                    borderRadius: 3,
-                    border: '1px solid #e2e8f0',
-                    transition: 'all 0.2s ease',
-                    bgcolor: '#ffffff',
-                    '&:hover': {
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                      transform: 'translateY(-2px)',
-                    },
-                  }}
-                >
-                  <CardContent sx={{ p: { xs: 1.5, sm: 2 }, pb: { xs: '14px !important', sm: '16px !important' } }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                      <Box
-                        sx={{
-                          width: { xs: 32, sm: 36 },
-                          height: { xs: 32, sm: 36 },
-                          borderRadius: 2,
-                          bgcolor: card.bg,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          flexShrink: 0,
-                        }}
-                      >
-                        {card.icon}
-                      </Box>
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          fontWeight: 600,
-                          color: '#64748b',
-                          fontSize: { xs: '0.74rem', sm: '0.82rem' },
-                          lineHeight: 1.2,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        {card.title}
-                      </Typography>
-                    </Box>
-
-                    <Typography
-                      variant="h6"
+              <Card
+                key={card.id}
+                elevation={0}
+                sx={{
+                  height: '100%',
+                  borderRadius: 3,
+                  border: '1px solid #e2e8f0',
+                  transition: 'all 0.2s ease',
+                  bgcolor: '#ffffff',
+                  boxSizing: 'border-box',
+                  '&:hover': {
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                    transform: 'translateY(-2px)',
+                  },
+                }}
+              >
+                <CardContent sx={{ p: { xs: 1.5, sm: 2 }, pb: { xs: '14px !important', sm: '16px !important' } }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                    <Box
                       sx={{
-                        fontWeight: 800,
-                        color: card.color,
-                        fontSize: { xs: '1.15rem', sm: '1.35rem' },
-                        mt: 0.5,
+                        width: { xs: 32, sm: 36 },
+                        height: { xs: 32, sm: 36 },
+                        borderRadius: 2,
+                        bgcolor: card.bg,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
                       }}
                     >
-                      ₹ {formatAmount(card.amount)}
+                      {card.icon}
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 600,
+                        color: '#64748b',
+                        fontSize: { xs: '0.74rem', sm: '0.82rem' },
+                        lineHeight: 1.2,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {card.title}
                     </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
+                  </Box>
+
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      fontWeight: 800,
+                      color: card.color,
+                      fontSize: { xs: '1.15rem', sm: '1.35rem' },
+                      mt: 0.5,
+                    }}
+                  >
+                    ₹ {formatAmount(card.amount)}
+                  </Typography>
+                </CardContent>
+              </Card>
             ))}
-          </Grid>
+          </Box>
         </Stack>
       )}
     </Box>
