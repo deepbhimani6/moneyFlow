@@ -500,63 +500,17 @@ const MembersPage = () => {
 
         <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
           {/* Filter Button */}
-          <Button
-            variant="outlined"
-            startIcon={<FilterListIcon />}
-            onClick={() => setIsFilterOpen(true)}
-            size="small"
-            sx={{
-              textTransform: "none",
-              fontWeight: 600,
-              borderRadius: 2,
-              px: 2,
-              py: 0.8,
-              borderColor: activeFiltersCount > 0 ? "primary.main" : "#d0d5dd",
-              color: activeFiltersCount > 0 ? "primary.main" : "#344054",
-              bgcolor: activeFiltersCount > 0 ? "rgba(25, 118, 210, 0.08)" : "transparent",
-            }}
-          >
+          <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => setIsFilterOpen(true)} size="small">
             Filter{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}
           </Button>
 
           {/* Invite Members Button */}
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<PersonAddIcon />}
-            onClick={() => setIsInviteOpen(true)}
-            size="small"
-            sx={{
-              textTransform: "none",
-              fontWeight: 600,
-              borderRadius: 2,
-              px: 2,
-              py: 0.8,
-              boxShadow: "none",
-              whiteSpace: "nowrap",
-            }}
-          >
+          <Button variant="contained" startIcon={<PersonAddIcon />} onClick={() => setIsInviteOpen(true)} size="small">
             Invite Members
           </Button>
 
           {/* Bulk Actions Button */}
-          <Button
-            variant="outlined"
-            color="inherit"
-            disabled={selectedIds.length === 0}
-            onClick={(e) => setBulkAnchorEl(e.currentTarget)}
-            size="small"
-            sx={{
-              textTransform: "none",
-              fontWeight: 600,
-              borderRadius: 2,
-              px: 2,
-              py: 0.8,
-              borderColor: "#d0d5dd",
-              color: "#344054",
-              whiteSpace: "nowrap",
-            }}
-          >
+          <Button variant="outlined" color="secondary" disabled={selectedIds.length === 0} onClick={(e) => setBulkAnchorEl(e.currentTarget)} size="small">
             Bulk Actions ({selectedIds.length})
           </Button>
 
