@@ -10,7 +10,6 @@ import {
   ListItemText,
   Typography,
   Divider,
-  Avatar,
 } from '@mui/material';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
@@ -36,7 +35,7 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const currentPath = location.pathname;
-  const { profile, initials } = useProfile();
+  const { profile } = useProfile();
   const { user } = useAuth();
 
   const currentEmail = (profile?.email || user?.email || '').toLowerCase().trim();
@@ -134,54 +133,6 @@ const Sidebar = ({ mobileOpen, onMobileClose }) => {
           );
         })}
       </List>
-
-      {/* User Profile Mini Footer */}
-      <Box sx={{ mt: 'auto', p: 1.5, borderTop: '1px solid #e2e8f0' }}>
-        <ListItemButton
-          selected={currentPath === '/profile'}
-          onClick={() => {
-            navigate('/profile');
-            if (onMobileClose) onMobileClose();
-          }}
-          sx={{
-            borderRadius: 2,
-            p: 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1.5,
-            width: '100%',
-            overflow: 'hidden',
-            border: currentPath === '/profile' ? '1.5px solid #1976d2' : '1.5px solid transparent',
-            backgroundColor: currentPath === '/profile' ? 'rgba(25, 118, 210, 0.08) !important' : 'transparent',
-            '&:hover': {
-              backgroundColor: 'rgba(25, 118, 210, 0.04)',
-            },
-          }}
-        >
-          <Avatar
-            alt={profile?.fullName || 'User'}
-            sx={{
-              width: 36,
-              height: 36,
-              bgcolor: profile?.avatarColor || 'primary.main',
-              color: '#ffffff',
-              fontSize: '0.875rem',
-              fontWeight: 700,
-              flexShrink: 0,
-            }}
-          >
-            {initials}
-          </Avatar>
-          <Box sx={{ overflow: 'hidden', flexGrow: 1 }}>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', lineHeight: 1.2, textTransform: 'capitalize' }} noWrap>
-              {profile?.fullName || 'User'}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', fontSize: '0.72rem' }} noWrap>
-              {profile?.email || ''}
-            </Typography>
-          </Box>
-        </ListItemButton>
-      </Box>
     </Box>
   );
 
