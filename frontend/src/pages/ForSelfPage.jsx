@@ -213,7 +213,7 @@ const ForSelfPage = () => {
   const isIndeterminate = selectedIds.length > 0 && selectedIds.length < entries.length;
 
   return (
-    <Box sx={{ p: { xs: 1.5, xsm: 2, sm: 2.5, md: 3, '2xl': 3.5 } }}>
+    <Box sx={{ p: { xs: 1.5, sm: 2.5, md: 3 }, maxWidth: 1200, mx: 'auto', width: '100%', boxSizing: 'border-box' }}>
       {/* Top Header & Actions */}
       <Box
         sx={{
