@@ -486,30 +486,49 @@ const getMemberEntriesSummary = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Member not found.' });
     }
 
+    const currentUser = await getOrSyncCurrentUser(req.user);
+    const mIdStr = member._id.toString();
+    const customName = currentUser && currentUser.memberCustomNames
+      ? (typeof currentUser.memberCustomNames.get === 'function'
+          ? currentUser.memberCustomNames.get(mIdStr)
+          : currentUser.memberCustomNames[mIdStr])
+      : null;
+
     const escapedName = member.fullName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    const nameConditions = [
+      { memberId: member._id },
+      { forFromName: { $regex: new RegExp(`^${escapedName}$`, 'i') } },
+    ];
+    if (customName) {
+      const escapedCustom = customName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      nameConditions.push({ forFromName: { $regex: new RegExp(`^${escapedCustom}$`, 'i') } });
+    }
+
     const entryQuery = {
       userId: req.user._id,
-      $or: [
-        { memberId: member._id },
-        { forFromName: { $regex: new RegExp(`^${escapedName}$`, 'i') } },
-      ],
+      $or: nameConditions,
     };
 
-    const entries = await Entry.find(entryQuery).sort({ date: -1, time: -1 });
-    const totalAmount = entries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+    const [receiveEntries, toPayEntries] = await Promise.all([
+      Entry.find(entryQuery).sort({ date: -1, time: -1 }),
+      ToPay.find(entryQuery).sort({ date: -1, time: -1 }),
+    ]);
+
+    const allEntries = [...receiveEntries, ...toPayEntries];
+    const totalAmount = allEntries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
     res.json({
       success: true,
       data: {
         member: {
           _id: member._id,
-          fullName: member.fullName,
+          fullName: customName || member.fullName,
           email: member.email,
         },
-        hasEntries: entries.length > 0,
-        entryCount: entries.length,
+        hasEntries: allEntries.length > 0,
+        entryCount: allEntries.length,
         totalAmount: Math.trunc(totalAmount),
-        entries: entries.slice(0, 10),
+        entries: allEntries.slice(0, 10),
       },
     });
   } catch (error) {
@@ -527,6 +546,7 @@ const getBulkMembersEntriesSummary = async (req, res) => {
     }
 
     const members = await Member.find({ _id: { $in: ids } });
+    const currentUser = await getOrSyncCurrentUser(req.user);
     const names = members.map((m) => m.fullName);
     const escapedNames = names.map((n) => n.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'));
 
@@ -539,18 +559,28 @@ const getBulkMembersEntriesSummary = async (req, res) => {
       ],
     };
 
-    const entries = await Entry.find(entryQuery);
-    const totalAmount = entries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+    const [receiveEntries, toPayEntries] = await Promise.all([
+      Entry.find(entryQuery),
+      ToPay.find(entryQuery),
+    ]);
+
+    const allEntries = [...receiveEntries, ...toPayEntries];
+    const totalAmount = allEntries.reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
     const memberSummary = members.map((m) => {
       const esc = m.fullName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
       const reg = new RegExp(`^${esc}$`, 'i');
-      const mEntries = entries.filter(
-        (e) => String(e.memberId) === String(m._id) || reg.test(e.forFromName)
+      const mCust = currentUser?.memberCustomNames?.get
+        ? currentUser.memberCustomNames.get(m._id.toString())
+        : null;
+      const mCustReg = mCust ? new RegExp(`^${mCust.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') : null;
+
+      const mEntries = allEntries.filter(
+        (e) => String(e.memberId) === String(m._id) || reg.test(e.forFromName) || (mCustReg && mCustReg.test(e.forFromName))
       );
       return {
         _id: m._id,
-        fullName: m.fullName,
+        fullName: mCust || m.fullName,
         count: mEntries.length,
         totalAmount: Math.trunc(mEntries.reduce((a, c) => a + (c.amount || 0), 0)),
       };
@@ -560,8 +590,8 @@ const getBulkMembersEntriesSummary = async (req, res) => {
       success: true,
       data: {
         memberCount: members.length,
-        hasEntries: entries.length > 0,
-        entryCount: entries.length,
+        hasEntries: allEntries.length > 0,
+        entryCount: allEntries.length,
         totalAmount: Math.trunc(totalAmount),
         memberSummary,
       },
@@ -571,7 +601,7 @@ const getBulkMembersEntriesSummary = async (req, res) => {
   }
 };
 
-// @desc    Delete single member (entries remain intact)
+// @desc    Delete single member (blocked if member has any entries)
 // @route   DELETE /api/members/:id
 const deleteMember = async (req, res) => {
   try {
@@ -595,8 +625,44 @@ const deleteMember = async (req, res) => {
       });
     }
 
-    // Only remove from this specific user's members directory (does not delete full user account)
+    // 2. Prevent deletion if this member has any existing entries (in Entry or ToPay)
     const currentUser = await getOrSyncCurrentUser(req.user);
+    const mIdStr = member._id.toString();
+    const customName = currentUser && currentUser.memberCustomNames
+      ? (typeof currentUser.memberCustomNames.get === 'function'
+          ? currentUser.memberCustomNames.get(mIdStr)
+          : currentUser.memberCustomNames[mIdStr])
+      : null;
+
+    const escapedName = member.fullName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    const nameConditions = [
+      { memberId: member._id },
+      { forFromName: { $regex: new RegExp(`^${escapedName}$`, 'i') } },
+    ];
+    if (customName) {
+      const escapedCustom = customName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      nameConditions.push({ forFromName: { $regex: new RegExp(`^${escapedCustom}$`, 'i') } });
+    }
+
+    const checkQuery = {
+      userId: req.user._id,
+      $or: nameConditions,
+    };
+
+    const [hasReceive, hasPay] = await Promise.all([
+      Entry.exists(checkQuery),
+      ToPay.exists(checkQuery),
+    ]);
+
+    if (hasReceive || hasPay) {
+      return res.status(400).json({
+        success: false,
+        hasEntries: true,
+        message: `Cannot delete member '${customName || member.fullName}' because they have associated entries. Please delete or settle all their entries first.`,
+      });
+    }
+
+    // Only remove from this specific user's members directory
     if (currentUser) {
       if (currentUser.members) {
         currentUser.members = currentUser.members.filter((id) => String(id) !== String(member._id));
@@ -612,15 +678,15 @@ const deleteMember = async (req, res) => {
 
     res.json({
       success: true,
-      message: `Member '${member.fullName}' deleted.`,
-      deletedMemberName: member.fullName,
+      message: `Member '${customName || member.fullName}' deleted successfully.`,
+      deletedMemberName: customName || member.fullName,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Bulk delete members (entries remain intact)
+// @desc    Bulk delete members (blocked if any selected member has entries)
 // @route   POST /api/members/bulk-delete
 const bulkDeleteMembers = async (req, res) => {
   try {
@@ -632,10 +698,49 @@ const bulkDeleteMembers = async (req, res) => {
     const currentUserId = req.user ? String(req.user._id) : null;
     const validIds = ids.filter((id) => String(id) !== currentUserId);
 
-    // Only remove from this specific user's members list (does not delete full user account)
+    const members = await Member.find({ _id: { $in: validIds } });
     const currentUser = await getOrSyncCurrentUser(req.user);
+
+    // Check which members have entries
+    const membersWithEntries = [];
+    const safeToDeleteIds = [];
+
+    for (const m of members) {
+      const escName = m.fullName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      const custName = currentUser?.memberCustomNames?.get
+        ? currentUser.memberCustomNames.get(m._id.toString())
+        : null;
+      const orConds = [
+        { memberId: m._id },
+        { forFromName: { $regex: new RegExp(`^${escName}$`, 'i') } },
+      ];
+      if (custName) {
+        orConds.push({ forFromName: { $regex: new RegExp(`^${custName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') } });
+      }
+      const q = { userId: req.user._id, $or: orConds };
+      const [rExists, pExists] = await Promise.all([Entry.exists(q), ToPay.exists(q)]);
+      if (rExists || pExists) {
+        membersWithEntries.push(custName || m.fullName);
+      } else {
+        safeToDeleteIds.push(String(m._id));
+      }
+    }
+
+    if (membersWithEntries.length > 0) {
+      return res.status(400).json({
+        success: false,
+        hasEntries: true,
+        membersWithEntries,
+        message: `Cannot delete member(s) with active entries: ${membersWithEntries.join(', ')}. Please delete or settle their entries first.`,
+      });
+    }
+
+    if (safeToDeleteIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'No eligible members to delete.' });
+    }
+
     if (currentUser) {
-      const validStrSet = new Set(validIds.map((id) => String(id)));
+      const validStrSet = new Set(safeToDeleteIds);
       if (currentUser.members) {
         currentUser.members = currentUser.members.filter((id) => !validStrSet.has(String(id)));
       }
@@ -652,8 +757,8 @@ const bulkDeleteMembers = async (req, res) => {
 
     res.json({
       success: true,
-      message: `${validIds.length} member(s) deleted.`,
-      deletedMembersCount: validIds.length,
+      message: `${safeToDeleteIds.length} member(s) deleted successfully.`,
+      deletedMembersCount: safeToDeleteIds.length,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
