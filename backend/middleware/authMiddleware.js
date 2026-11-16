@@ -28,15 +28,34 @@ const protect = async (req, res, next) => {
       if (!user) {
         const profile = await Profile.findOne();
         if (profile && (String(profile._id) === String(decoded.id) || profile.email === decoded.email)) {
-          user = {
-            _id: profile._id,
-            fullName: profile.fullName,
-            email: profile.email,
-            username: profile.username,
-            phoneNumber: profile.phoneNumber,
-            bio: profile.bio,
-            avatarColor: profile.avatarColor,
-          };
+          // Check if a Member record exists for this profile
+          user = await Member.findOne({
+            $or: [
+              { _id: profile._id },
+              { email: profile.email.toLowerCase().trim() },
+            ],
+          }).select('-password');
+
+          if (!user) {
+            // Auto-create matching Member document so all controllers work seamlessly
+            user = new Member({
+              _id: profile._id,
+              fullName: profile.fullName || 'Admin',
+              email: profile.email.toLowerCase().trim(),
+              username: profile.username || profile.email.split('@')[0],
+              phoneNumber: profile.phoneNumber || '',
+              avatarColor: profile.avatarColor || '#1976d2',
+              bio: profile.bio || '',
+              hasLoggedIn: true,
+              joinDate: new Date(),
+              members: [],
+            });
+            try {
+              await user.save();
+            } catch (createErr) {
+              console.warn('[Auth Middleware] Auto-create member document warning:', createErr.message);
+            }
+          }
         }
       }
 

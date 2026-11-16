@@ -1,8 +1,80 @@
 const Member = require('../models/Member');
 const Entry = require('../models/Entry');
 const ToPay = require('../models/ToPay');
+const Profile = require('../models/Profile');
 const { sendInviteEmail } = require('../utils/email');
 const { capitalizeName } = require('../utils/formatters');
+
+// Helper to safely get the current logged-in member document, creating or syncing it if necessary
+const getOrSyncCurrentUser = async (reqUser) => {
+  if (!reqUser) return null;
+  let currentUser = null;
+  if (reqUser._id) {
+    currentUser = await Member.findById(reqUser._id);
+  }
+  if (!currentUser && reqUser.email) {
+    currentUser = await Member.findOne({ email: reqUser.email.toLowerCase().trim() });
+  }
+  if (!currentUser && reqUser._id) {
+    // Check if user exists in Profile collection
+    const profile = await Profile.findOne({
+      $or: [
+        { _id: reqUser._id },
+        { email: (reqUser.email || '').toLowerCase().trim() },
+      ],
+    }) || await Profile.findOne();
+
+    if (profile) {
+      currentUser = await Member.findOne({
+        $or: [
+          { _id: profile._id },
+          { email: profile.email.toLowerCase().trim() },
+        ],
+      });
+      if (!currentUser) {
+        currentUser = new Member({
+          _id: profile._id,
+          fullName: profile.fullName || 'Admin',
+          email: profile.email.toLowerCase().trim(),
+          username: profile.username || profile.email.split('@')[0],
+          phoneNumber: profile.phoneNumber || '',
+          avatarColor: profile.avatarColor || '#1976d2',
+          bio: profile.bio || '',
+          hasLoggedIn: true,
+          joinDate: new Date(),
+          members: [],
+        });
+        try {
+          await currentUser.save();
+        } catch (saveErr) {
+          console.warn('Could not auto-create Member document from profile:', saveErr.message);
+        }
+      }
+    }
+  }
+  if (!currentUser && reqUser.email) {
+    currentUser = new Member({
+      _id: reqUser._id,
+      fullName: reqUser.fullName || 'User',
+      email: reqUser.email.toLowerCase().trim(),
+      username: reqUser.username || reqUser.email.split('@')[0],
+      phoneNumber: reqUser.phoneNumber || '',
+      avatarColor: reqUser.avatarColor || '#1976d2',
+      hasLoggedIn: true,
+      joinDate: new Date(),
+      members: [],
+    });
+    try {
+      await currentUser.save();
+    } catch (saveErr) {
+      console.warn('Could not auto-create Member document fallback:', saveErr.message);
+    }
+  }
+  if (currentUser && !currentUser.members) {
+    currentUser.members = [];
+  }
+  return currentUser;
+};
 
 // Generate random password meeting validation requirements:
 // At least 8 chars, uppercase, lowercase, number, symbol
@@ -46,14 +118,14 @@ const getAppUrl = (req) => {
 const getMembers = async (req, res) => {
   try {
     const { search } = req.query;
-    const currentUserId = req.user ? req.user._id : null;
-    if (!currentUserId) {
+    const currentUser = await getOrSyncCurrentUser(req.user);
+    if (!currentUser) {
       return res.status(401).json({ success: false, message: 'Authentication required' });
     }
+    const currentUserId = currentUser._id;
 
-    const currentUser = await Member.findById(currentUserId);
     // If invited by another user and not yet linked, automatically add inviter to members list
-    if (currentUser && currentUser.invitedBy && !currentUser.inviterLinked) {
+    if (currentUser.invitedBy && !currentUser.inviterLinked) {
       if (!currentUser.members) currentUser.members = [];
       const hasInviter = currentUser.members.some((mId) => String(mId) === String(currentUser.invitedBy));
       if (!hasInviter) {
@@ -63,7 +135,7 @@ const getMembers = async (req, res) => {
       await currentUser.save();
     }
 
-    const memberIds = (currentUser && Array.isArray(currentUser.members)) ? currentUser.members : [];
+    const memberIds = Array.isArray(currentUser.members) ? currentUser.members : [];
 
     // Only return members currently active in the user's directory
     const andConditions = [
@@ -195,8 +267,17 @@ const createMember = async (req, res) => {
 
     if (existingMember) {
       // 1. Is this member already in the current user's members directory?
-      const currentUser = await Member.findById(req.user._id);
-      const isAlreadyInDirectory = currentUser && currentUser.members && currentUser.members.some(
+      const currentUser = await getOrSyncCurrentUser(req.user);
+      if (!currentUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Failed to identify the logged-in user account.',
+        });
+      }
+
+      if (!currentUser.members) currentUser.members = [];
+
+      const isAlreadyInDirectory = currentUser.members.some(
         (mId) => String(mId) === String(existingMember._id)
       );
 
@@ -209,7 +290,6 @@ const createMember = async (req, res) => {
 
       // 2. Member already exists in app -> directly add to current user's members directory
       const mIdStr = existingMember._id.toString();
-      if (!currentUser.members) currentUser.members = [];
       if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
       if (!currentUser.members.some((id) => String(id) === mIdStr)) {
         currentUser.members.push(existingMember._id);
@@ -227,7 +307,7 @@ const createMember = async (req, res) => {
 
       // Reciprocal link so both members can see and split with each other
       await Member.findByIdAndUpdate(existingMember._id, {
-        $addToSet: { members: req.user._id },
+        $addToSet: { members: currentUser._id },
       });
 
       // If existing member had no phone number and one was provided, populate it
@@ -300,22 +380,20 @@ const createMember = async (req, res) => {
     await member.save();
 
     // Automatically add newly created/invited member to current user's members directory
-    if (req.user && req.user._id) {
-      const currentUser = await Member.findById(req.user._id);
-      if (currentUser) {
-        if (!currentUser.members) currentUser.members = [];
-        if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
-        if (!currentUser.memberInviteDates) currentUser.memberInviteDates = new Map();
-        const newIdStr = member._id.toString();
-        if (!currentUser.members.some((id) => String(id) === newIdStr)) {
-          currentUser.members.push(member._id);
-        }
-        currentUser.memberCustomNames.set(newIdStr, formattedFullName);
-        if (sendLink && member.lastInviteSentAt) {
-          currentUser.memberInviteDates.set(newIdStr, member.lastInviteSentAt);
-        }
-        await currentUser.save();
+    const currentUser = await getOrSyncCurrentUser(req.user);
+    if (currentUser) {
+      if (!currentUser.members) currentUser.members = [];
+      if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
+      if (!currentUser.memberInviteDates) currentUser.memberInviteDates = new Map();
+      const newIdStr = member._id.toString();
+      if (!currentUser.members.some((id) => String(id) === newIdStr)) {
+        currentUser.members.push(member._id);
       }
+      currentUser.memberCustomNames.set(newIdStr, formattedFullName);
+      if (sendLink && member.lastInviteSentAt) {
+        currentUser.memberInviteDates.set(newIdStr, member.lastInviteSentAt);
+      }
+      await currentUser.save();
     }
 
     res.status(201).json({
@@ -350,7 +428,7 @@ const updateMember = async (req, res) => {
 
     if (fullName !== undefined) {
       member.fullName = capitalizeName(fullName);
-      const currentUser = await Member.findById(req.user._id);
+      const currentUser = await getOrSyncCurrentUser(req.user);
       if (currentUser) {
         if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
         currentUser.memberCustomNames.set(member._id.toString(), capitalizeName(fullName));
@@ -503,7 +581,7 @@ const deleteMember = async (req, res) => {
     }
 
     // Only remove from this specific user's members directory (does not delete full user account)
-    const currentUser = await Member.findById(req.user._id);
+    const currentUser = await getOrSyncCurrentUser(req.user);
     if (currentUser) {
       if (currentUser.members) {
         currentUser.members = currentUser.members.filter((id) => String(id) !== String(member._id));
@@ -540,7 +618,7 @@ const bulkDeleteMembers = async (req, res) => {
     const validIds = ids.filter((id) => String(id) !== currentUserId);
 
     // Only remove from this specific user's members list (does not delete full user account)
-    const currentUser = await Member.findById(req.user._id);
+    const currentUser = await getOrSyncCurrentUser(req.user);
     if (currentUser) {
       const validStrSet = new Set(validIds.map((id) => String(id)));
       if (currentUser.members) {
@@ -617,7 +695,7 @@ const sendInviteToMember = async (req, res) => {
     member.invitedBy = req.user._id;
     await member.save();
 
-    const currentUser = await Member.findById(req.user._id);
+    const currentUser = await getOrSyncCurrentUser(req.user);
     if (currentUser) {
       if (!currentUser.memberInviteDates) currentUser.memberInviteDates = new Map();
       currentUser.memberInviteDates.set(member._id.toString(), inviteDate);
@@ -667,7 +745,7 @@ const bulkInviteMembers = async (req, res) => {
 
     // Send emails in parallel with concurrency control
     const inviteDate = new Date();
-    const currentUser = await Member.findById(req.user._id);
+    const currentUser = await getOrSyncCurrentUser(req.user);
     if (currentUser && !currentUser.memberInviteDates) {
       currentUser.memberInviteDates = new Map();
     }
@@ -779,7 +857,7 @@ const checkMemberEmail = async (req, res) => {
 
     let isAlreadyInDirectory = false;
     if (currentUserId) {
-      const currentUser = await Member.findById(currentUserId);
+      const currentUser = await getOrSyncCurrentUser(req.user);
       if (currentUser && currentUser.members) {
         isAlreadyInDirectory = currentUser.members.some(
           (mId) => String(mId) === String(existingMember._id)
@@ -822,7 +900,7 @@ const getMemberEntriesDetail = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Member not found.' });
     }
 
-    const currentUser = await Member.findById(currentUserId);
+    const currentUser = await getOrSyncCurrentUser(req.user);
     const mIdStr = member._id.toString();
     const customNames = currentUser && currentUser.memberCustomNames ? currentUser.memberCustomNames : null;
     let customName = null;

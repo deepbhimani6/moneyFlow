@@ -929,7 +929,32 @@ const MemberDetailPage = () => {
             </TableContainer>
           </Box>
 
-          <TablePagination component="div" count={filteredEntries.length} page={page} onPageChange={handleChangePage} rowsPerPage={rowsPerPage} onRowsPerPageChange={handleChangeRowsPerPage} rowsPerPageOptions={[5, 10, 25, 50]} sx={{ borderTop: "1px solid #e2e8f0" }} />
+          {/* Pagination Footer - Fixed to Card, Never scrolls horizontally */}
+          <Divider />
+          <Box sx={{ width: "100%", bgcolor: "background.paper" }}>
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 20, 50, 100]}
+              component="div"
+              count={filteredEntries.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              sx={{
+                width: "100%",
+                "& .MuiTablePagination-toolbar": {
+                  flexWrap: { xs: "wrap", sm: "nowrap" },
+                  justifyContent: { xs: "center", sm: "flex-end" },
+                  px: { xs: 1, sm: 2 },
+                  gap: { xs: 0.5, sm: 0 },
+                },
+                "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
+                  fontSize: { xs: "0.78rem", sm: "0.875rem" },
+                  my: 0.5,
+                },
+              }}
+            />
+          </Box>
         </Paper>
       </Stack>
 
