@@ -535,16 +535,32 @@ const getMemberEntriesSummary = async (req, res) => {
     const escapedName = member.fullName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
     const nameConditions = [
       { memberId: member._id },
-      { forFromName: { $regex: new RegExp(`^${escapedName}$`, 'i') } },
+      { memberId: member._id.toString() },
+      { forFromName: { $regex: new RegExp(`^\\s*${escapedName}\\s*$`, 'i') } },
     ];
     if (customName) {
       const escapedCustom = customName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-      nameConditions.push({ forFromName: { $regex: new RegExp(`^${escapedCustom}$`, 'i') } });
+      nameConditions.push({ forFromName: { $regex: new RegExp(`^\\s*${escapedCustom}\\s*$`, 'i') } });
+    }
+    if (member.username) {
+      const escapedUsername = member.username.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      nameConditions.push({ forFromName: { $regex: new RegExp(`^\\s*${escapedUsername}\\s*$`, 'i') } });
     }
 
     const entryQuery = {
-      userId: req.user._id,
-      $or: nameConditions,
+      $or: [
+        {
+          userId: { $in: [req.user._id, req.user._id.toString()] },
+          $or: nameConditions,
+        },
+        {
+          userId: { $in: [member._id, member._id.toString()] },
+          $or: [
+            { memberId: { $in: [req.user._id, req.user._id.toString()] } },
+            { forFromName: { $regex: new RegExp(`^\\s*${(req.user.fullName || '').replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}\\s*$`, 'i') } },
+          ],
+        },
+      ],
     };
 
     const [receiveEntries, toPayEntries] = await Promise.all([
@@ -588,12 +604,33 @@ const getBulkMembersEntriesSummary = async (req, res) => {
     const names = members.map((m) => m.fullName);
     const escapedNames = names.map((n) => n.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&'));
 
+    const allQueryConditions = [
+      { memberId: { $in: ids } },
+      ...names.map((n) => ({ forFromName: { $regex: new RegExp(`^\\s*${n.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}\\s*$`, 'i') } })),
+    ];
+    if (currentUser?.memberCustomNames) {
+      ids.forEach((id) => {
+        const cName = typeof currentUser.memberCustomNames.get === 'function'
+          ? currentUser.memberCustomNames.get(id.toString())
+          : currentUser.memberCustomNames[id.toString()];
+        if (cName) {
+          allQueryConditions.push({
+            forFromName: { $regex: new RegExp(`^\\s*${cName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}\\s*$`, 'i') },
+          });
+        }
+      });
+    }
+
     const entryQuery = {
-      userId: req.user._id,
       $or: [
-        { memberId: { $in: ids } },
-        { forFromName: { $in: names } },
-        ...escapedNames.map((n) => ({ forFromName: { $regex: new RegExp(`^${n}$`, 'i') } })),
+        {
+          userId: { $in: [req.user._id, req.user._id.toString()] },
+          $or: allQueryConditions,
+        },
+        {
+          userId: { $in: ids },
+          memberId: { $in: [req.user._id, req.user._id.toString()] },
+        },
       ],
     };
 
@@ -675,16 +712,32 @@ const deleteMember = async (req, res) => {
     const escapedName = member.fullName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
     const nameConditions = [
       { memberId: member._id },
-      { forFromName: { $regex: new RegExp(`^${escapedName}$`, 'i') } },
+      { memberId: member._id.toString() },
+      { forFromName: { $regex: new RegExp(`^\\s*${escapedName}\\s*$`, 'i') } },
     ];
     if (customName) {
       const escapedCustom = customName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-      nameConditions.push({ forFromName: { $regex: new RegExp(`^${escapedCustom}$`, 'i') } });
+      nameConditions.push({ forFromName: { $regex: new RegExp(`^\\s*${escapedCustom}\\s*$`, 'i') } });
+    }
+    if (member.username) {
+      const escapedUsername = member.username.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+      nameConditions.push({ forFromName: { $regex: new RegExp(`^\\s*${escapedUsername}\\s*$`, 'i') } });
     }
 
     const checkQuery = {
-      userId: req.user._id,
-      $or: nameConditions,
+      $or: [
+        {
+          userId: { $in: [req.user._id, req.user._id.toString()] },
+          $or: nameConditions,
+        },
+        {
+          userId: { $in: [member._id, member._id.toString()] },
+          $or: [
+            { memberId: { $in: [req.user._id, req.user._id.toString()] } },
+            { forFromName: { $regex: new RegExp(`^\\s*${(req.user.fullName || '').replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}\\s*$`, 'i') } },
+          ],
+        },
+      ],
     };
 
     const [hasReceive, hasPay] = await Promise.all([
@@ -753,12 +806,27 @@ const bulkDeleteMembers = async (req, res) => {
         : null;
       const orConds = [
         { memberId: m._id },
-        { forFromName: { $regex: new RegExp(`^${escName}$`, 'i') } },
+        { memberId: m._id.toString() },
+        { forFromName: { $regex: new RegExp(`^\\s*${escName}\\s*$`, 'i') } },
       ];
       if (custName) {
-        orConds.push({ forFromName: { $regex: new RegExp(`^${custName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}$`, 'i') } });
+        orConds.push({ forFromName: { $regex: new RegExp(`^\\s*${custName.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}\\s*$`, 'i') } });
       }
-      const q = { userId: req.user._id, $or: orConds };
+      if (m.username) {
+        orConds.push({ forFromName: { $regex: new RegExp(`^\\s*${m.username.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')}\\s*$`, 'i') } });
+      }
+      const q = {
+        $or: [
+          {
+            userId: { $in: [req.user._id, req.user._id.toString()] },
+            $or: orConds,
+          },
+          {
+            userId: { $in: [m._id, m._id.toString()] },
+            memberId: { $in: [req.user._id, req.user._id.toString()] },
+          },
+        ],
+      };
       const [rExists, pExists] = await Promise.all([Entry.exists(q), ToPay.exists(q)]);
       if (rExists || pExists) {
         membersWithEntries.push(custName || m.fullName);

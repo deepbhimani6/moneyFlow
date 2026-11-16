@@ -243,11 +243,23 @@ const MembersPage = () => {
       return;
     }
 
+    const memberHasEntries =
+      (Number(member?.totalEntries) || 0) > 0 ||
+      (Number(member?.pendingReceiveAmount) || 0) > 0 ||
+      (Number(member?.pendingPayAmount) || 0) > 0;
+
     setSingleDeleteState({
       open: true,
       loadingSummary: true,
       member,
-      summary: null,
+      summary: memberHasEntries
+        ? {
+            hasEntries: true,
+            entryCount: member.totalEntries || 1,
+            totalAmount: (member.pendingReceiveAmount || 0) + (member.pendingPayAmount || 0),
+            entries: [],
+          }
+        : null,
     });
 
     try {
@@ -262,7 +274,14 @@ const MembersPage = () => {
         setSingleDeleteState((prev) => ({
           ...prev,
           loadingSummary: false,
-          summary: { hasEntries: false, entryCount: 0, totalAmount: 0, entries: [] },
+          summary: memberHasEntries
+            ? {
+                hasEntries: true,
+                entryCount: member.totalEntries || 1,
+                totalAmount: (member.pendingReceiveAmount || 0) + (member.pendingPayAmount || 0),
+                entries: [],
+              }
+            : { hasEntries: false, entryCount: 0, totalAmount: 0, entries: [] },
         }));
       }
     } catch (err) {
@@ -270,14 +289,36 @@ const MembersPage = () => {
       setSingleDeleteState((prev) => ({
         ...prev,
         loadingSummary: false,
-        summary: { hasEntries: false, entryCount: 0, totalAmount: 0, entries: [] },
+        summary: memberHasEntries
+          ? {
+              hasEntries: true,
+              entryCount: member.totalEntries || 1,
+              totalAmount: (member.pendingReceiveAmount || 0) + (member.pendingPayAmount || 0),
+              entries: [],
+            }
+          : { hasEntries: false, entryCount: 0, totalAmount: 0, entries: [] },
       }));
     }
   };
 
-  // Confirm delete single member & associated entries
+  // Confirm delete single member (hard blocked if member has active entries)
   const handleConfirmSingleDelete = async () => {
     if (!singleDeleteState.member) return;
+    const memberHasEntries =
+      singleDeleteState.summary?.hasEntries ||
+      (Number(singleDeleteState.member?.totalEntries) || 0) > 0 ||
+      (Number(singleDeleteState.member?.pendingReceiveAmount) || 0) > 0 ||
+      (Number(singleDeleteState.member?.pendingPayAmount) || 0) > 0;
+
+    if (memberHasEntries) {
+      setSnackbar({
+        open: true,
+        message: "Cannot delete member because they have associated entries. Please delete or settle all their entries first.",
+        severity: "error",
+      });
+      return;
+    }
+
     const deletedId = singleDeleteState.member._id;
     try {
       setActionLoading(true);
@@ -320,10 +361,29 @@ const MembersPage = () => {
       return;
     }
 
+    const anySelectedHasEntries = selectedMembers.some(
+      (m) =>
+        (Number(m.totalEntries) || 0) > 0 ||
+        (Number(m.pendingReceiveAmount) || 0) > 0 ||
+        (Number(m.pendingPayAmount) || 0) > 0
+    );
+
     setBulkDeleteState({
       open: true,
       loadingSummary: true,
-      summary: null,
+      summary: anySelectedHasEntries
+        ? {
+            hasEntries: true,
+            entryCount: selectedMembers.reduce((acc, m) => acc + (Number(m.totalEntries) || 0), 0) || 1,
+            totalAmount: selectedMembers.reduce((acc, m) => acc + (Number(m.pendingReceiveAmount) || 0) + (Number(m.pendingPayAmount) || 0), 0),
+            memberSummary: selectedMembers.map((m) => ({
+              _id: m._id,
+              fullName: m.fullName,
+              count: m.totalEntries || 0,
+              totalAmount: (m.pendingReceiveAmount || 0) + (m.pendingPayAmount || 0),
+            })),
+          }
+        : null,
     });
 
     try {
@@ -338,7 +398,14 @@ const MembersPage = () => {
         setBulkDeleteState((prev) => ({
           ...prev,
           loadingSummary: false,
-          summary: { hasEntries: false, entryCount: 0, totalAmount: 0, memberSummary: [] },
+          summary: anySelectedHasEntries
+            ? {
+                hasEntries: true,
+                entryCount: 1,
+                totalAmount: 0,
+                memberSummary: [],
+              }
+            : { hasEntries: false, entryCount: 0, totalAmount: 0, memberSummary: [] },
         }));
       }
     } catch (err) {
@@ -346,14 +413,29 @@ const MembersPage = () => {
       setBulkDeleteState((prev) => ({
         ...prev,
         loadingSummary: false,
-        summary: { hasEntries: false, entryCount: 0, totalAmount: 0, memberSummary: [] },
+        summary: anySelectedHasEntries
+          ? {
+              hasEntries: true,
+              entryCount: 1,
+              totalAmount: 0,
+              memberSummary: [],
+            }
+          : { hasEntries: false, entryCount: 0, totalAmount: 0, memberSummary: [] },
       }));
     }
   };
 
-  // Confirm bulk delete members & associated entries
+  // Confirm bulk delete members (hard blocked if any selected member has active entries)
   const handleConfirmBulkDelete = async () => {
     if (selectedIds.length === 0) return;
+    if (bulkDeleteState.summary?.hasEntries) {
+      setSnackbar({
+        open: true,
+        message: "Cannot delete selected members because one or more have active entries. Please delete or settle their entries first.",
+        severity: "error",
+      });
+      return;
+    }
     const idsToDelete = [...selectedIds];
     try {
       setActionLoading(true);
@@ -622,8 +704,16 @@ const MembersPage = () => {
                 const hasJoined = Boolean(row.hasLoggedIn || row.joinDate);
                 const formattedJoinDate = hasJoined && row.joinDate ? formatDate(row.joinDate) : "—";
                 const isCurrent = isCurrentLoggedInUser(row, profile, user);
-                const disableDelete = isCurrent;
-                const deleteTooltip = isCurrent ? "You cannot delete your own logged-in account" : "Delete Member";
+                const hasEntries =
+                  (Number(row.totalEntries) || 0) > 0 ||
+                  (Number(row.pendingReceiveAmount) || 0) > 0 ||
+                  (Number(row.pendingPayAmount) || 0) > 0;
+                const disableDelete = isCurrent || hasEntries;
+                const deleteTooltip = isCurrent
+                  ? "You cannot delete your own logged-in account"
+                  : hasEntries
+                  ? "Cannot delete: This member has active entries"
+                  : "Delete Member";
                 const disableInvite = !row.email || sendingInviteId === row._id || hasJoined;
                 const inviteTooltip = hasJoined ? "Member has already joined the app" : !row.email ? "No email available to send invite" : "Send App Invite Link";
 
@@ -982,75 +1072,77 @@ const MembersPage = () => {
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2.5, pb: 2.5 }}>
-          {singleDeleteState.loadingSummary ? (
+          {singleDeleteState.loadingSummary && !((Number(singleDeleteState.member?.totalEntries) || 0) > 0) ? (
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 4, gap: 1.5 }}>
               <CircularProgress size={32} />
               <Typography variant="body2" color="text.secondary">
                 Checking member's associated entries...
               </Typography>
             </Box>
-          ) : singleDeleteState.summary?.hasEntries ? (
+          ) : (singleDeleteState.summary?.hasEntries || (Number(singleDeleteState.member?.totalEntries) || 0) > 0 || (Number(singleDeleteState.member?.pendingReceiveAmount) || 0) > 0 || (Number(singleDeleteState.member?.pendingPayAmount) || 0) > 0) ? (
             <>
               {/* Has entries: Block deletion alert */}
               <Alert severity="error" sx={{ fontWeight: 500 }}>
-                <strong>Cannot Delete Member:</strong> <strong>{capitalizeName(singleDeleteState.member?.fullName)}</strong> has <strong>{singleDeleteState.summary.entryCount} associated entry/entries</strong> (totaling ₹ {formatAmount(singleDeleteState.summary.totalAmount)}).
+                <strong>Cannot Delete Member:</strong> <strong>{capitalizeName(singleDeleteState.member?.fullName)}</strong> has <strong>{singleDeleteState.summary?.entryCount || singleDeleteState.member?.totalEntries || 1} associated entry/entries</strong>{singleDeleteState.summary?.totalAmount || singleDeleteState.member?.pendingReceiveAmount ? ` (totaling ₹ ${formatAmount(singleDeleteState.summary?.totalAmount || singleDeleteState.member?.pendingReceiveAmount || 0)})` : ''}.
                 <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
                   Members with active entries cannot be deleted. Please delete or settle all of their entries first.
                 </Typography>
               </Alert>
 
-              <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                  Associated Entries ({singleDeleteState.summary.entryCount}):
-                </Typography>
-                <Box
-                  sx={{
-                    maxHeight: 200,
-                    overflowY: "auto",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 2,
-                    bgcolor: "#f8fafc",
-                    p: 1.5,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 1,
-                  }}
-                >
-                  {singleDeleteState.summary.entries.map((entry) => (
-                    <Box
-                      key={entry._id}
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        p: 1,
-                        bgcolor: "#ffffff",
-                        borderRadius: 1.5,
-                        border: "1px solid #e2e8f0",
-                      }}
-                    >
-                      <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {formatDate(entry.date)} • {entry.type || entry.status || "Expense"}
-                        </Typography>
-                        {entry.description && (
-                          <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
-                            {entry.description}
+              {singleDeleteState.summary?.entries && singleDeleteState.summary.entries.length > 0 && (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                    Associated Entries ({singleDeleteState.summary.entryCount}):
+                  </Typography>
+                  <Box
+                    sx={{
+                      maxHeight: 200,
+                      overflowY: "auto",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 2,
+                      bgcolor: "#f8fafc",
+                      p: 1.5,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1,
+                    }}
+                  >
+                    {singleDeleteState.summary.entries.map((entry) => (
+                      <Box
+                        key={entry._id}
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          p: 1,
+                          bgcolor: "#ffffff",
+                          borderRadius: 1.5,
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                            {formatDate(entry.date)} • {entry.type || entry.status || "Expense"}
                           </Typography>
-                        )}
+                          {entry.description && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                              {entry.description}
+                            </Typography>
+                          )}
+                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
+                          ₹ {formatAmount(entry.amount)}
+                        </Typography>
                       </Box>
-                      <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
-                        ₹ {formatAmount(entry.amount)}
+                    ))}
+                    {singleDeleteState.summary.entryCount > singleDeleteState.summary.entries.length && (
+                      <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center", pt: 0.5 }}>
+                        ...and {singleDeleteState.summary.entryCount - singleDeleteState.summary.entries.length} more entry/entries
                       </Typography>
-                    </Box>
-                  ))}
-                  {singleDeleteState.summary.entryCount > singleDeleteState.summary.entries.length && (
-                    <Typography variant="caption" color="text.secondary" sx={{ textAlign: "center", pt: 0.5 }}>
-                      ...and {singleDeleteState.summary.entryCount - singleDeleteState.summary.entries.length} more entry/entries
-                    </Typography>
-                  )}
+                    )}
+                  </Box>
                 </Box>
-              </Box>
+              )}
 
               <Typography variant="body2" color="text.secondary">
                 To delete this member, please delete or settle their associated transactions first.
@@ -1078,12 +1170,12 @@ const MembersPage = () => {
           <Button
             onClick={() => setSingleDeleteState((prev) => ({ ...prev, open: false }))}
             disabled={actionLoading}
-            color={singleDeleteState.summary?.hasEntries ? "primary" : "inherit"}
-            variant={singleDeleteState.summary?.hasEntries ? "contained" : "text"}
+            color={(singleDeleteState.summary?.hasEntries || (Number(singleDeleteState.member?.totalEntries) || 0) > 0 || (Number(singleDeleteState.member?.pendingReceiveAmount) || 0) > 0 || (Number(singleDeleteState.member?.pendingPayAmount) || 0) > 0) ? "primary" : "inherit"}
+            variant={(singleDeleteState.summary?.hasEntries || (Number(singleDeleteState.member?.totalEntries) || 0) > 0 || (Number(singleDeleteState.member?.pendingReceiveAmount) || 0) > 0 || (Number(singleDeleteState.member?.pendingPayAmount) || 0) > 0) ? "contained" : "text"}
           >
-            {singleDeleteState.summary?.hasEntries ? "Close" : "Cancel"}
+            {(singleDeleteState.summary?.hasEntries || (Number(singleDeleteState.member?.totalEntries) || 0) > 0 || (Number(singleDeleteState.member?.pendingReceiveAmount) || 0) > 0 || (Number(singleDeleteState.member?.pendingPayAmount) || 0) > 0) ? "Close" : "Cancel"}
           </Button>
-          {!singleDeleteState.summary?.hasEntries && (
+          {!(singleDeleteState.summary?.hasEntries || (Number(singleDeleteState.member?.totalEntries) || 0) > 0 || (Number(singleDeleteState.member?.pendingReceiveAmount) || 0) > 0 || (Number(singleDeleteState.member?.pendingPayAmount) || 0) > 0) && (
             <Button
               onClick={handleConfirmSingleDelete}
               color="error"
@@ -1119,63 +1211,65 @@ const MembersPage = () => {
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2.5, pb: 2.5 }}>
-          {bulkDeleteState.loadingSummary ? (
+          {bulkDeleteState.loadingSummary && !selectedIds.some((id) => (Number(members.find((row) => row._id === id)?.totalEntries) || 0) > 0) ? (
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 4, gap: 1.5 }}>
               <CircularProgress size={32} />
               <Typography variant="body2" color="text.secondary">
                 Checking selected members' associated entries...
               </Typography>
             </Box>
-          ) : bulkDeleteState.summary?.hasEntries ? (
+          ) : (bulkDeleteState.summary?.hasEntries || selectedIds.some((id) => (Number(members.find((row) => row._id === id)?.totalEntries) || 0) > 0 || (Number(members.find((row) => row._id === id)?.pendingReceiveAmount) || 0) > 0 || (Number(members.find((row) => row._id === id)?.pendingPayAmount) || 0) > 0)) ? (
             <>
               {/* Has entries: Block bulk deletion alert */}
               <Alert severity="error" sx={{ fontWeight: 500 }}>
-                <strong>Cannot Delete Members:</strong> One or more selected members have <strong>{bulkDeleteState.summary.entryCount} associated entry/entries</strong> (totaling ₹ {formatAmount(bulkDeleteState.summary.totalAmount)}).
+                <strong>Cannot Delete Members:</strong> One or more selected members have <strong>{bulkDeleteState.summary?.entryCount || 1} associated entry/entries</strong>{bulkDeleteState.summary?.totalAmount ? ` (totaling ₹ ${formatAmount(bulkDeleteState.summary.totalAmount)})` : ''}.
                 <Typography variant="caption" sx={{ display: "block", mt: 0.5 }}>
                   Members with active entries cannot be deleted. Please delete or settle their entries first.
                 </Typography>
               </Alert>
 
-              <Box>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                  Breakdown by Member:
-                </Typography>
-                <Box
-                  sx={{
-                    maxHeight: 200,
-                    overflowY: "auto",
-                    border: "1px solid #e2e8f0",
-                    borderRadius: 2,
-                    bgcolor: "#f8fafc",
-                    p: 1.5,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 1,
-                  }}
-                >
-                  {bulkDeleteState.summary.memberSummary.map((m) => (
-                    <Box
-                      key={m._id}
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        p: 1,
-                        bgcolor: "#ffffff",
-                        borderRadius: 1.5,
-                        border: "1px solid #e2e8f0",
-                      }}
-                    >
-                      <Typography variant="body2" sx={{ fontWeight: 600, textTransform: "capitalize" }}>
-                        {capitalizeName(m.fullName)}
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: m.count > 0 ? "error.main" : "text.secondary" }}>
-                        {m.count > 0 ? `${m.count} entries (₹ ${formatAmount(m.totalAmount)})` : "No entries"}
-                      </Typography>
-                    </Box>
-                  ))}
+              {bulkDeleteState.summary?.memberSummary && bulkDeleteState.summary.memberSummary.length > 0 && (
+                <Box>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                    Breakdown by Member:
+                  </Typography>
+                  <Box
+                    sx={{
+                      maxHeight: 200,
+                      overflowY: "auto",
+                      border: "1px solid #e2e8f0",
+                      borderRadius: 2,
+                      bgcolor: "#f8fafc",
+                      p: 1.5,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1,
+                    }}
+                  >
+                    {bulkDeleteState.summary.memberSummary.map((m) => (
+                      <Box
+                        key={m._id}
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          p: 1,
+                          bgcolor: "#ffffff",
+                          borderRadius: 1.5,
+                          border: "1px solid #e2e8f0",
+                        }}
+                      >
+                        <Typography variant="body2" sx={{ fontWeight: 600, textTransform: "capitalize" }}>
+                          {capitalizeName(m.fullName)}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: m.count > 0 ? "error.main" : "text.secondary" }}>
+                          {m.count > 0 ? `${m.count} entries (₹ ${formatAmount(m.totalAmount)})` : "No entries"}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Box>
                 </Box>
-              </Box>
+              )}
 
               <Typography variant="body2" color="text.secondary">
                 Please deselect members who have entries or delete/settle their entries before deleting.
@@ -1203,12 +1297,12 @@ const MembersPage = () => {
           <Button
             onClick={() => setBulkDeleteState((prev) => ({ ...prev, open: false }))}
             disabled={actionLoading}
-            color={bulkDeleteState.summary?.hasEntries ? "primary" : "inherit"}
-            variant={bulkDeleteState.summary?.hasEntries ? "contained" : "text"}
+            color={(bulkDeleteState.summary?.hasEntries || selectedIds.some((id) => (Number(members.find((row) => row._id === id)?.totalEntries) || 0) > 0 || (Number(members.find((row) => row._id === id)?.pendingReceiveAmount) || 0) > 0 || (Number(members.find((row) => row._id === id)?.pendingPayAmount) || 0) > 0)) ? "primary" : "inherit"}
+            variant={(bulkDeleteState.summary?.hasEntries || selectedIds.some((id) => (Number(members.find((row) => row._id === id)?.totalEntries) || 0) > 0 || (Number(members.find((row) => row._id === id)?.pendingReceiveAmount) || 0) > 0 || (Number(members.find((row) => row._id === id)?.pendingPayAmount) || 0) > 0)) ? "contained" : "text"}
           >
-            {bulkDeleteState.summary?.hasEntries ? "Close" : "Cancel"}
+            {(bulkDeleteState.summary?.hasEntries || selectedIds.some((id) => (Number(members.find((row) => row._id === id)?.totalEntries) || 0) > 0 || (Number(members.find((row) => row._id === id)?.pendingReceiveAmount) || 0) > 0 || (Number(members.find((row) => row._id === id)?.pendingPayAmount) || 0) > 0)) ? "Close" : "Cancel"}
           </Button>
-          {!bulkDeleteState.summary?.hasEntries && (
+          {!(bulkDeleteState.summary?.hasEntries || selectedIds.some((id) => (Number(members.find((row) => row._id === id)?.totalEntries) || 0) > 0 || (Number(members.find((row) => row._id === id)?.pendingReceiveAmount) || 0) > 0 || (Number(members.find((row) => row._id === id)?.pendingPayAmount) || 0) > 0)) && (
             <Button
               onClick={handleConfirmBulkDelete}
               color="error"

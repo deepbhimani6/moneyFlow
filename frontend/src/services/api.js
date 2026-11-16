@@ -113,6 +113,10 @@ export const memberService = {
     const res = await api.get(`/members/${id}/entries-summary`);
     return res.data;
   },
+  getMemberEntriesSummary: async (id) => {
+    const res = await api.get(`/members/${id}/entries-summary`);
+    return res.data;
+  },
   getMemberEntriesDetail: async (id) => {
     const res = await api.get(`/members/${id}/entries`);
     return res.data;
