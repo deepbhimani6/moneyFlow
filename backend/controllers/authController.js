@@ -63,9 +63,40 @@ const register = async (req, res) => {
       email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
     });
     if (existingEmail) {
-      return res.status(400).json({
-        success: false,
-        message: 'This email address already exists.',
+      if (existingEmail.hasLoggedIn || existingEmail.joinDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'This email address already exists.',
+        });
+      }
+
+      // If member was previously invited/added but hasn't joined yet, allow them to join and set their own personal profile
+      existingEmail.fullName = capitalizeName(fullName);
+      existingEmail.phoneNumber = phoneNumber ? phoneNumber.trim() : '';
+      if (cleanUsername) existingEmail.username = cleanUsername;
+      existingEmail.password = password;
+      existingEmail.hasLoggedIn = true;
+      existingEmail.joinDate = new Date();
+      await existingEmail.save();
+
+      // Reciprocal link between inviter and new member
+      if (existingEmail.invitedBy && !existingEmail.inviterLinked) {
+        await Member.findByIdAndUpdate(existingEmail._id, {
+          $addToSet: { members: existingEmail.invitedBy },
+          $set: { inviterLinked: true },
+        });
+        await Member.findByIdAndUpdate(existingEmail.invitedBy, {
+          $addToSet: { members: existingEmail._id },
+        });
+        existingEmail.inviterLinked = true;
+      }
+
+      const token = generateToken(existingEmail);
+      return res.status(201).json({
+        success: true,
+        message: 'Account created successfully.',
+        token,
+        user: getSanitizedUser(existingEmail),
       });
     }
 

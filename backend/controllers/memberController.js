@@ -160,6 +160,7 @@ const getMembers = async (req, res) => {
       ToPay.find({ userId: currentUserId }).lean(),
     ]);
     const customNames = currentUser && currentUser.memberCustomNames ? currentUser.memberCustomNames : null;
+    const customPhones = currentUser && currentUser.memberCustomPhoneNumbers ? currentUser.memberCustomPhoneNumbers : null;
     const inviteDates = currentUser && currentUser.memberInviteDates ? currentUser.memberInviteDates : null;
 
     const formattedMembers = members.map((m) => {
@@ -177,6 +178,17 @@ const getMembers = async (req, res) => {
         mObj.fullName = capitalizeName(customName);
       } else {
         mObj.fullName = capitalizeName(mObj.fullName);
+      }
+
+      // 1b. Phone preservation: caller's custom member phone number for their own list
+      let customPhone = null;
+      if (customPhones) {
+        customPhone = typeof customPhones.get === 'function'
+          ? customPhones.get(mIdStr)
+          : customPhones[mIdStr];
+      }
+      if (customPhone !== undefined && customPhone !== null && customPhone !== '') {
+        mObj.phoneNumber = customPhone;
       }
 
       // 2. Invite Date: only show if the CURRENT USER actually invited this member in this relationship
@@ -291,10 +303,14 @@ const createMember = async (req, res) => {
       // 2. Member already exists in app -> directly add to current user's members directory
       const mIdStr = existingMember._id.toString();
       if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
+      if (!currentUser.memberCustomPhoneNumbers) currentUser.memberCustomPhoneNumbers = new Map();
       if (!currentUser.members.some((id) => String(id) === mIdStr)) {
         currentUser.members.push(existingMember._id);
       }
       currentUser.memberCustomNames.set(mIdStr, formattedFullName);
+      if (phoneNumber && phoneNumber.trim()) {
+        currentUser.memberCustomPhoneNumbers.set(mIdStr, phoneNumber.trim());
+      }
       // Ensure any stale invite date for this member is wiped for this user
       if (currentUser.memberInviteDates) {
         if (typeof currentUser.memberInviteDates.delete === 'function') {
@@ -310,14 +326,11 @@ const createMember = async (req, res) => {
         $addToSet: { members: currentUser._id },
       });
 
-      // If existing member had no phone number and one was provided, populate it
-      if (!existingMember.phoneNumber && phoneNumber && phoneNumber.trim()) {
-        existingMember.phoneNumber = phoneNumber.trim();
-        await existingMember.save();
-      }
-
       const dataObj = existingMember.toObject ? existingMember.toObject() : { ...existingMember };
       dataObj.fullName = formattedFullName;
+      if (phoneNumber && phoneNumber.trim()) {
+        dataObj.phoneNumber = phoneNumber.trim();
+      }
       dataObj.inviteSent = false;
       dataObj.lastInviteSentAt = null;
 
@@ -384,12 +397,16 @@ const createMember = async (req, res) => {
     if (currentUser) {
       if (!currentUser.members) currentUser.members = [];
       if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
+      if (!currentUser.memberCustomPhoneNumbers) currentUser.memberCustomPhoneNumbers = new Map();
       if (!currentUser.memberInviteDates) currentUser.memberInviteDates = new Map();
       const newIdStr = member._id.toString();
       if (!currentUser.members.some((id) => String(id) === newIdStr)) {
         currentUser.members.push(member._id);
       }
       currentUser.memberCustomNames.set(newIdStr, formattedFullName);
+      if (phoneNumber && phoneNumber.trim()) {
+        currentUser.memberCustomPhoneNumbers.set(newIdStr, phoneNumber.trim());
+      }
       if (sendLink && member.lastInviteSentAt) {
         currentUser.memberInviteDates.set(newIdStr, member.lastInviteSentAt);
       }
@@ -418,21 +435,33 @@ const updateMember = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Member not found.' });
     }
 
-    // Members who have already joined the app
-    if (member.hasLoggedIn || member.joinDate) {
-      const currentUser = await getOrSyncCurrentUser(req.user);
-      if (fullName !== undefined && currentUser) {
+    const currentUser = await getOrSyncCurrentUser(req.user);
+    const mIdStr = member._id.toString();
+    const hasJoined = Boolean(member.hasLoggedIn || member.joinDate);
+
+    // Members who have already joined the app:
+    // Any change to fullName or phoneNumber is purely custom for the current user's contact list!
+    // It must NEVER affect the joined member's own account profile or other users' data!
+    if (hasJoined) {
+      if (currentUser) {
         if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
-        currentUser.memberCustomNames.set(member._id.toString(), capitalizeName(fullName));
+        if (!currentUser.memberCustomPhoneNumbers) currentUser.memberCustomPhoneNumbers = new Map();
+
+        if (fullName !== undefined) {
+          currentUser.memberCustomNames.set(mIdStr, capitalizeName(fullName));
+        }
+        if (phoneNumber !== undefined) {
+          currentUser.memberCustomPhoneNumbers.set(mIdStr, phoneNumber ? phoneNumber.trim() : '');
+        }
         await currentUser.save();
       }
-      if (phoneNumber !== undefined && phoneNumber.trim()) {
-        member.phoneNumber = phoneNumber.trim();
-        await member.save();
-      }
+
       const returnData = member.toObject ? member.toObject() : { ...member };
       if (fullName !== undefined) {
         returnData.fullName = capitalizeName(fullName);
+      }
+      if (phoneNumber !== undefined) {
+        returnData.phoneNumber = phoneNumber ? phoneNumber.trim() : '';
       }
       return res.json({
         success: true,
@@ -441,16 +470,25 @@ const updateMember = async (req, res) => {
       });
     }
 
+    // Members who have NOT yet joined (placeholder/invited contacts)
     if (fullName !== undefined) {
       member.fullName = capitalizeName(fullName);
-      const currentUser = await getOrSyncCurrentUser(req.user);
       if (currentUser) {
         if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
-        currentUser.memberCustomNames.set(member._id.toString(), capitalizeName(fullName));
-        await currentUser.save();
+        currentUser.memberCustomNames.set(mIdStr, capitalizeName(fullName));
       }
     }
-    if (phoneNumber !== undefined) member.phoneNumber = phoneNumber ? phoneNumber.trim() : '';
+    if (phoneNumber !== undefined) {
+      const cleanPhone = phoneNumber ? phoneNumber.trim() : '';
+      member.phoneNumber = cleanPhone;
+      if (currentUser) {
+        if (!currentUser.memberCustomPhoneNumbers) currentUser.memberCustomPhoneNumbers = new Map();
+        currentUser.memberCustomPhoneNumbers.set(mIdStr, cleanPhone);
+      }
+    }
+    if (currentUser) {
+      await currentUser.save();
+    }
     if (email !== undefined) {
       const cleanEmail = email.trim().toLowerCase();
       if (cleanEmail && cleanEmail !== (member.email || '').toLowerCase()) {
@@ -670,6 +708,9 @@ const deleteMember = async (req, res) => {
       if (currentUser.memberCustomNames && typeof currentUser.memberCustomNames.delete === 'function') {
         currentUser.memberCustomNames.delete(String(member._id));
       }
+      if (currentUser.memberCustomPhoneNumbers && typeof currentUser.memberCustomPhoneNumbers.delete === 'function') {
+        currentUser.memberCustomPhoneNumbers.delete(String(member._id));
+      }
       if (currentUser.memberInviteDates && typeof currentUser.memberInviteDates.delete === 'function') {
         currentUser.memberInviteDates.delete(String(member._id));
       }
@@ -747,6 +788,9 @@ const bulkDeleteMembers = async (req, res) => {
       validStrSet.forEach((vId) => {
         if (currentUser.memberCustomNames && typeof currentUser.memberCustomNames.delete === 'function') {
           currentUser.memberCustomNames.delete(vId);
+        }
+        if (currentUser.memberCustomPhoneNumbers && typeof currentUser.memberCustomPhoneNumbers.delete === 'function') {
+          currentUser.memberCustomPhoneNumbers.delete(vId);
         }
         if (currentUser.memberInviteDates && typeof currentUser.memberInviteDates.delete === 'function') {
           currentUser.memberInviteDates.delete(vId);
@@ -1023,6 +1067,7 @@ const getMemberEntriesDetail = async (req, res) => {
     const currentUser = await getOrSyncCurrentUser(req.user);
     const mIdStr = member._id.toString();
     const customNames = currentUser && currentUser.memberCustomNames ? currentUser.memberCustomNames : null;
+    const customPhones = currentUser && currentUser.memberCustomPhoneNumbers ? currentUser.memberCustomPhoneNumbers : null;
     let customName = null;
     if (customNames) {
       customName = typeof customNames.get === 'function'
@@ -1030,6 +1075,16 @@ const getMemberEntriesDetail = async (req, res) => {
         : customNames[mIdStr];
     }
     const displayName = customName ? capitalizeName(customName) : capitalizeName(member.fullName);
+
+    let customPhone = null;
+    if (customPhones) {
+      customPhone = typeof customPhones.get === 'function'
+        ? customPhones.get(mIdStr)
+        : customPhones[mIdStr];
+    }
+    const displayPhone = (customPhone !== undefined && customPhone !== null && customPhone !== '')
+      ? customPhone
+      : (member.phoneNumber || '');
 
     const mOrigName = (member.fullName || '').toLowerCase().trim();
     const mCustName = (customName || '').toLowerCase().trim();
@@ -1137,7 +1192,7 @@ const getMemberEntriesDetail = async (req, res) => {
           fullName: displayName,
           rawFullName: member.fullName,
           email: member.email,
-          phoneNumber: member.phoneNumber || '',
+          phoneNumber: displayPhone,
           username: member.username || '',
           avatarColor: member.avatarColor || '#1976d2',
           joinDate: member.joinDate || null,

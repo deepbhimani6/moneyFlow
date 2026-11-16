@@ -102,6 +102,12 @@ const memberSchema = new mongoose.Schema(
       of: String,
       default: {},
     },
+    // Custom phone numbers assigned to members in this user's personal member directory
+    memberCustomPhoneNumbers: {
+      type: Map,
+      of: String,
+      default: {},
+    },
     // Invite dates recorded by this user for members in their directory
     memberInviteDates: {
       type: Map,
