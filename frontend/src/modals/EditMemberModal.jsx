@@ -32,6 +32,7 @@ const EditMemberModal = ({
 
   const fullNameRef = useRef(null);
   const emailRef = useRef(null);
+  const isJoined = Boolean(member?.hasLoggedIn || member?.joinDate);
 
   useEffect(() => {
     if (member) {
@@ -74,7 +75,7 @@ const EditMemberModal = ({
     const formattedFullName = capitalizeName(formData.fullName);
     const newErrors = {};
     if (!formattedFullName) newErrors.fullName = true;
-    if (!formData.email || !formData.email.trim()) newErrors.email = true;
+    if (!isJoined && (!formData.email || !formData.email.trim())) newErrors.email = true;
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -138,6 +139,12 @@ const EditMemberModal = ({
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
+          {isJoined && (
+            <Alert severity="info" sx={{ borderRadius: 2 }}>
+              This member has joined MoneyFlow. You can customize their display name and phone number for your list.
+            </Alert>
+          )}
+
           <TextField
             label="Full Name"
             name="fullName"
@@ -168,19 +175,33 @@ const EditMemberModal = ({
             type="email"
             value={formData.email}
             inputRef={emailRef}
+            disabled={isJoined}
             error={Boolean(errors.email)}
-            helperText={typeof errors.email === 'string' ? errors.email : (errors.email ? 'Please enter a valid email address.' : '')}
+            helperText={
+              isJoined
+                ? 'Registered MoneyFlow account email cannot be changed.'
+                : typeof errors.email === 'string'
+                ? errors.email
+                : errors.email
+                ? 'Please enter a valid email address.'
+                : ''
+            }
             onChange={handleChange}
             fullWidth
-            required
+            required={!isJoined}
           />
 
           <TextField
             label="Username"
             name="username"
             value={formData.username}
+            disabled={isJoined}
             error={Boolean(errors.username)}
-            helperText={errors.username || ''}
+            helperText={
+              isJoined
+                ? 'Registered MoneyFlow account username cannot be changed.'
+                : errors.username || ''
+            }
             onChange={handleChange}
             fullWidth
           />

@@ -418,11 +418,26 @@ const updateMember = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Member not found.' });
     }
 
-    // Members who have already joined the app cannot be edited by other members
+    // Members who have already joined the app
     if (member.hasLoggedIn || member.joinDate) {
-      return res.status(400).json({
-        success: false,
-        message: 'This member has already joined the app and cannot be edited.',
+      const currentUser = await getOrSyncCurrentUser(req.user);
+      if (fullName !== undefined && currentUser) {
+        if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
+        currentUser.memberCustomNames.set(member._id.toString(), capitalizeName(fullName));
+        await currentUser.save();
+      }
+      if (phoneNumber !== undefined && phoneNumber.trim()) {
+        member.phoneNumber = phoneNumber.trim();
+        await member.save();
+      }
+      const returnData = member.toObject ? member.toObject() : { ...member };
+      if (fullName !== undefined) {
+        returnData.fullName = capitalizeName(fullName);
+      }
+      return res.json({
+        success: true,
+        data: returnData,
+        message: 'Member updated successfully.',
       });
     }
 

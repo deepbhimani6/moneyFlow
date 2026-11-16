@@ -833,7 +833,7 @@ const MembersPage = () => {
                         startIcon={<EditIcon sx={{ fontSize: 14 }} />}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleOpenEditModal(row);
+                          setEditingMember(row);
                         }}
                         sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
                       >
@@ -848,7 +848,7 @@ const MembersPage = () => {
                             startIcon={<DeleteOutlineIcon sx={{ fontSize: 14 }} />}
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleOpenDeleteModal(row);
+                              handleOpenSingleDelete(row);
                             }}
                             disabled={disableDelete}
                             sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
