@@ -580,22 +580,21 @@ const MemberDetailPage = () => {
               </Button>
 
               {/* Desktop Bulk Actions Button (Screens >= 1024px) */}
-              {selectedIds.length > 0 && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="secondary"
-                  onClick={(e) => setBulkAnchorEl(e.currentTarget)}
-                  sx={{
-                    display: { xs: "none", lg: "inline-flex" },
-                    borderRadius: 2,
-                    textTransform: "none",
-                    fontWeight: 600,
-                  }}
-                >
-                  Bulk Actions ({selectedIds.length})
-                </Button>
-              )}
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                disabled={selectedIds.length === 0}
+                onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+                sx={{
+                  display: { xs: "none", lg: "inline-flex" },
+                  borderRadius: 2,
+                  textTransform: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Bulk Actions{selectedIds.length > 0 ? ` (${selectedIds.length})` : ""}
+              </Button>
 
               {/* Bulk Actions Menu */}
               <Menu
@@ -685,24 +684,23 @@ const MemberDetailPage = () => {
                   Select All ({selectedIds.length > 0 ? selectedIds.length : filteredEntries.length})
                 </Typography>
               </Box>
-              {selectedIds.length > 0 && (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="secondary"
-                  onClick={(e) => setBulkAnchorEl(e.currentTarget)}
-                  sx={{
-                    py: 0.25,
-                    px: 1.25,
-                    fontSize: "0.75rem",
-                    borderRadius: 1.5,
-                    textTransform: "none",
-                    fontWeight: 600,
-                  }}
-                >
-                  Bulk Actions
-                </Button>
-              )}
+              <Button
+                size="small"
+                variant="outlined"
+                color="secondary"
+                disabled={selectedIds.length === 0}
+                onClick={(e) => setBulkAnchorEl(e.currentTarget)}
+                sx={{
+                  py: 0.25,
+                  px: 1.25,
+                  fontSize: "0.75rem",
+                  borderRadius: 1.5,
+                  textTransform: "none",
+                  fontWeight: 600,
+                }}
+              >
+                Bulk Actions{selectedIds.length > 0 ? ` (${selectedIds.length})` : ""}
+              </Button>
             </Box>
 
             {filteredEntries.length === 0 ? (
