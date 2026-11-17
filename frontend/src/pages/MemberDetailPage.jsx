@@ -373,7 +373,7 @@ const MemberDetailPage = () => {
         </Breadcrumbs>
 
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1.5 }}>
-          <Button startIcon={<ArrowBackIcon />} onClick={() => navigate("/members")} variant="outlined" size="small" sx={{ textTransform: "none", borderRadius: 2 }}>
+          <Button startIcon={<ArrowBackIcon sx={{ fontSize: 16 }} />} onClick={() => navigate("/members")} variant="outlined" size="small" sx={{ textTransform: "none", borderRadius: 2, height: 30, fontSize: "0.8rem", px: 1.25, fontWeight: 600 }}>
             Back to Members
           </Button>
 
@@ -610,12 +610,15 @@ const MemberDetailPage = () => {
               <Button
                 size="small"
                 variant={activeFiltersCount > 0 ? "contained" : "outlined"}
-                startIcon={<FilterListIcon />}
+                startIcon={<FilterListIcon sx={{ fontSize: 16 }} />}
                 onClick={() => setIsFilterOpen(true)}
                 sx={{
                   borderRadius: 2,
                   textTransform: "none",
                   fontWeight: 600,
+                  fontSize: "0.8rem",
+                  height: 30,
+                  px: 1.25,
                 }}
               >
                 Filter{activeFiltersCount > 0 ? ` (${activeFiltersCount})` : ""}
@@ -633,6 +636,9 @@ const MemberDetailPage = () => {
                   borderRadius: 2,
                   textTransform: "none",
                   fontWeight: 600,
+                  fontSize: "0.8rem",
+                  height: 30,
+                  px: 1.25,
                 }}
               >
                 Bulk Actions{selectedIds.length > 0 ? ` (${selectedIds.length})` : ""}
@@ -737,6 +743,7 @@ const MemberDetailPage = () => {
                   py: 0.25,
                   px: 1.25,
                   fontSize: "0.75rem",
+                  height: 28,
                   borderRadius: 1.5,
                   textTransform: "none",
                   fontWeight: 600,

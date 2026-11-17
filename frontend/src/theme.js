@@ -122,9 +122,11 @@ const theme = createTheme({
           borderRadius: 8,
           textTransform: 'none',
           fontWeight: 600,
-          '@media (max-width: 600px)': {
-            minHeight: '38px',
-          },
+        },
+        sizeSmall: {
+          fontSize: '0.75rem',
+          padding: '4px 10px',
+          minHeight: '28px',
         },
       },
     },

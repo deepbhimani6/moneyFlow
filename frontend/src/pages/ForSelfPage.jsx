@@ -229,14 +229,14 @@ const ForSelfPage = () => {
           For Self
         </Typography>
 
-        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", width: { xs: "100%", sm: "auto" } }}>
+        <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
           {/* Filter Button */}
-          <Button variant="outlined" startIcon={<FilterListIcon />} onClick={() => setIsFilterOpen(true)} size="small" sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}>
+          <Button variant="outlined" startIcon={<FilterListIcon sx={{ fontSize: 16 }} />} onClick={() => setIsFilterOpen(true)} size="small" sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, fontSize: "0.8rem", height: 30, px: 1.25 }}>
             Filter
           </Button>
 
           {/* Add For Self Button */}
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setIsAddOpen(true)} size="small" sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}>
+          <Button variant="contained" startIcon={<AddIcon sx={{ fontSize: 16 }} />} onClick={() => setIsAddOpen(true)} size="small" sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, fontSize: "0.8rem", height: 30, px: 1.25 }}>
             Add For Self
           </Button>
 
@@ -252,6 +252,9 @@ const ForSelfPage = () => {
               borderRadius: 2,
               fontWeight: 600,
               textTransform: "none",
+              fontSize: "0.8rem",
+              height: 30,
+              px: 1.25,
             }}
           >
             Bulk Actions{selectedIds.length > 0 ? ` (${selectedIds.length})` : ""}
@@ -321,6 +324,7 @@ const ForSelfPage = () => {
                 py: 0.25,
                 px: 1.25,
                 fontSize: "0.75rem",
+                height: 28,
                 borderRadius: 1.5,
                 textTransform: "none",
                 fontWeight: 600,
@@ -406,13 +410,22 @@ const ForSelfPage = () => {
 
                     {/* Actions row */}
                     <Divider sx={{ my: 1, borderColor: "#f1f5f9" }} />
-                    <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 1 }}>
+                    <Box sx={{ display: "flex", justifyContent: "flex-end", alignItems: "center", gap: 0.75, flexWrap: "nowrap" }}>
                       <Button
                         size="small"
                         variant="outlined"
-                        startIcon={<EditIcon sx={{ fontSize: 16 }} />}
+                        startIcon={<EditIcon sx={{ fontSize: 13 }} />}
                         onClick={() => setEditingEntry(row)}
-                        sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
+                        sx={{
+                          textTransform: "none",
+                          fontSize: "0.72rem",
+                          py: 0.2,
+                          px: 0.9,
+                          height: 26,
+                          minHeight: 26,
+                          borderRadius: 1.5,
+                          whiteSpace: "nowrap",
+                        }}
                       >
                         Edit
                       </Button>
@@ -420,9 +433,18 @@ const ForSelfPage = () => {
                         size="small"
                         variant="outlined"
                         color="error"
-                        startIcon={<DeleteOutlineIcon sx={{ fontSize: 16 }} />}
+                        startIcon={<DeleteOutlineIcon sx={{ fontSize: 13 }} />}
                         onClick={() => setItemToDelete(row._id)}
-                        sx={{ textTransform: "none", fontSize: "0.76rem", py: 0.4, px: 1.25, borderRadius: 2 }}
+                        sx={{
+                          textTransform: "none",
+                          fontSize: "0.72rem",
+                          py: 0.2,
+                          px: 0.9,
+                          height: 26,
+                          minHeight: 26,
+                          borderRadius: 1.5,
+                          whiteSpace: "nowrap",
+                        }}
                       >
                         Delete
                       </Button>
