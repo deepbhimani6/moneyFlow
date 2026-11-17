@@ -708,11 +708,9 @@ const MembersPage = () => {
                   (Number(row.totalEntries) || 0) > 0 ||
                   (Number(row.pendingReceiveAmount) || 0) > 0 ||
                   (Number(row.pendingPayAmount) || 0) > 0;
-                const disableDelete = isCurrent || hasEntries;
+                const disableDelete = isCurrent;
                 const deleteTooltip = isCurrent
                   ? "You cannot delete your own logged-in account"
-                  : hasEntries
-                  ? "Cannot delete: This member has active entries"
                   : "Delete Member";
                 const disableInvite = !row.email || sendingInviteId === row._id || hasJoined;
                 const inviteTooltip = hasJoined ? "Member has already joined the app" : !row.email ? "No email available to send invite" : "Send App Invite Link";
@@ -1072,7 +1070,7 @@ const MembersPage = () => {
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2.5, pb: 2.5 }}>
-          {singleDeleteState.loadingSummary && !((Number(singleDeleteState.member?.totalEntries) || 0) > 0) ? (
+          {singleDeleteState.loadingSummary ? (
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 4, gap: 1.5 }}>
               <CircularProgress size={32} />
               <Typography variant="body2" color="text.secondary">
@@ -1211,7 +1209,7 @@ const MembersPage = () => {
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2.5, pb: 2.5 }}>
-          {bulkDeleteState.loadingSummary && !selectedIds.some((id) => (Number(members.find((row) => row._id === id)?.totalEntries) || 0) > 0) ? (
+          {bulkDeleteState.loadingSummary ? (
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 4, gap: 1.5 }}>
               <CircularProgress size={32} />
               <Typography variant="body2" color="text.secondary">
