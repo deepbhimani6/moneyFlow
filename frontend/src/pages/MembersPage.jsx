@@ -841,38 +841,99 @@ const MembersPage = () => {
                       sx={{
                         display: "grid",
                         gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                        alignItems: "center",
                         gap: { xs: 0.75, sm: 1 },
                         my: 1.25,
-                        p: { xs: 1, sm: 1.25 },
+                        p: { xs: 0.75, sm: 1 },
                         bgcolor: "#f8fafc",
-                        borderRadius: 2,
+                        borderRadius: 2.5,
                         border: "1px solid #f1f5f9",
                         cursor: "pointer",
                         transition: "all 0.15s ease",
                         "&:hover": { bgcolor: "#f1f5f9", borderColor: "#e2e8f0" },
                       }}
                     >
-                      <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+                      <Box sx={{ minWidth: 0, overflow: "hidden", px: { xs: 0.5, sm: 0.75 } }}>
                         <Typography variant="caption" sx={{ color: "#0284c7", fontSize: { xs: "0.65rem", sm: "0.7rem" }, fontWeight: 700, display: "block", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                           Pending Receive
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingReceive > 0 ? "#0369a1" : "#475569", fontSize: { xs: "0.8rem", sm: "0.875rem" }, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingReceive > 0 ? "#0369a1" : "#475569", fontSize: { xs: "0.8rem", sm: "0.875rem" }, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", mt: 0.25 }}>
                           ₹ {formatAmount(pendingReceive)}
                         </Typography>
                       </Box>
-                      <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+                      <Box sx={{ minWidth: 0, overflow: "hidden", px: { xs: 0.5, sm: 0.75 } }}>
                         <Typography variant="caption" sx={{ color: "#ea580c", fontSize: { xs: "0.65rem", sm: "0.7rem" }, fontWeight: 700, display: "block", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                           Pending Pay
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingPay > 0 ? "#c2410c" : "#475569", fontSize: { xs: "0.8rem", sm: "0.875rem" }, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingPay > 0 ? "#c2410c" : "#475569", fontSize: { xs: "0.8rem", sm: "0.875rem" }, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", mt: 0.25 }}>
                           ₹ {formatAmount(pendingPay)}
                         </Typography>
                       </Box>
-                      <Box sx={{ minWidth: 0, overflow: "hidden" }}>
-                        <Typography variant="caption" sx={{ color: finalColor, fontSize: { xs: "0.65rem", sm: "0.7rem" }, fontWeight: 700, display: "block", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
-                          {finalTitle}
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: totalMoney > 0 ? finalColor : "#475569", fontSize: { xs: "0.8rem", sm: "0.875rem" }, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                      <Box
+                        sx={{
+                          minWidth: 0,
+                          overflow: "hidden",
+                          px: { xs: 1, sm: 1.25 },
+                          py: { xs: 0.6, sm: 0.75 },
+                          borderRadius: 2,
+                          bgcolor: isMoreReceive
+                            ? "rgba(16, 185, 129, 0.08)"
+                            : isMorePay
+                            ? "rgba(234, 88, 12, 0.08)"
+                            : "rgba(100, 116, 139, 0.06)",
+                          border: `1.5px solid ${
+                            isMoreReceive
+                              ? "#10b981"
+                              : isMorePay
+                              ? "#f97316"
+                              : "#cbd5e1"
+                          }`,
+                          boxShadow: totalMoney > 0
+                            ? (isMoreReceive ? "0 2px 6px rgba(16, 185, 129, 0.12)" : "0 2px 6px rgba(234, 88, 12, 0.12)")
+                            : "none",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <Box
+                            sx={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: "50%",
+                              bgcolor: isMoreReceive ? "#10b981" : isMorePay ? "#ea580c" : "#64748b",
+                              flexShrink: 0,
+                            }}
+                          />
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: isMoreReceive ? "#059669" : isMorePay ? "#c2410c" : "#475569",
+                              fontSize: { xs: "0.65rem", sm: "0.72rem" },
+                              fontWeight: 800,
+                              textTransform: "uppercase",
+                              letterSpacing: "0.03em",
+                              textOverflow: "ellipsis",
+                              overflow: "hidden",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {finalTitle}
+                          </Typography>
+                        </Box>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontWeight: 900,
+                            color: totalMoney > 0 ? (isMoreReceive ? "#047857" : "#c2410c") : "#475569",
+                            fontSize: { xs: "0.85rem", sm: "0.95rem" },
+                            mt: 0.25,
+                            textOverflow: "ellipsis",
+                            overflow: "hidden",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
                           ₹ {formatAmount(totalMoney)}
                         </Typography>
                       </Box>
