@@ -595,26 +595,6 @@ const MembersPage = () => {
             Invite Members
           </Button>
 
-          {/* Desktop Bulk Actions Button (Screens >= 1024px) */}
-          <Button
-            variant="outlined"
-            color="secondary"
-            size="small"
-            disabled={selectedIds.length === 0}
-            onClick={(e) => setBulkAnchorEl(e.currentTarget)}
-            sx={{
-              display: { xs: "none", lg: "inline-flex" },
-              borderRadius: 2,
-              fontWeight: 600,
-              textTransform: "none",
-              fontSize: "0.8rem",
-              height: 30,
-              px: 1.25,
-            }}
-          >
-            Bulk Actions{selectedIds.length > 0 ? ` (${selectedIds.length})` : ""}
-          </Button>
-
           {/* Bulk Actions Menu */}
           <Menu anchorEl={bulkAnchorEl} open={Boolean(bulkAnchorEl)} onClose={() => setBulkAnchorEl(null)}>
             <MenuItem onClick={handleBulkSendInvites}>Send Invite Link</MenuItem>
