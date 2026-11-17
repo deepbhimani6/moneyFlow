@@ -844,7 +844,7 @@ const MembersPage = () => {
                       }}
                       sx={{
                         display: "grid",
-                        gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                        gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", sm: "repeat(3, minmax(0, 1fr))" },
                         alignItems: "center",
                         gap: { xs: 0.75, sm: 1 },
                         my: 1.25,
@@ -858,26 +858,27 @@ const MembersPage = () => {
                       }}
                     >
                       <Box sx={{ minWidth: 0, overflow: "hidden", px: { xs: 0.5, sm: 0.75 } }}>
-                        <Typography variant="caption" sx={{ color: "#0284c7", fontSize: { xs: "0.65rem", sm: "0.7rem" }, fontWeight: 700, display: "block", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                        <Typography variant="caption" sx={{ color: "#0284c7", fontSize: { xs: "0.68rem", sm: "0.7rem" }, fontWeight: 700, display: "block", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                           Pending Receive
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingReceive > 0 ? "#0369a1" : "#475569", fontSize: { xs: "0.8rem", sm: "0.875rem" }, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", mt: 0.25 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingReceive > 0 ? "#0369a1" : "#475569", fontSize: { xs: "0.85rem", sm: "0.875rem" }, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", mt: 0.25 }}>
                           ₹ {formatAmount(pendingReceive)}
                         </Typography>
                       </Box>
                       <Box sx={{ minWidth: 0, overflow: "hidden", px: { xs: 0.5, sm: 0.75 } }}>
-                        <Typography variant="caption" sx={{ color: "#ea580c", fontSize: { xs: "0.65rem", sm: "0.7rem" }, fontWeight: 700, display: "block", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                        <Typography variant="caption" sx={{ color: "#ea580c", fontSize: { xs: "0.68rem", sm: "0.7rem" }, fontWeight: 700, display: "block", textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
                           Pending Pay
                         </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingPay > 0 ? "#c2410c" : "#475569", fontSize: { xs: "0.8rem", sm: "0.875rem" }, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", mt: 0.25 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: pendingPay > 0 ? "#c2410c" : "#475569", fontSize: { xs: "0.85rem", sm: "0.875rem" }, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", mt: 0.25 }}>
                           ₹ {formatAmount(pendingPay)}
                         </Typography>
                       </Box>
                       <Box
                         sx={{
+                          gridColumn: { xs: "span 2", sm: "auto" },
                           minWidth: 0,
                           overflow: "hidden",
-                          px: { xs: 1, sm: 1.25 },
+                          px: { xs: 1.25, sm: 1.25 },
                           py: { xs: 0.6, sm: 0.75 },
                           borderRadius: 2,
                           bgcolor: isMoreReceive
@@ -896,8 +897,9 @@ const MembersPage = () => {
                             ? (isMoreReceive ? "0 2px 6px rgba(16, 185, 129, 0.12)" : "0 2px 6px rgba(234, 88, 12, 0.12)")
                             : "none",
                           display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "center",
+                          flexDirection: { xs: "row", sm: "column" },
+                          justifyContent: { xs: "space-between", sm: "center" },
+                          alignItems: { xs: "center", sm: "flex-start" },
                         }}
                       >
                         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -914,7 +916,7 @@ const MembersPage = () => {
                             variant="caption"
                             sx={{
                               color: isMoreReceive ? "#059669" : isMorePay ? "#c2410c" : "#475569",
-                              fontSize: { xs: "0.65rem", sm: "0.72rem" },
+                              fontSize: { xs: "0.68rem", sm: "0.72rem" },
                               fontWeight: 800,
                               textTransform: "uppercase",
                               letterSpacing: "0.03em",
@@ -932,7 +934,7 @@ const MembersPage = () => {
                             fontWeight: 900,
                             color: totalMoney > 0 ? (isMoreReceive ? "#047857" : "#c2410c") : "#475569",
                             fontSize: { xs: "0.85rem", sm: "0.95rem" },
-                            mt: 0.25,
+                            mt: { xs: 0, sm: 0.25 },
                             textOverflow: "ellipsis",
                             overflow: "hidden",
                             whiteSpace: "nowrap",

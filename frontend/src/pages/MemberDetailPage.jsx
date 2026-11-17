@@ -436,7 +436,7 @@ const MemberDetailPage = () => {
           sx={{
             display: "grid",
             gridTemplateColumns: {
-              xs: "repeat(1, 1fr)",
+              xs: "repeat(2, 1fr)",
               sm: "repeat(3, 1fr)",
             },
             gap: { xs: 1.5, sm: 2 },
@@ -514,6 +514,7 @@ const MemberDetailPage = () => {
               <Card
                 elevation={0}
                 sx={{
+                  gridColumn: { xs: "span 2", sm: "auto" },
                   borderRadius: 3,
                   p: 1.5,
                   display: "flex",
