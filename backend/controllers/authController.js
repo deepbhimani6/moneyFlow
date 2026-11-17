@@ -81,14 +81,47 @@ const register = async (req, res) => {
 
       // Reciprocal link between inviter and new member
       if (existingEmail.invitedBy && !existingEmail.inviterLinked) {
-        await Member.findByIdAndUpdate(existingEmail._id, {
-          $addToSet: { members: existingEmail.invitedBy },
-          $set: { inviterLinked: true },
-        });
-        await Member.findByIdAndUpdate(existingEmail.invitedBy, {
-          $addToSet: { members: existingEmail._id },
-        });
-        existingEmail.inviterLinked = true;
+        const inviter = await Member.findById(existingEmail.invitedBy);
+        if (inviter) {
+          const inviterIdStr = inviter._id.toString();
+          const newIdStr = existingEmail._id.toString();
+
+          // Initialize custom directories on new member
+          if (!existingEmail.members) existingEmail.members = [];
+          if (!existingEmail.memberCustomNames) existingEmail.memberCustomNames = new Map();
+          if (!existingEmail.memberCustomPhoneNumbers) existingEmail.memberCustomPhoneNumbers = new Map();
+          if (!existingEmail.members.some((id) => String(id) === inviterIdStr)) {
+            existingEmail.members.push(inviter._id);
+          }
+          existingEmail.memberCustomNames.set(inviterIdStr, inviter.fullName);
+          existingEmail.memberCustomPhoneNumbers.set(inviterIdStr, inviter.phoneNumber || '');
+          existingEmail.inviterLinked = true;
+          await existingEmail.save();
+
+          // Initialize custom directories on inviter if not already set
+          if (!inviter.members) inviter.members = [];
+          if (!inviter.memberCustomNames) inviter.memberCustomNames = new Map();
+          if (!inviter.memberCustomPhoneNumbers) inviter.memberCustomPhoneNumbers = new Map();
+          if (!inviter.members.some((id) => String(id) === newIdStr)) {
+            inviter.members.push(existingEmail._id);
+          }
+          const hasInviterCustomName = typeof inviter.memberCustomNames.get === 'function'
+            ? inviter.memberCustomNames.has(newIdStr)
+            : inviter.memberCustomNames[newIdStr] !== undefined;
+          if (!hasInviterCustomName) {
+            inviter.memberCustomNames.set(newIdStr, existingEmail.fullName);
+          }
+          const hasInviterCustomPhone = typeof inviter.memberCustomPhoneNumbers.get === 'function'
+            ? inviter.memberCustomPhoneNumbers.has(newIdStr)
+            : inviter.memberCustomPhoneNumbers[newIdStr] !== undefined;
+          if (!hasInviterCustomPhone) {
+            inviter.memberCustomPhoneNumbers.set(newIdStr, existingEmail.phoneNumber || '');
+          }
+          await inviter.save();
+        } else {
+          existingEmail.inviterLinked = true;
+          await existingEmail.save();
+        }
       }
 
       const token = generateToken(existingEmail);
@@ -219,14 +252,45 @@ const login = async (req, res) => {
     // When an invited member logs in with email & password:
     // 1. Reciprocal linking between inviter and invited member
     if (user.invitedBy && !user.inviterLinked) {
-      await Member.findByIdAndUpdate(user._id, {
-        $addToSet: { members: user.invitedBy },
-        $set: { inviterLinked: true },
-      });
-      await Member.findByIdAndUpdate(user.invitedBy, {
-        $addToSet: { members: user._id },
-      });
-      user.inviterLinked = true;
+      const inviter = await Member.findById(user.invitedBy);
+      if (inviter) {
+        const inviterIdStr = inviter._id.toString();
+        const userIdStr = user._id.toString();
+
+        if (!user.members) user.members = [];
+        if (!user.memberCustomNames) user.memberCustomNames = new Map();
+        if (!user.memberCustomPhoneNumbers) user.memberCustomPhoneNumbers = new Map();
+        if (!user.members.some((id) => String(id) === inviterIdStr)) {
+          user.members.push(inviter._id);
+        }
+        user.memberCustomNames.set(inviterIdStr, inviter.fullName);
+        user.memberCustomPhoneNumbers.set(inviterIdStr, inviter.phoneNumber || '');
+        user.inviterLinked = true;
+        await user.save();
+
+        if (!inviter.members) inviter.members = [];
+        if (!inviter.memberCustomNames) inviter.memberCustomNames = new Map();
+        if (!inviter.memberCustomPhoneNumbers) inviter.memberCustomPhoneNumbers = new Map();
+        if (!inviter.members.some((id) => String(id) === userIdStr)) {
+          inviter.members.push(user._id);
+        }
+        const hasInviterCustomName = typeof inviter.memberCustomNames.get === 'function'
+          ? inviter.memberCustomNames.has(userIdStr)
+          : inviter.memberCustomNames[userIdStr] !== undefined;
+        if (!hasInviterCustomName) {
+          inviter.memberCustomNames.set(userIdStr, user.fullName);
+        }
+        const hasInviterCustomPhone = typeof inviter.memberCustomPhoneNumbers.get === 'function'
+          ? inviter.memberCustomPhoneNumbers.has(userIdStr)
+          : inviter.memberCustomPhoneNumbers[userIdStr] !== undefined;
+        if (!hasInviterCustomPhone) {
+          inviter.memberCustomPhoneNumbers.set(userIdStr, user.phoneNumber || '');
+        }
+        await inviter.save();
+      } else {
+        user.inviterLinked = true;
+        await user.save();
+      }
     }
 
     // 2. When a member logs in for the first time, record their joinDate and mark as logged in

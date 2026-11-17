@@ -159,6 +159,44 @@ const getMembers = async (req, res) => {
       Entry.find({ userId: currentUserId }).lean(),
       ToPay.find({ userId: currentUserId }).lean(),
     ]);
+
+    // Ensure current user has a contact snapshot (name and phone) for every member in their directory
+    // so future profile updates by other members NEVER affect this user's member list!
+    let needsSave = false;
+    if (currentUser) {
+      if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
+      if (!currentUser.memberCustomPhoneNumbers) currentUser.memberCustomPhoneNumbers = new Map();
+
+      for (const m of members) {
+        const mIdStr = m._id.toString();
+        const hasCustomName = typeof currentUser.memberCustomNames.get === 'function'
+          ? currentUser.memberCustomNames.has(mIdStr)
+          : currentUser.memberCustomNames[mIdStr] !== undefined;
+
+        if (!hasCustomName) {
+          currentUser.memberCustomNames.set(mIdStr, capitalizeName(m.fullName || ''));
+          needsSave = true;
+        }
+
+        const hasCustomPhone = typeof currentUser.memberCustomPhoneNumbers.get === 'function'
+          ? currentUser.memberCustomPhoneNumbers.has(mIdStr)
+          : currentUser.memberCustomPhoneNumbers[mIdStr] !== undefined;
+
+        if (!hasCustomPhone) {
+          currentUser.memberCustomPhoneNumbers.set(mIdStr, m.phoneNumber || '');
+          needsSave = true;
+        }
+      }
+
+      if (needsSave) {
+        try {
+          await currentUser.save();
+        } catch (saveErr) {
+          console.warn('Could not snapshot member directory defaults:', saveErr.message);
+        }
+      }
+    }
+
     const customNames = currentUser && currentUser.memberCustomNames ? currentUser.memberCustomNames : null;
     const customPhones = currentUser && currentUser.memberCustomPhoneNumbers ? currentUser.memberCustomPhoneNumbers : null;
     const inviteDates = currentUser && currentUser.memberInviteDates ? currentUser.memberInviteDates : null;
@@ -174,7 +212,7 @@ const getMembers = async (req, res) => {
           ? customNames.get(mIdStr)
           : customNames[mIdStr];
       }
-      if (customName) {
+      if (customName !== undefined && customName !== null) {
         mObj.fullName = capitalizeName(customName);
       } else {
         mObj.fullName = capitalizeName(mObj.fullName);
@@ -187,7 +225,7 @@ const getMembers = async (req, res) => {
           ? customPhones.get(mIdStr)
           : customPhones[mIdStr];
       }
-      if (customPhone !== undefined && customPhone !== null && customPhone !== '') {
+      if (customPhone !== undefined && customPhone !== null) {
         mObj.phoneNumber = customPhone;
       }
 
@@ -308,9 +346,7 @@ const createMember = async (req, res) => {
         currentUser.members.push(existingMember._id);
       }
       currentUser.memberCustomNames.set(mIdStr, formattedFullName);
-      if (phoneNumber && phoneNumber.trim()) {
-        currentUser.memberCustomPhoneNumbers.set(mIdStr, phoneNumber.trim());
-      }
+      currentUser.memberCustomPhoneNumbers.set(mIdStr, phoneNumber ? phoneNumber.trim() : '');
       // Ensure any stale invite date for this member is wiped for this user
       if (currentUser.memberInviteDates) {
         if (typeof currentUser.memberInviteDates.delete === 'function') {
@@ -322,15 +358,33 @@ const createMember = async (req, res) => {
       await currentUser.save();
 
       // Reciprocal link so both members can see and split with each other
-      await Member.findByIdAndUpdate(existingMember._id, {
-        $addToSet: { members: currentUser._id },
-      });
+      const existingDoc = await Member.findById(existingMember._id);
+      if (existingDoc) {
+        if (!existingDoc.members) existingDoc.members = [];
+        if (!existingDoc.memberCustomNames) existingDoc.memberCustomNames = new Map();
+        if (!existingDoc.memberCustomPhoneNumbers) existingDoc.memberCustomPhoneNumbers = new Map();
+        const curIdStr = currentUser._id.toString();
+        if (!existingDoc.members.some((id) => String(id) === curIdStr)) {
+          existingDoc.members.push(currentUser._id);
+        }
+        const hasCustomName = typeof existingDoc.memberCustomNames.get === 'function'
+          ? existingDoc.memberCustomNames.has(curIdStr)
+          : existingDoc.memberCustomNames[curIdStr] !== undefined;
+        if (!hasCustomName) {
+          existingDoc.memberCustomNames.set(curIdStr, currentUser.fullName);
+        }
+        const hasCustomPhone = typeof existingDoc.memberCustomPhoneNumbers.get === 'function'
+          ? existingDoc.memberCustomPhoneNumbers.has(curIdStr)
+          : existingDoc.memberCustomPhoneNumbers[curIdStr] !== undefined;
+        if (!hasCustomPhone) {
+          existingDoc.memberCustomPhoneNumbers.set(curIdStr, currentUser.phoneNumber || '');
+        }
+        await existingDoc.save();
+      }
 
       const dataObj = existingMember.toObject ? existingMember.toObject() : { ...existingMember };
       dataObj.fullName = formattedFullName;
-      if (phoneNumber && phoneNumber.trim()) {
-        dataObj.phoneNumber = phoneNumber.trim();
-      }
+      dataObj.phoneNumber = phoneNumber ? phoneNumber.trim() : '';
       dataObj.inviteSent = false;
       dataObj.lastInviteSentAt = null;
 
@@ -359,7 +413,7 @@ const createMember = async (req, res) => {
 
     const member = new Member({
       fullName: formattedFullName,
-      phoneNumber: phoneNumber ? phoneNumber.trim() : '',
+      phoneNumber: '', // NEVER set phoneNumber on member document so their personal profile starts clean
       email: cleanEmail,
       username: cleanUsername,
       password: temporaryPassword, // pre-save hook in Member will hash it with bcrypt
@@ -404,18 +458,19 @@ const createMember = async (req, res) => {
         currentUser.members.push(member._id);
       }
       currentUser.memberCustomNames.set(newIdStr, formattedFullName);
-      if (phoneNumber && phoneNumber.trim()) {
-        currentUser.memberCustomPhoneNumbers.set(newIdStr, phoneNumber.trim());
-      }
+      currentUser.memberCustomPhoneNumbers.set(newIdStr, phoneNumber ? phoneNumber.trim() : '');
       if (sendLink && member.lastInviteSentAt) {
         currentUser.memberInviteDates.set(newIdStr, member.lastInviteSentAt);
       }
       await currentUser.save();
     }
 
+    const retData = member.toObject ? member.toObject() : { ...member };
+    retData.phoneNumber = phoneNumber ? phoneNumber.trim() : '';
+
     res.status(201).json({
       success: true,
-      data: member,
+      data: retData,
       message: 'Member created successfully.',
       temporaryPassword,
     });
@@ -439,77 +494,71 @@ const updateMember = async (req, res) => {
     const mIdStr = member._id.toString();
     const hasJoined = Boolean(member.hasLoggedIn || member.joinDate);
 
-    // Members who have already joined the app:
-    // Any change to fullName or phoneNumber is purely custom for the current user's contact list!
-    // It must NEVER affect the joined member's own account profile or other users' data!
-    if (hasJoined) {
-      if (currentUser) {
-        if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
-        if (!currentUser.memberCustomPhoneNumbers) currentUser.memberCustomPhoneNumbers = new Map();
+    // Any change to fullName or phoneNumber from the members list is STRICTLY custom to the current user's contact book!
+    // It must NEVER affect the target member's personal account profile (member.phoneNumber, member.fullName)
+    // or other users' members list data!
+    if (currentUser) {
+      if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
+      if (!currentUser.memberCustomPhoneNumbers) currentUser.memberCustomPhoneNumbers = new Map();
 
-        if (fullName !== undefined) {
-          currentUser.memberCustomNames.set(mIdStr, capitalizeName(fullName));
-        }
-        if (phoneNumber !== undefined) {
-          currentUser.memberCustomPhoneNumbers.set(mIdStr, phoneNumber ? phoneNumber.trim() : '');
-        }
-        await currentUser.save();
-      }
-
-      const returnData = member.toObject ? member.toObject() : { ...member };
       if (fullName !== undefined) {
-        returnData.fullName = capitalizeName(fullName);
-      }
-      if (phoneNumber !== undefined) {
-        returnData.phoneNumber = phoneNumber ? phoneNumber.trim() : '';
-      }
-      return res.json({
-        success: true,
-        data: returnData,
-        message: 'Member updated successfully.',
-      });
-    }
-
-    // Members who have NOT yet joined (placeholder/invited contacts)
-    if (fullName !== undefined) {
-      member.fullName = capitalizeName(fullName);
-      if (currentUser) {
-        if (!currentUser.memberCustomNames) currentUser.memberCustomNames = new Map();
         currentUser.memberCustomNames.set(mIdStr, capitalizeName(fullName));
       }
-    }
-    if (phoneNumber !== undefined) {
-      const cleanPhone = phoneNumber ? phoneNumber.trim() : '';
-      member.phoneNumber = cleanPhone;
-      if (currentUser) {
-        if (!currentUser.memberCustomPhoneNumbers) currentUser.memberCustomPhoneNumbers = new Map();
-        currentUser.memberCustomPhoneNumbers.set(mIdStr, cleanPhone);
+      if (phoneNumber !== undefined) {
+        currentUser.memberCustomPhoneNumbers.set(mIdStr, phoneNumber ? phoneNumber.trim() : '');
       }
-    }
-    if (currentUser) {
       await currentUser.save();
     }
-    if (email !== undefined) {
-      const cleanEmail = email.trim().toLowerCase();
-      if (cleanEmail && cleanEmail !== (member.email || '').toLowerCase()) {
-        const existingEmail = await Member.findOne({
-          email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
-          _id: { $ne: member._id },
-        });
-        if (existingEmail) {
-          return res.status(400).json({
-            success: false,
-            message: 'This email address already exists.',
+
+    // For unjoined placeholder contacts without an account yet, allow updating email/username/password
+    if (!hasJoined) {
+      if (email !== undefined) {
+        const cleanEmail = email.trim().toLowerCase();
+        if (cleanEmail && cleanEmail !== (member.email || '').toLowerCase()) {
+          const existingEmail = await Member.findOne({
+            email: { $regex: new RegExp(`^${cleanEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+            _id: { $ne: member._id },
           });
+          if (existingEmail) {
+            return res.status(400).json({
+              success: false,
+              message: 'This email address already exists.',
+            });
+          }
+          member.email = cleanEmail;
         }
-        member.email = cleanEmail;
+      }
+      if (username !== undefined) member.username = username ? username.trim() : '';
+      if (password !== undefined && password !== '') member.password = password;
+      await member.save();
+    }
+
+    const returnData = member.toObject ? member.toObject() : { ...member };
+    if (fullName !== undefined) {
+      returnData.fullName = capitalizeName(fullName);
+    } else {
+      const cName = currentUser?.memberCustomNames
+        ? (typeof currentUser.memberCustomNames.get === 'function' ? currentUser.memberCustomNames.get(mIdStr) : currentUser.memberCustomNames[mIdStr])
+        : null;
+      if (cName) returnData.fullName = capitalizeName(cName);
+    }
+
+    if (phoneNumber !== undefined) {
+      returnData.phoneNumber = phoneNumber ? phoneNumber.trim() : '';
+    } else {
+      const cPhone = currentUser?.memberCustomPhoneNumbers
+        ? (typeof currentUser.memberCustomPhoneNumbers.get === 'function' ? currentUser.memberCustomPhoneNumbers.get(mIdStr) : currentUser.memberCustomPhoneNumbers[mIdStr])
+        : null;
+      if (cPhone !== undefined && cPhone !== null) {
+        returnData.phoneNumber = cPhone;
       }
     }
-    if (username !== undefined) member.username = username ? username.trim() : '';
-    if (password !== undefined && password !== '') member.password = password;
 
-    await member.save();
-    res.json({ success: true, data: member, message: 'Member updated successfully.' });
+    return res.json({
+      success: true,
+      data: returnData,
+      message: 'Member updated successfully.',
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -1150,7 +1199,7 @@ const getMemberEntriesDetail = async (req, res) => {
         ? customPhones.get(mIdStr)
         : customPhones[mIdStr];
     }
-    const displayPhone = (customPhone !== undefined && customPhone !== null && customPhone !== '')
+    const displayPhone = (customPhone !== undefined && customPhone !== null)
       ? customPhone
       : (member.phoneNumber || '');
 

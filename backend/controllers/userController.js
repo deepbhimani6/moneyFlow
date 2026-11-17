@@ -127,7 +127,7 @@ const createUser = async (req, res) => {
 
     const newUser = new Member({
       fullName: capitalizeName(fullName),
-      phoneNumber: phoneNumber ? phoneNumber.trim() : '',
+      phoneNumber: '', // Keep clean for user's own profile upon registration
       email: cleanEmail,
       username: cleanUsername,
       password: temporaryPassword,
@@ -159,11 +159,21 @@ const createUser = async (req, res) => {
 
     await newUser.save();
 
-    // Auto-link to admin's directory
+    // Auto-link to admin's directory with custom contact snapshot
     if (req.user && req.user._id) {
-      await Member.findByIdAndUpdate(req.user._id, {
-        $addToSet: { members: newUser._id },
-      });
+      const adminUser = await Member.findById(req.user._id);
+      if (adminUser) {
+        if (!adminUser.members) adminUser.members = [];
+        if (!adminUser.memberCustomNames) adminUser.memberCustomNames = new Map();
+        if (!adminUser.memberCustomPhoneNumbers) adminUser.memberCustomPhoneNumbers = new Map();
+        const newIdStr = newUser._id.toString();
+        if (!adminUser.members.some((id) => String(id) === newIdStr)) {
+          adminUser.members.push(newUser._id);
+        }
+        adminUser.memberCustomNames.set(newIdStr, capitalizeName(fullName));
+        adminUser.memberCustomPhoneNumbers.set(newIdStr, phoneNumber ? phoneNumber.trim() : '');
+        await adminUser.save();
+      }
     }
 
     res.status(201).json({
@@ -188,8 +198,30 @@ const updateUser = async (req, res) => {
       return res.status(404).json({ success: false, message: 'User not found.' });
     }
 
-    if (fullName !== undefined) user.fullName = capitalizeName(fullName);
-    if (phoneNumber !== undefined) user.phoneNumber = phoneNumber ? phoneNumber.trim() : '';
+    const hasJoined = Boolean(user.hasLoggedIn || user.joinDate);
+    const uIdStr = user._id.toString();
+
+    // If caller is logged in, preserve custom name and phone in caller's contact directory
+    if (req.user && req.user._id) {
+      const adminUser = await Member.findById(req.user._id);
+      if (adminUser) {
+        if (!adminUser.memberCustomNames) adminUser.memberCustomNames = new Map();
+        if (!adminUser.memberCustomPhoneNumbers) adminUser.memberCustomPhoneNumbers = new Map();
+        if (fullName !== undefined) {
+          adminUser.memberCustomNames.set(uIdStr, capitalizeName(fullName));
+        }
+        if (phoneNumber !== undefined) {
+          adminUser.memberCustomPhoneNumbers.set(uIdStr, phoneNumber ? phoneNumber.trim() : '');
+        }
+        await adminUser.save();
+      }
+    }
+
+    // Only update user's own document directly if user has not yet joined (placeholder account)
+    if (!hasJoined) {
+      if (fullName !== undefined) user.fullName = capitalizeName(fullName);
+      if (phoneNumber !== undefined) user.phoneNumber = phoneNumber ? phoneNumber.trim() : '';
+    }
     if (email !== undefined) {
       const cleanEmail = email.trim().toLowerCase();
       if (cleanEmail && cleanEmail !== (user.email || '').toLowerCase()) {
