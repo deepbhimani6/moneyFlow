@@ -65,20 +65,6 @@ const MemberDetailPage = () => {
   const [statusMenuAnchorEl, setStatusMenuAnchorEl] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
 
-  const handleSelectAll = (e) => {
-    if (e.target.checked) {
-      setSelectedIds(filteredEntries.map((e) => e._id));
-    } else {
-      setSelectedIds([]);
-    }
-  };
-
-  const handleSelectOne = (entryId) => {
-    setSelectedIds((prev) =>
-      prev.includes(entryId) ? prev.filter((i) => i !== entryId) : [...prev, entryId]
-    );
-  };
-
   const handleToggleStatus = async (entry) => {
     if (entry.canEdit === false) {
       setSnackbar({
@@ -210,13 +196,13 @@ const MemberDetailPage = () => {
             label={entry.paymentStatus}
             size="small"
             color={isPending ? "warning" : "success"}
-            variant={isPending ? "outlined" : "filled"}
+            variant="outlined"
             clickable={canEdit}
             onClick={canEdit ? (e) => { e.stopPropagation(); handleToggleStatus(entry); } : undefined}
             sx={{
               height: 24,
-              fontSize: "0.72rem",
-              fontWeight: 700,
+              fontSize: "0.74rem",
+              fontWeight: 600,
               cursor: canEdit ? "pointer" : "not-allowed",
               opacity: canEdit ? 1 : 0.75,
               transition: "all 0.15s ease",
@@ -319,6 +305,29 @@ const MemberDetailPage = () => {
       return true;
     });
   }, [entries, filters, searchQuery]);
+
+  // Entries created by current user ("You") that can be selected
+  const selectableFilteredEntries = useMemo(() => {
+    return filteredEntries.filter((e) => e.isMine || e.creatorName === "You");
+  }, [filteredEntries]);
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedIds(selectableFilteredEntries.map((e) => e._id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectOne = (entryId) => {
+    const target = entries.find((e) => e._id === entryId);
+    if (target && !(target.isMine || target.creatorName === "You")) {
+      return;
+    }
+    setSelectedIds((prev) =>
+      prev.includes(entryId) ? prev.filter((i) => i !== entryId) : [...prev, entryId]
+    );
+  };
 
   const handleChangePage = (event, newPage) => {
     setPage(newPage);
@@ -708,13 +717,14 @@ const MemberDetailPage = () => {
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                 <Checkbox
                   size="small"
-                  indeterminate={selectedIds.length > 0 && selectedIds.length < filteredEntries.length}
-                  checked={filteredEntries.length > 0 && selectedIds.length === filteredEntries.length}
+                  indeterminate={selectedIds.length > 0 && selectedIds.length < selectableFilteredEntries.length}
+                  checked={selectableFilteredEntries.length > 0 && selectedIds.length === selectableFilteredEntries.length}
+                  disabled={selectableFilteredEntries.length === 0}
                   onChange={handleSelectAll}
                   sx={{ p: 0.25 }}
                 />
                 <Typography variant="body2" sx={{ fontWeight: 600, color: "#475467" }}>
-                  Select All ({selectedIds.length > 0 ? selectedIds.length : filteredEntries.length})
+                  Select All ({selectedIds.length > 0 ? selectedIds.length : selectableFilteredEntries.length})
                 </Typography>
               </Box>
               <Button
@@ -751,6 +761,7 @@ const MemberDetailPage = () => {
                   const isReceive = entry.directionType === "receive";
                   const isPending = entry.paymentStatus === "Pending";
                   const isSelected = selectedIds.includes(entry._id);
+                  const isMyEntry = entry.isMine || entry.creatorName === "You";
                   return (
                     <Paper
                       key={entry._id}
@@ -768,15 +779,41 @@ const MemberDetailPage = () => {
                       {/* Top row: Badges + Status */}
                       <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 1.25 }}>
                         <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0.75, minWidth: 0, flex: 1 }}>
-                          <Checkbox
+                          <Tooltip title={!isMyEntry ? "Cannot select entries created by another member" : ""}>
+                            <span>
+                              <Checkbox
+                                size="small"
+                                disabled={!isMyEntry}
+                                checked={isSelected}
+                                onChange={() => handleSelectOne(entry._id)}
+                                sx={{ p: 0.25 }}
+                              />
+                            </span>
+                          </Tooltip>
+                          <Chip
+                            label={entry.direction}
                             size="small"
-                            checked={isSelected}
-                            onChange={() => handleSelectOne(entry._id)}
-                            sx={{ p: 0.25 }}
+                            variant="outlined"
+                            color={isReceive ? "primary" : "warning"}
+                            sx={{ height: 24, fontSize: "0.74rem", fontWeight: 600 }}
                           />
-                          <Chip label={entry.direction} size="small" color={isReceive ? "primary" : "warning"} sx={{ height: 22, fontSize: "0.7rem", fontWeight: 700 }} />
-                          <Chip label={entry.type} size="small" variant="outlined" sx={{ height: 22, fontSize: "0.7rem" }} />
-                          {entry.isSplit && <Chip icon={<CallSplitIcon sx={{ "&&": { fontSize: 13 } }} />} label="Split" size="small" sx={{ height: 22, fontSize: "0.68rem" }} />}
+                          <Chip
+                            label={entry.type}
+                            size="small"
+                            variant="outlined"
+                            color={entry.type === "Loan" ? "warning" : entry.type === "Expense" ? "error" : "default"}
+                            sx={{ height: 24, fontSize: "0.74rem", fontWeight: 600 }}
+                          />
+                          {entry.isSplit && (
+                            <Chip
+                              icon={<CallSplitIcon sx={{ "&&": { fontSize: 14 } }} />}
+                              label="Split"
+                              size="small"
+                              color="info"
+                              variant="outlined"
+                              sx={{ height: 24, fontSize: "0.74rem", fontWeight: 600 }}
+                            />
+                          )}
                         </Box>
 
                         <Box sx={{ flexShrink: 0 }}>
@@ -817,15 +854,16 @@ const MemberDetailPage = () => {
                           Source: <strong>{entry.creatorName}</strong>
                         </Typography>
                         <Chip
-                          label={entry.isMine ? "You" : entry.creatorName}
+                          label={isMyEntry ? "You" : entry.creatorName}
                           size="small"
                           variant="outlined"
+                          color={isMyEntry ? "default" : "primary"}
                           sx={{
-                            height: 20,
-                            fontSize: "0.68rem",
-                            fontWeight: entry.isMine ? 600 : 700,
-                            borderColor: entry.isMine ? "#cbd5e1" : "#1976d2",
-                            color: entry.isMine ? "text.secondary" : "primary.main",
+                            height: 24,
+                            fontSize: "0.74rem",
+                            fontWeight: 600,
+                            borderColor: isMyEntry ? "#cbd5e1" : undefined,
+                            color: isMyEntry ? "#475569" : undefined,
                           }}
                         />
                       </Box>
@@ -858,8 +896,9 @@ const MemberDetailPage = () => {
                     <TableCell padding="checkbox">
                       <Checkbox
                         size="small"
-                        indeterminate={selectedIds.length > 0 && selectedIds.length < filteredEntries.length}
-                        checked={filteredEntries.length > 0 && selectedIds.length === filteredEntries.length}
+                        indeterminate={selectedIds.length > 0 && selectedIds.length < selectableFilteredEntries.length}
+                        checked={selectableFilteredEntries.length > 0 && selectedIds.length === selectableFilteredEntries.length}
+                        disabled={selectableFilteredEntries.length === 0}
                         onChange={handleSelectAll}
                       />
                     </TableCell>
@@ -890,24 +929,45 @@ const MemberDetailPage = () => {
                     filteredEntries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((entry) => {
                       const isReceive = entry.directionType === "receive";
                       const isPending = entry.paymentStatus === "Pending";
+                      const isMyEntry = entry.isMine || entry.creatorName === "You";
                       return (
                         <TableRow key={entry._id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                           <TableCell padding="checkbox">
-                            <Checkbox
-                              size="small"
-                              checked={selectedIds.includes(entry._id)}
-                              onChange={() => handleSelectOne(entry._id)}
-                            />
+                            <Tooltip title={!isMyEntry ? "Cannot select entries created by another member" : ""}>
+                              <span>
+                                <Checkbox
+                                  size="small"
+                                  disabled={!isMyEntry}
+                                  checked={selectedIds.includes(entry._id)}
+                                  onChange={() => handleSelectOne(entry._id)}
+                                />
+                              </span>
+                            </Tooltip>
                           </TableCell>
                           <TableCell>
-                            <Chip label={entry.direction} size="small" color={isReceive ? "primary" : "warning"} sx={{ height: 24, fontSize: "0.75rem", fontWeight: 700 }} />
+                            <Chip
+                              label={entry.direction}
+                              size="small"
+                              variant="outlined"
+                              color={isReceive ? "primary" : "warning"}
+                              sx={{ height: 24, fontSize: "0.74rem", fontWeight: 600 }}
+                            />
                           </TableCell>
                           <TableCell>
                             <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                                 {entry.type}
                               </Typography>
-                              {entry.isSplit && <Chip icon={<CallSplitIcon sx={{ "&&": { fontSize: 13 } }} />} label="Split" size="small" sx={{ height: 20, fontSize: "0.68rem" }} />}
+                              {entry.isSplit && (
+                                <Chip
+                                  icon={<CallSplitIcon sx={{ "&&": { fontSize: 14 } }} />}
+                                  label="Split"
+                                  size="small"
+                                  color="info"
+                                  variant="outlined"
+                                  sx={{ height: 24, fontSize: "0.74rem", fontWeight: 600 }}
+                                />
+                              )}
                             </Box>
                           </TableCell>
                           <TableCell sx={{ whiteSpace: "nowrap" }}>
@@ -920,15 +980,16 @@ const MemberDetailPage = () => {
                           </TableCell>
                           <TableCell sx={{ whiteSpace: "nowrap" }}>
                             <Chip
-                              label={entry.creatorName}
+                              label={isMyEntry ? "You" : entry.creatorName}
                               size="small"
                               variant="outlined"
+                              color={isMyEntry ? "default" : "primary"}
                               sx={{
-                                height: 22,
-                                fontSize: "0.72rem",
-                                fontWeight: entry.isMine ? 500 : 700,
-                                borderColor: entry.isMine ? "#cbd5e1" : "#1976d2",
-                                color: entry.isMine ? "text.primary" : "primary.main",
+                                height: 24,
+                                fontSize: "0.74rem",
+                                fontWeight: 600,
+                                borderColor: isMyEntry ? "#cbd5e1" : undefined,
+                                color: isMyEntry ? "#475569" : undefined,
                               }}
                             />
                           </TableCell>
