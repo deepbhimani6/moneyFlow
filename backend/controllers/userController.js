@@ -139,7 +139,7 @@ const createUser = async (req, res) => {
 
     if (sendLink) {
       const appUrl = getAppUrl(req);
-      const inviteLink = `${appUrl}/login`;
+      const inviteLink = `${appUrl}/login?from=mail&invited=true${newUser.email ? `&email=${encodeURIComponent(newUser.email)}` : ''}`;
       const emailResult = await sendInviteEmail({
         toEmail: newUser.email,
         fullName: newUser.fullName,
@@ -350,7 +350,7 @@ const sendInviteToUser = async (req, res) => {
     }
 
     const appUrl = getAppUrl(req);
-    const inviteLink = `${appUrl}/login`;
+    const inviteLink = `${appUrl}/login?from=mail&invited=true${user.email ? `&email=${encodeURIComponent(user.email)}` : ''}`;
     let temporaryPassword = user.password;
     if (!temporaryPassword || temporaryPassword.startsWith('$2a$') || temporaryPassword.startsWith('$2b$')) {
       temporaryPassword = generateSecurePassword();
@@ -422,7 +422,7 @@ const bulkInviteUsers = async (req, res) => {
           user.password = temporaryPassword;
         }
 
-        const inviteLink = `${appUrl}/login`;
+        const inviteLink = `${appUrl}/login?from=mail&invited=true${user.email ? `&email=${encodeURIComponent(user.email)}` : ''}`;
         const emailResult = await sendInviteEmail({
           toEmail: user.email,
           fullName: user.fullName,

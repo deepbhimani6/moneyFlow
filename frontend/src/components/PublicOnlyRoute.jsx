@@ -8,14 +8,19 @@ const PublicOnlyRoute = ({ children }) => {
   const location = useLocation();
 
   const searchParams = new URLSearchParams(location.search);
-  const isInvite = searchParams.get('invited') === 'true' || searchParams.get('invite') === 'true';
+  const isFromMail =
+    searchParams.get('from') === 'mail' ||
+    searchParams.get('source') === 'mail' ||
+    searchParams.get('mail') === 'true' ||
+    searchParams.get('invited') === 'true' ||
+    searchParams.get('invite') === 'true';
 
   useEffect(() => {
-    // If opening an invite link, force logging out any existing session so verification with email & password is required
-    if (isInvite && isAuthenticated) {
+    // If opening from an email (invite or notification), force logging out any existing session so verification with email & password is required
+    if (isFromMail && isAuthenticated) {
       logout();
     }
-  }, [isInvite, isAuthenticated, logout]);
+  }, [isFromMail, isAuthenticated, logout]);
 
   if (loading) {
     return (
@@ -33,8 +38,8 @@ const PublicOnlyRoute = ({ children }) => {
     );
   }
 
-  // When invited link is opened, allow showing login page even while logging out previous session
-  if (isInvite) {
+  // When link is opened from email, allow showing login page directly even if previously logged in
+  if (isFromMail) {
     return children;
   }
 

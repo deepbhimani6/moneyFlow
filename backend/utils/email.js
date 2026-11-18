@@ -140,6 +140,15 @@ const dispatchEmail = async ({ toEmail, fullName, subject, html, text }) => {
 };
 
 const sendInviteEmail = async ({ toEmail, fullName, inviteLink, username, temporaryPassword }) => {
+  let targetLink = inviteLink || 'https://moneyflow-5a2a.onrender.com/login';
+  if (!targetLink.includes('/login')) {
+    targetLink = `${targetLink.replace(/\/+$/, '')}/login`;
+  }
+  if (!targetLink.includes('from=mail') && !targetLink.includes('invited=')) {
+    const separator = targetLink.includes('?') ? '&' : '?';
+    targetLink = `${targetLink}${separator}from=mail&invited=true${toEmail ? `&email=${encodeURIComponent(toEmail)}` : ''}`;
+  }
+
   const subject = `You're invited to join MoneyFlow`;
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e0e0e0; border-radius: 10px; background-color: #ffffff;">
@@ -153,12 +162,12 @@ const sendInviteEmail = async ({ toEmail, fullName, inviteLink, username, tempor
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${inviteLink}" style="background-color: #1976d2; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 15px; box-shadow: 0 2px 6px rgba(25,118,210,0.3);">
+        <a href="${targetLink}" style="background-color: #1976d2; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 15px; box-shadow: 0 2px 6px rgba(25,118,210,0.3);">
           Open MoneyFlow App
         </a>
       </div>
 
-      <p style="color: #777; font-size: 13px; line-height: 1.4;">Or copy and paste this link into your browser:<br/><a href="${inviteLink}" style="color: #1976d2; word-break: break-all;">${inviteLink}</a></p>
+      <p style="color: #777; font-size: 13px; line-height: 1.4;">Or copy and paste this link into your browser:<br/><a href="${targetLink}" style="color: #1976d2; word-break: break-all;">${targetLink}</a></p>
       <hr style="border: none; border-top: 1px solid #eee; margin-top: 30px;" />
       <p style="color: #999; font-size: 12px; text-align: center; margin-bottom: 0;">MoneyFlow • Online Expense & Split Tracker</p>
     </div>
@@ -173,7 +182,7 @@ Username: ${username || toEmail}
 ${temporaryPassword ? `Temporary Password: ${temporaryPassword}` : ''}
 
 Open MoneyFlow App:
-${inviteLink}
+${targetLink}
 
 ---
 MoneyFlow • Online Expense & Split Tracker`;
@@ -240,7 +249,8 @@ const sendEntryNotificationEmail = async ({
 }) => {
   if (!toEmail) return { success: false, error: 'No recipient email provided' };
 
-  const appUrl = process.env.APP_URL || 'https://moneyflow-5a2a.onrender.com';
+  const appUrl = (process.env.APP_URL || 'https://moneyflow-5a2a.onrender.com').replace(/\/+$/, '');
+  const loginLink = `${appUrl}/login?from=mail${toEmail ? `&email=${encodeURIComponent(toEmail)}` : ''}`;
   const displayReason = reason && reason.trim() ? reason.trim() : 'No specific reason provided';
   const subject = `MoneyFlow Notification: ${creatorName || 'A member'} added a ${entryType || 'new'} entry (₹${amount})`;
 
@@ -281,7 +291,7 @@ const sendEntryNotificationEmail = async ({
       </div>
 
       <div style="text-align: center; margin: 28px 0;">
-        <a href="${appUrl}" style="background-color: #1976d2; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 14px; box-shadow: 0 2px 6px rgba(25,118,210,0.3);">
+        <a href="${loginLink}" style="background-color: #1976d2; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 14px; box-shadow: 0 2px 6px rgba(25,118,210,0.3);">
           Open MoneyFlow App
         </a>
       </div>
@@ -305,7 +315,7 @@ Entry Type: ${entryType || 'Expense'}
 Added By: ${creatorName || 'MoneyFlow User'}
 ${date ? `Date: ${date} ${time ? `at ${time}` : ''}\n` : ''}${isSplit && splitTotalAmount ? `Split Details: ₹${splitTotalAmount} total across ${splitParticipantsCount || 'multiple'} participants\n` : ''}
 Open MoneyFlow to review:
-${appUrl}
+${loginLink}
 
 ---
 MoneyFlow • Online Expense & Split Tracker`;

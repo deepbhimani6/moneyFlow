@@ -426,7 +426,7 @@ const createMember = async (req, res) => {
     // Check if invite link checkbox was checked
     if (sendLink) {
       const appUrl = getAppUrl(req);
-      const inviteLink = `${appUrl}/login`;
+      const inviteLink = `${appUrl}/login?from=mail&invited=true${member.email ? `&email=${encodeURIComponent(member.email)}` : ''}`;
       const emailResult = await sendInviteEmail({
         toEmail: member.email,
         fullName: member.fullName,
@@ -951,7 +951,7 @@ const sendInviteToMember = async (req, res) => {
     }
 
     const appUrl = getAppUrl(req);
-    const inviteLink = `${appUrl}/login`;
+    const inviteLink = `${appUrl}/login?from=mail&invited=true${member.email ? `&email=${encodeURIComponent(member.email)}` : ''}`;
     let temporaryPassword = member.password;
     if (!temporaryPassword || temporaryPassword.startsWith('$2a$') || temporaryPassword.startsWith('$2b$')) {
       temporaryPassword = generateSecurePassword();
@@ -1039,7 +1039,7 @@ const bulkInviteMembers = async (req, res) => {
           member.password = temporaryPassword;
         }
 
-        const inviteLink = `${appUrl}/login`;
+        const inviteLink = `${appUrl}/login?from=mail&invited=true${member.email ? `&email=${encodeURIComponent(member.email)}` : ''}`;
         const emailResult = await sendInviteEmail({
           toEmail: member.email,
           fullName: member.fullName,

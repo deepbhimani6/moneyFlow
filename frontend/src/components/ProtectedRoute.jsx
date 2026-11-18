@@ -1,12 +1,37 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Box, CircularProgress, Typography } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, logout } = useAuth();
   const location = useLocation();
+
+  const searchParams = new URLSearchParams(location.search);
+  const isFromMail =
+    searchParams.get('from') === 'mail' ||
+    searchParams.get('source') === 'mail' ||
+    searchParams.get('mail') === 'true' ||
+    searchParams.get('invited') === 'true' ||
+    searchParams.get('invite') === 'true';
+
+  useEffect(() => {
+    // If user arrived from email into any protected route, log out any existing session so they can authenticate as the intended recipient
+    if (isFromMail && isAuthenticated) {
+      logout();
+    }
+  }, [isFromMail, isAuthenticated, logout]);
+
+  if (isFromMail) {
+    const emailParam = searchParams.get('email');
+    const invitedParam = searchParams.get('invited');
+    const params = new URLSearchParams();
+    params.set('from', 'mail');
+    if (invitedParam) params.set('invited', invitedParam);
+    if (emailParam) params.set('email', emailParam);
+    return <Navigate to={`/login?${params.toString()}`} replace />;
+  }
 
   if (loading) {
     return (
