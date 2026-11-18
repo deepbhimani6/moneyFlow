@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
@@ -6,21 +6,25 @@ import { useAuth } from '../context/AuthContext';
 const PublicOnlyRoute = ({ children }) => {
   const { isAuthenticated, loading, logout } = useAuth();
   const location = useLocation();
+  const initialCheckRef = useRef(true);
 
-  const searchParams = new URLSearchParams(location.search);
-  const isFromMail =
-    searchParams.get('from') === 'mail' ||
-    searchParams.get('source') === 'mail' ||
-    searchParams.get('mail') === 'true' ||
-    searchParams.get('invited') === 'true' ||
-    searchParams.get('invite') === 'true';
-
+  // If opening from email with a pre-existing session in storage, clear it ONCE on initial mount only
   useEffect(() => {
-    // If opening from an email (invite or notification), force logging out any existing session so verification with email & password is required
-    if (isFromMail && isAuthenticated) {
-      logout();
+    if (initialCheckRef.current) {
+      initialCheckRef.current = false;
+      const searchParams = new URLSearchParams(location.search);
+      const isFromMail =
+        searchParams.get('from') === 'mail' ||
+        searchParams.get('source') === 'mail' ||
+        searchParams.get('mail') === 'true' ||
+        searchParams.get('invited') === 'true' ||
+        searchParams.get('invite') === 'true';
+
+      if (isFromMail && localStorage.getItem('moneyflow_token')) {
+        logout();
+      }
     }
-  }, [isFromMail, isAuthenticated, logout]);
+  }, []); // Run ONCE on mount, NEVER when isAuthenticated changes after login
 
   if (loading) {
     return (
@@ -38,13 +42,12 @@ const PublicOnlyRoute = ({ children }) => {
     );
   }
 
-  // When link is opened from email, allow showing login page directly even if previously logged in
-  if (isFromMail) {
-    return children;
-  }
-
+  // Once authenticated (or upon successful login), immediately redirect to dashboard or original target
   if (isAuthenticated) {
-    const origin = location.state?.from?.pathname || '/dashboard';
+    const origin =
+      location.state?.from?.pathname && location.state.from.pathname !== '/login'
+        ? location.state.from.pathname
+        : '/dashboard';
     return <Navigate to={origin} replace />;
   }
 

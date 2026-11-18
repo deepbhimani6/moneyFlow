@@ -105,11 +105,12 @@ const LoginPage = () => {
       const res = await login(formData.identifier.trim(), formData.password);
 
       if (res.success) {
-        setSuccessMsg('Signed in successfully.');
-        const origin = location.state?.from?.pathname || '/dashboard';
-        setTimeout(() => {
-          navigate(origin, { replace: true });
-        }, 400);
+        const origin =
+          location.state?.from?.pathname && location.state.from.pathname !== '/login'
+            ? location.state.from.pathname
+            : '/dashboard';
+        navigate(origin, { replace: true });
+        return;
       } else {
         const msg = res.message || 'Invalid email/username or password.';
         const lower = msg.toLowerCase();

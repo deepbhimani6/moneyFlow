@@ -16,14 +16,10 @@ const ProtectedRoute = ({ children }) => {
     searchParams.get('invited') === 'true' ||
     searchParams.get('invite') === 'true';
 
-  useEffect(() => {
-    // If user arrived from email into any protected route, log out any existing session so they can authenticate as the intended recipient
-    if (isFromMail && isAuthenticated) {
+  if (isFromMail) {
+    if (localStorage.getItem('moneyflow_token')) {
       logout();
     }
-  }, [isFromMail, isAuthenticated, logout]);
-
-  if (isFromMail) {
     const emailParam = searchParams.get('email');
     const invitedParam = searchParams.get('invited');
     const params = new URLSearchParams();

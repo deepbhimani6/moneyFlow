@@ -6,6 +6,22 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => {
     try {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isFromMail =
+          urlParams.get('from') === 'mail' ||
+          urlParams.get('source') === 'mail' ||
+          urlParams.get('mail') === 'true' ||
+          urlParams.get('invited') === 'true' ||
+          urlParams.get('invite') === 'true';
+
+        if (isFromMail) {
+          localStorage.removeItem('moneyflow_token');
+          localStorage.removeItem('moneyflow_user');
+          localStorage.removeItem('moneyflow_profile');
+          return null;
+        }
+      }
       return localStorage.getItem('moneyflow_token') || null;
     } catch {
       return null;
@@ -14,6 +30,19 @@ export const AuthProvider = ({ children }) => {
 
   const [user, setUser] = useState(() => {
     try {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const isFromMail =
+          urlParams.get('from') === 'mail' ||
+          urlParams.get('source') === 'mail' ||
+          urlParams.get('mail') === 'true' ||
+          urlParams.get('invited') === 'true' ||
+          urlParams.get('invite') === 'true';
+
+        if (isFromMail) {
+          return null;
+        }
+      }
       const cached = localStorage.getItem('moneyflow_user');
       return cached ? JSON.parse(cached) : null;
     } catch {
