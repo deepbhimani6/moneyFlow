@@ -376,12 +376,12 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
                 <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", display: "block", mb: 0.75 }}>
                   Split Method:
                 </Typography>
-                <Box sx={{ display: "flex", gap: 1 }}>
+                <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1 }}>
                   <Button
                     size="small"
                     variant={splitMode === "equal" ? "contained" : "outlined"}
                     onClick={() => handleSplitModeChange("equal")}
-                    sx={{ textTransform: "none", fontSize: "0.8rem", borderRadius: 1.5, flex: 1, py: 0.5 }}
+                    sx={{ textTransform: "none", fontSize: "0.8rem", borderRadius: 1.5, flex: 1, py: 0.75 }}
                   >
                     Split Equally
                   </Button>
@@ -389,7 +389,7 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
                     size="small"
                     variant={splitMode === "separate" ? "contained" : "outlined"}
                     onClick={() => handleSplitModeChange("separate")}
-                    sx={{ textTransform: "none", fontSize: "0.8rem", borderRadius: 1.5, flex: 1, py: 0.5 }}
+                    sx={{ textTransform: "none", fontSize: "0.8rem", borderRadius: 1.5, flex: 1, py: 0.75 }}
                   >
                     Split Separately (Member-wise)
                   </Button>
@@ -397,7 +397,7 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
               </Box>
 
               {splitMode === "equal" ? (
-                <Box sx={{ display: "flex", gap: 2 }}>
+                <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
                   <TextField
                     label="Total Group Amount (₹)"
                     type="number"

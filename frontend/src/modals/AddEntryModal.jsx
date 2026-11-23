@@ -573,7 +573,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                 <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", display: "block", mb: 0.75 }}>
                   Split Method:
                 </Typography>
-                <Box sx={{ display: "flex", gap: 1 }}>
+                <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1 }}>
                   <Button
                     size="small"
                     variant={splitMode === "equal" ? "contained" : "outlined"}
@@ -583,7 +583,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                       fontSize: "0.8rem",
                       borderRadius: 1.5,
                       flex: 1,
-                      py: 0.5,
+                      py: 0.75,
                     }}
                   >
                     Split Equally
@@ -597,7 +597,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                       fontSize: "0.8rem",
                       borderRadius: 1.5,
                       flex: 1,
-                      py: 0.5,
+                      py: 0.75,
                     }}
                   >
                     Split Separately (Member-wise)
