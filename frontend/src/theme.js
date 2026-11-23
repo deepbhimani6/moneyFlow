@@ -81,7 +81,7 @@ const theme = createTheme(baseTheme, {
         root: {
           [baseTheme.breakpoints.down('sm')]: {
             fontSize: '0.875rem',
-            transform: 'translate(14px, 9px) scale(1)',
+            transform: 'translate(14px, 12px) scale(1)',
             '&.MuiInputLabel-shrink': {
               transform: 'translate(14px, -9px) scale(0.75)',
             },
@@ -101,7 +101,7 @@ const theme = createTheme(baseTheme, {
         root: {
           [baseTheme.breakpoints.down('sm')]: {
             fontSize: '0.875rem',
-            minHeight: '38px',
+            minHeight: '44px',
           },
           '&.Mui-error .MuiOutlinedInput-notchedOutline': {
             borderColor: '#d32f2f !important',
@@ -123,7 +123,11 @@ const theme = createTheme(baseTheme, {
         },
         input: {
           [baseTheme.breakpoints.down('sm')]: {
-            padding: '8.5px 12px !important',
+            paddingTop: '12px !important',
+            paddingBottom: '12px !important',
+            paddingBlock: '12px !important',
+            paddingLeft: '14px !important',
+            paddingRight: '14px !important',
             fontSize: '0.875rem !important',
             height: '1.4375em',
           },
@@ -141,8 +145,9 @@ const theme = createTheme(baseTheme, {
       styleOverrides: {
         select: {
           [baseTheme.breakpoints.down('sm')]: {
-            paddingTop: '8.5px !important',
-            paddingBottom: '8.5px !important',
+            paddingTop: '12px !important',
+            paddingBottom: '12px !important',
+            paddingBlock: '12px !important',
             fontSize: '0.875rem !important',
           },
         },
