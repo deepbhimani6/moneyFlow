@@ -11,7 +11,9 @@ import {
   Select,
   MenuItem,
   Box,
+  IconButton,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
 export const defaultMemberDetailFilters = {
   direction: "all", // "all", "receive", "pay"
@@ -59,7 +61,28 @@ const MemberDetailFilterModal = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Filter Member Transactions</DialogTitle>
+      <DialogTitle
+        sx={{
+          fontWeight: 700,
+          pb: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <span>Filter Member Transactions</span>
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          size="small"
+          sx={{
+            color: (theme) => theme.palette.grey[500],
+            "&:hover": { color: "text.primary" },
+          }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
         {/* Category / Direction */}
         <FormControl fullWidth>
@@ -117,7 +140,7 @@ const MemberDetailFilterModal = ({
         />
 
         {/* Date Range */}
-        <Box sx={{ display: "flex", gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
           <TextField
             label="From Date"
             type="date"
@@ -137,7 +160,7 @@ const MemberDetailFilterModal = ({
         </Box>
 
         {/* Amount Range */}
-        <Box sx={{ display: "flex", gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
           <TextField
             label="Min Amount (₹)"
             type="number"

@@ -16,7 +16,9 @@ import {
   CircularProgress,
   Chip,
   Avatar,
+  IconButton,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import CallSplitIcon from '@mui/icons-material/CallSplit';
 import { entryService } from '../services/api';
 import { toInputDateFormat, toInputTimeFormat, formatAmount, capitalizeName, capitalizeWordsInput } from '../utils/formatters';
@@ -245,8 +247,27 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit} noValidate>
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
-          {isSplit ? 'Edit Split Group To Receive' : 'Edit To Receive'}
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            pb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <span>{isSplit ? 'Edit Split Group To Receive' : 'Edit To Receive'}</span>
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            size="small"
+            sx={{
+              color: (theme) => theme.palette.grey[500],
+              '&:hover': { color: 'text.primary' },
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
@@ -513,7 +534,7 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
           />
 
           {/* 5. Date & Time */}
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
             <TextField
               label="Date"
               type="date"

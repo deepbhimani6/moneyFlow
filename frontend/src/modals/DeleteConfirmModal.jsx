@@ -7,7 +7,9 @@ import {
   DialogActions,
   Button,
   CircularProgress,
+  IconButton,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 
 const DeleteConfirmModal = ({
   open,
@@ -22,7 +24,29 @@ const DeleteConfirmModal = ({
 }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>{title}</DialogTitle>
+      <DialogTitle
+        sx={{
+          fontWeight: 700,
+          pb: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <span>{title}</span>
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          disabled={loading}
+          size="small"
+          sx={{
+            color: (theme) => theme.palette.grey[500],
+            '&:hover': { color: 'text.primary' },
+          }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
       <DialogContent dividers sx={{ pt: 2.5, pb: 2.5 }}>
         {typeof message === 'string' ? (
           <DialogContentText sx={{ color: 'text.primary', fontSize: '1rem' }}>

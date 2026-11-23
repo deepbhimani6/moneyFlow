@@ -16,7 +16,9 @@ import {
   CircularProgress,
   Chip,
   FormHelperText,
+  IconButton,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { forSelfService } from "../services/api";
 import { toInputDateFormat, toInputTimeFormat, formatAmount } from "../utils/formatters";
@@ -161,15 +163,28 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
       <form onSubmit={handleSubmit} noValidate>
         <DialogTitle sx={{ fontWeight: 700, pb: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span>Edit For Self Entry</span>
-          {isSplit && (
-            <Chip
-              icon={<CallSplitIcon sx={{ "&&": { fontSize: 16 } }} />}
-              label="Split Expense"
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {isSplit && (
+              <Chip
+                icon={<CallSplitIcon sx={{ "&&": { fontSize: 16 } }} />}
+                label="Split Expense"
+                size="small"
+                color="info"
+                variant="outlined"
+              />
+            )}
+            <IconButton
+              aria-label="close"
+              onClick={onClose}
               size="small"
-              color="info"
-              variant="outlined"
-            />
-          )}
+              sx={{
+                color: (theme) => theme.palette.grey[500],
+                "&:hover": { color: "text.primary" },
+              }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          </Box>
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
@@ -302,7 +317,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
           />
 
           {/* 4. Date & Time */}
-          <Box sx={{ display: "flex", gap: 2 }}>
+          <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
             <TextField
               label="Date"
               type="date"

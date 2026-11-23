@@ -13,7 +13,9 @@ import {
   CircularProgress,
   Typography,
   InputAdornment,
+  IconButton,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
@@ -332,7 +334,28 @@ const InviteMemberModal = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit} noValidate>
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>{dialogTitle}</DialogTitle>
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            pb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <span>{dialogTitle}</span>
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            size="small"
+            sx={{
+              color: (theme) => theme.palette.grey[500],
+              '&:hover': { color: 'text.primary' },
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 

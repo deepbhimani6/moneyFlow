@@ -34,6 +34,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CloseIcon from "@mui/icons-material/Close";
 
 import { userService } from "../services/api";
 import { useProfile } from "../context/ProfileContext";
@@ -927,8 +928,25 @@ const UsersPage = () => {
         fullWidth
         PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
       >
-        <DialogTitle sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
-          <DeleteOutlineIcon color="error" /> Confirm Delete User
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            pb: 1,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <DeleteOutlineIcon color="error" /> Confirm Delete User
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => setSingleDeleteState({ open: false, loadingSummary: false, user: null, summary: null })}
+            sx={{ color: "text.secondary" }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
         <DialogContent dividers>
           <Typography variant="body1" sx={{ mb: 2 }}>
@@ -988,8 +1006,25 @@ const UsersPage = () => {
         fullWidth
         PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
       >
-        <DialogTitle sx={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 1 }}>
-          <DeleteOutlineIcon color="error" /> Confirm Bulk Delete Users
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            pb: 1,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <DeleteOutlineIcon color="error" /> Confirm Bulk Delete Users
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => setBulkDeleteState({ open: false, loadingSummary: false, summary: null })}
+            sx={{ color: "text.secondary" }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
         <DialogContent dividers>
           <Typography variant="body1" sx={{ mb: 2 }}>

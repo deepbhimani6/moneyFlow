@@ -8,7 +8,9 @@ import {
   TextField,
   Alert,
   CircularProgress,
+  IconButton,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import { memberService } from '../services/api';
 import { capitalizeName, capitalizeWordsInput } from '../utils/formatters';
 
@@ -135,7 +137,28 @@ const EditMemberModal = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit} noValidate>
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>{title}</DialogTitle>
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            pb: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <span>{title}</span>
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            size="small"
+            sx={{
+              color: (theme) => theme.palette.grey[500],
+              '&:hover': { color: 'text.primary' },
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
         <DialogContent dividers sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 

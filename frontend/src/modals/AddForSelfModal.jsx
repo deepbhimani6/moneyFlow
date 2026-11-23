@@ -14,7 +14,9 @@ import {
   Alert,
   CircularProgress,
   FormHelperText,
+  IconButton,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import { forSelfService } from "../services/api";
 
 const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
@@ -109,7 +111,28 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <form onSubmit={handleSubmit} noValidate>
-        <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Add For Self</DialogTitle>
+        <DialogTitle
+          sx={{
+            fontWeight: 700,
+            pb: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <span>Add For Self</span>
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            size="small"
+            sx={{
+              color: (theme) => theme.palette.grey[500],
+              "&:hover": { color: "text.primary" },
+            }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
@@ -167,7 +190,7 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
           />
 
           {/* 4. Date & Time */}
-          <Box sx={{ display: "flex", gap: 2 }}>
+          <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
             <TextField
               label="Date"
               type="date"

@@ -14,7 +14,9 @@ import {
   Chip,
   Box,
   Typography,
+  IconButton,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import { capitalizeName } from "../utils/formatters";
 
 const defaultFilters = {
@@ -75,7 +77,28 @@ const MemberFilterModal = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3 } }}>
-      <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>{title}</DialogTitle>
+      <DialogTitle
+        sx={{
+          fontWeight: 700,
+          pb: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <span>{title}</span>
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          size="small"
+          sx={{
+            color: (theme) => theme.palette.grey[500],
+            "&:hover": { color: "text.primary" },
+          }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
         {/* 1. Member/User Multi-Select Dropdown */}
         <Autocomplete
@@ -139,7 +162,7 @@ const MemberFilterModal = ({
             <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5, display: "block" }}>
               Invite Date Range
             </Typography>
-            <Box sx={{ display: "flex", gap: 1.5 }}>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
               <TextField
                 label="From Date"
                 type="date"
@@ -165,7 +188,7 @@ const MemberFilterModal = ({
           <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5, display: "block" }}>
             Join Date Range (First Login)
           </Typography>
-          <Box sx={{ display: "flex", gap: 1.5 }}>
+          <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
             <TextField
               label="From Date"
               type="date"

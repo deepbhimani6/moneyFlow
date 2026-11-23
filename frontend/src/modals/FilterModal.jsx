@@ -13,7 +13,9 @@ import {
   Autocomplete,
   Chip,
   Box,
+  IconButton,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import { memberService } from "../services/api";
 import { useProfile } from "../context/ProfileContext";
 import { useAuth } from "../context/AuthContext";
@@ -98,7 +100,28 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>Filter To Receive</DialogTitle>
+      <DialogTitle
+        sx={{
+          fontWeight: 700,
+          pb: 1,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <span>Filter To Receive</span>
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          size="small"
+          sx={{
+            color: (theme) => theme.palette.grey[500],
+            "&:hover": { color: "text.primary" },
+          }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </DialogTitle>
       <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
         {/* Type Filter */}
         <FormControl fullWidth>
@@ -184,7 +207,7 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
         />
 
         {/* Date Range */}
-        <Box sx={{ display: "flex", gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
           <TextField
             label="From Date"
             type="date"
@@ -204,7 +227,7 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
         </Box>
 
         {/* Amount Range */}
-        <Box sx={{ display: "flex", gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
           <TextField label="Min Amount (₹)" type="number" value={filters.minAmount || ""} onChange={(e) => handleChange("minAmount", e.target.value)} fullWidth />
           <TextField label="Max Amount (₹)" type="number" value={filters.maxAmount || ""} onChange={(e) => handleChange("maxAmount", e.target.value)} fullWidth />
         </Box>

@@ -8,7 +8,9 @@ import {
   Box,
   Typography,
   Divider,
+  IconButton,
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 import GetAppIcon from '@mui/icons-material/GetApp';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import IosShareIcon from '@mui/icons-material/IosShare';
@@ -28,22 +30,35 @@ const InstallAppModal = ({ open, onClose }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1, fontWeight: 700 }}>
-        <Box
+      <DialogTitle sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pb: 1, fontWeight: 700 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: 2,
+              bgcolor: 'primary.main',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <GetAppIcon sx={{ fontSize: 22 }} />
+          </Box>
+          <span>Install MoneyFlow App</span>
+        </Box>
+        <IconButton
+          aria-label="close"
+          onClick={onClose}
+          size="small"
           sx={{
-            width: 36,
-            height: 36,
-            borderRadius: 2,
-            bgcolor: 'primary.main',
-            color: '#ffffff',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            color: (theme) => theme.palette.grey[500],
+            '&:hover': { color: 'text.primary' },
           }}
         >
-          <GetAppIcon sx={{ fontSize: 22 }} />
-        </Box>
-        Install MoneyFlow App
+          <CloseIcon fontSize="small" />
+        </IconButton>
       </DialogTitle>
 
       <DialogContent dividers sx={{ pt: 2, pb: 2 }}>

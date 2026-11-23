@@ -9,6 +9,7 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
+import CloseIcon from "@mui/icons-material/Close";
 import { memberService } from "../services/api";
 import { useProfile } from "../context/ProfileContext";
 import { useAuth } from "../context/AuthContext";
@@ -1138,13 +1139,22 @@ const MembersPage = () => {
             fontWeight: 700,
             display: "flex",
             alignItems: "center",
-            gap: 1.5,
+            justifyContent: "space-between",
             color: "text.primary",
             pb: 1,
           }}
         >
-          <DeleteOutlineIcon color="action" sx={{ fontSize: 28 }} />
-          Confirm Delete Member
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <DeleteOutlineIcon color="action" sx={{ fontSize: 28 }} />
+            Confirm Delete Member
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => !actionLoading && setSingleDeleteState((prev) => ({ ...prev, open: false }))}
+            sx={{ color: "text.secondary" }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2.5, pb: 2.5 }}>
@@ -1277,13 +1287,22 @@ const MembersPage = () => {
             fontWeight: 700,
             display: "flex",
             alignItems: "center",
-            gap: 1.5,
+            justifyContent: "space-between",
             color: "text.primary",
             pb: 1,
           }}
         >
-          <DeleteOutlineIcon color="action" sx={{ fontSize: 28 }} />
-          Confirm Bulk Delete Members
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <DeleteOutlineIcon color="action" sx={{ fontSize: 28 }} />
+            Confirm Bulk Delete Members
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => !actionLoading && setBulkDeleteState((prev) => ({ ...prev, open: false }))}
+            sx={{ color: "text.secondary" }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
 
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2.5, pb: 2.5 }}>
@@ -1404,17 +1423,26 @@ const MembersPage = () => {
             fontWeight: 700,
             display: "flex",
             alignItems: "center",
-            gap: 1.5,
+            justifyContent: "space-between",
             color: inviteErrorDialog.severity === "error" ? "error.main" : "warning.dark",
             pb: 1,
           }}
         >
-          {inviteErrorDialog.severity === "error" ? (
-            <ErrorOutlineIcon color="error" sx={{ fontSize: 28 }} />
-          ) : (
-            <WarningAmberIcon color="warning" sx={{ fontSize: 28 }} />
-          )}
-          {inviteErrorDialog.title}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            {inviteErrorDialog.severity === "error" ? (
+              <ErrorOutlineIcon color="error" sx={{ fontSize: 28 }} />
+            ) : (
+              <WarningAmberIcon color="warning" sx={{ fontSize: 28 }} />
+            )}
+            {inviteErrorDialog.title}
+          </Box>
+          <IconButton
+            size="small"
+            onClick={() => setInviteErrorDialog((prev) => ({ ...prev, open: false }))}
+            sx={{ color: "text.secondary" }}
+          >
+            <CloseIcon fontSize="small" />
+          </IconButton>
         </DialogTitle>
         <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
           <Alert severity={inviteErrorDialog.severity || "error"}>
