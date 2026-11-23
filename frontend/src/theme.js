@@ -148,6 +148,54 @@ const theme = createTheme(baseTheme, {
         },
       },
     },
+    MuiMenu: {
+      styleOverrides: {
+        list: {
+          paddingTop: '4px',
+          paddingBottom: '4px',
+        },
+      },
+    },
+    MuiMenuItem: {
+      styleOverrides: {
+        root: {
+          minHeight: '36px !important',
+          paddingTop: '6px !important',
+          paddingBottom: '6px !important',
+          paddingLeft: '14px !important',
+          paddingRight: '14px !important',
+          fontSize: '0.875rem !important',
+        },
+      },
+    },
+    MuiAutocomplete: {
+      styleOverrides: {
+        root: {
+          '& .MuiAutocomplete-listbox': {
+            padding: '4px 0',
+          },
+        },
+        listbox: {
+          padding: '4px 0',
+          '& .MuiAutocomplete-option': {
+            minHeight: '36px !important',
+            paddingTop: '6px !important',
+            paddingBottom: '6px !important',
+            paddingLeft: '14px !important',
+            paddingRight: '14px !important',
+            fontSize: '0.875rem !important',
+          },
+        },
+        option: {
+          minHeight: '36px !important',
+          paddingTop: '6px !important',
+          paddingBottom: '6px !important',
+          paddingLeft: '14px !important',
+          paddingRight: '14px !important',
+          fontSize: '0.875rem !important',
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {

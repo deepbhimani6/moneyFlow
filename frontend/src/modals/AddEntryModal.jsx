@@ -366,7 +366,9 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                       display: "flex",
                       alignItems: "center",
                       gap: 1.5,
-                      py: 1.25,
+                      py: "6px !important",
+                      px: "14px !important",
+                      minHeight: "36px !important",
                       cursor: "pointer",
                       bgcolor: "rgba(25, 118, 210, 0.04)",
                       "&:hover": { bgcolor: "rgba(25, 118, 210, 0.12)" },
@@ -374,30 +376,39 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                   >
                     <Box
                       sx={{
-                        width: 26,
-                        height: 26,
+                        width: 22,
+                        height: 22,
                         borderRadius: "50%",
                         bgcolor: "primary.main",
                         color: "#ffffff",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: 16,
+                        fontSize: 14,
                         fontWeight: 700,
                         flexShrink: 0,
                       }}
                     >
                       +
                     </Box>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main", fontSize: "0.875rem" }}>
                       Add &quot;{capitalizeName(option.inputValue)}&quot;
                     </Typography>
                   </Box>
                 );
               }
               return (
-                <Box component="li" {...props} key={option._id || option.fullName} sx={{ py: 1, px: 2 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                <Box
+                  component="li"
+                  {...props}
+                  key={option._id || option.fullName}
+                  sx={{
+                    py: "6px !important",
+                    px: "14px !important",
+                    minHeight: "36px !important",
+                  }}
+                >
+                  <Typography variant="body2" sx={{ fontWeight: 500, fontSize: "0.875rem" }}>
                     {capitalizeName(option.fullName)}
                   </Typography>
                 </Box>
