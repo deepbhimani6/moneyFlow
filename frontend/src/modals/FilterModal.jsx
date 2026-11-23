@@ -122,7 +122,7 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
-      <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
+      <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
         {/* Type Filter */}
         <FormControl fullWidth>
           <InputLabel id="filter-type-label">Type</InputLabel>
@@ -207,7 +207,7 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
         />
 
         {/* Date Range */}
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
           <TextField
             label="From Date"
             type="date"
@@ -227,7 +227,7 @@ const FilterModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFil
         </Box>
 
         {/* Amount Range */}
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
           <TextField label="Min Amount (₹)" type="number" value={filters.minAmount || ""} onChange={(e) => handleChange("minAmount", e.target.value)} fullWidth />
           <TextField label="Max Amount (₹)" type="number" value={filters.maxAmount || ""} onChange={(e) => handleChange("maxAmount", e.target.value)} fullWidth />
         </Box>

@@ -280,7 +280,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
             <CloseIcon fontSize="small" />
           </IconButton>
         </DialogTitle>
-        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
+        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
           {/* 1. Member Name (Multi-select from Members & add custom) */}

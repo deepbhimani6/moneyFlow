@@ -187,7 +187,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
           </Box>
         </DialogTitle>
 
-        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
+        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
           {error && <Alert severity="error">{error}</Alert>}
 
           {/* Split synchronization info */}

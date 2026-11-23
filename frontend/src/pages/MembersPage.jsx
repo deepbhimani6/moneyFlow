@@ -1157,7 +1157,7 @@ const MembersPage = () => {
           </IconButton>
         </DialogTitle>
 
-        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2.5, pb: 2.5 }}>
+        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2, pb: 2 }}>
           {singleDeleteState.loadingSummary ? (
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 4, gap: 1.5 }}>
               <CircularProgress size={32} />
@@ -1305,7 +1305,7 @@ const MembersPage = () => {
           </IconButton>
         </DialogTitle>
 
-        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2.5, pb: 2.5 }}>
+        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2, pb: 2 }}>
           {bulkDeleteState.loadingSummary ? (
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", py: 4, gap: 1.5 }}>
               <CircularProgress size={32} />
@@ -1444,7 +1444,7 @@ const MembersPage = () => {
             <CloseIcon fontSize="small" />
           </IconButton>
         </DialogTitle>
-        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
+        <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
           <Alert severity={inviteErrorDialog.severity || "error"}>
             {inviteErrorDialog.message}
           </Alert>

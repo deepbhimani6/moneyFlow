@@ -83,7 +83,7 @@ const MemberDetailFilterModal = ({
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
-      <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
+      <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
         {/* Category / Direction */}
         <FormControl fullWidth>
           <InputLabel id="filter-direction-label">Category</InputLabel>
@@ -140,7 +140,7 @@ const MemberDetailFilterModal = ({
         />
 
         {/* Date Range */}
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
           <TextField
             label="From Date"
             type="date"
@@ -160,7 +160,7 @@ const MemberDetailFilterModal = ({
         </Box>
 
         {/* Amount Range */}
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
           <TextField
             label="Min Amount (₹)"
             type="number"

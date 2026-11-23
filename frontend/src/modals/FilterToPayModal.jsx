@@ -120,7 +120,7 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
-      <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
+      <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
         {/* Type Filter: Only Expense and Loan */}
         <FormControl fullWidth>
           <InputLabel id="filter-type-label">Type</InputLabel>
@@ -191,7 +191,7 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
         />
 
         {/* Date Range */}
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
           <TextField
             label="From Date"
             type="date"
@@ -211,7 +211,7 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
         </Box>
 
         {/* Amount Range */}
-        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
+        <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
           <TextField
             label="Min Amount (₹)"
             type="number"

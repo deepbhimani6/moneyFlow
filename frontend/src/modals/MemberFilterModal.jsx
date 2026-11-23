@@ -99,7 +99,7 @@ const MemberFilterModal = ({
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
-      <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 2 }}>
+      <DialogContent dividers sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 2 }}>
         {/* 1. Member/User Multi-Select Dropdown */}
         <Autocomplete
           multiple
@@ -162,7 +162,7 @@ const MemberFilterModal = ({
             <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5, display: "block" }}>
               Invite Date Range
             </Typography>
-            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
               <TextField
                 label="From Date"
                 type="date"
@@ -188,7 +188,7 @@ const MemberFilterModal = ({
           <Typography variant="caption" sx={{ fontWeight: 600, color: "text.secondary", mb: 0.5, display: "block" }}>
             Join Date Range (First Login)
           </Typography>
-          <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 1.5 }}>
+          <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
             <TextField
               label="From Date"
               type="date"
