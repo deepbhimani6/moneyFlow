@@ -273,6 +273,18 @@ const theme = createTheme(baseTheme, {
         paper: {
           borderRadius: 16,
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          display: 'flex',
+          flexDirection: 'column',
+          maxHeight: 'calc(100% - 64px)',
+          overflow: 'hidden',
+          '& > form': {
+            display: 'flex',
+            flexDirection: 'column',
+            flex: '1 1 auto',
+            minHeight: 0,
+            overflow: 'hidden',
+            height: '100%',
+          },
           [baseTheme.breakpoints.down('sm')]: {
             margin: '0 !important',
             width: '100% !important',
@@ -282,6 +294,15 @@ const theme = createTheme(baseTheme, {
             borderRadius: '0 !important',
             display: 'flex',
             flexDirection: 'column',
+            overflow: 'hidden',
+            '& > form': {
+              display: 'flex',
+              flexDirection: 'column',
+              flex: '1 1 auto',
+              minHeight: 0,
+              height: '100%',
+              overflow: 'hidden',
+            },
           },
         },
       },
@@ -289,6 +310,7 @@ const theme = createTheme(baseTheme, {
     MuiDialogTitle: {
       styleOverrides: {
         root: {
+          flex: '0 0 auto',
           [baseTheme.breakpoints.down('sm')]: {
             padding: '14px 16px !important',
             fontSize: '1.1rem !important',
@@ -299,10 +321,14 @@ const theme = createTheme(baseTheme, {
     MuiDialogContent: {
       styleOverrides: {
         root: {
+          flex: '1 1 auto',
+          overflowY: 'auto',
+          minHeight: 0,
           [baseTheme.breakpoints.down('sm')]: {
             padding: '16px !important',
             flex: '1 1 auto',
             overflowY: 'auto',
+            minHeight: 0,
           },
         },
       },
@@ -310,6 +336,7 @@ const theme = createTheme(baseTheme, {
     MuiDialogActions: {
       styleOverrides: {
         root: {
+          flex: '0 0 auto',
           [baseTheme.breakpoints.down('sm')]: {
             padding: '12px 16px !important',
           },

@@ -136,7 +136,7 @@ const EditMemberModal = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit} noValidate>
+      <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden", flex: "1 1 auto" }}>
         <DialogTitle
           sx={{
             fontWeight: 700,

@@ -160,7 +160,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <form onSubmit={handleSubmit} noValidate>
+      <form onSubmit={handleSubmit} noValidate style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, overflow: "hidden", flex: "1 1 auto" }}>
         <DialogTitle sx={{ fontWeight: 700, pb: 1, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <span>Edit For Self Entry</span>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
