@@ -19,6 +19,7 @@ import OnlineDetector from './components/OnlineDetector';
 import HeaderProfileMenu from './components/HeaderProfileMenu';
 import NotificationBell from './components/NotificationBell';
 import MobileBottomNav from './components/MobileBottomNav';
+import InstallAppModal from './components/InstallAppModal';
 import { AuthProvider } from './context/AuthContext';
 import { ProfileProvider } from './context/ProfileContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -44,6 +45,7 @@ const drawerWidth = 240;
 
 function MainAppLayout() {
   const [installPrompt, setInstallPrompt] = useState(null);
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
   const navigate = useNavigate();
 
   // Listen for PWA install prompt event
@@ -57,11 +59,14 @@ function MainAppLayout() {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setInstallPrompt(null);
+    if (installPrompt) {
+      installPrompt.prompt();
+      const { outcome } = await installPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setInstallPrompt(null);
+      }
+    } else {
+      setShowInstallGuide(true);
     }
   };
 
@@ -147,51 +152,47 @@ function MainAppLayout() {
             <Box sx={{ display: { xs: 'none', lg: 'block' } }} />
 
             <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 1.5 }, flexShrink: 0 }}>
-              {/* PWA Install Button if available */}
-              {installPrompt && (
-                <>
-                  {/* Mobile Compact Icon Button */}
-                  <Tooltip title="Install App">
-                    <IconButton
-                      color="primary"
-                      onClick={handleInstallClick}
-                      aria-label="Install App"
-                      sx={{
-                        display: { xs: 'inline-flex', sm: 'none' },
-                        bgcolor: 'primary.main',
-                        color: '#ffffff',
-                        width: 36,
-                        height: 36,
-                        borderRadius: 2,
-                        '&:hover': { bgcolor: 'primary.dark' },
-                        boxShadow: '0 2px 6px rgba(25, 118, 210, 0.28)',
-                        flexShrink: 0,
-                      }}
-                    >
-                      <GetAppIcon sx={{ fontSize: 20 }} />
-                    </IconButton>
-                  </Tooltip>
+              {/* App Download/Install Button - Always visible on all screens */}
+              {/* Mobile Compact Icon Button */}
+              <Tooltip title="Download / Install App">
+                <IconButton
+                  color="primary"
+                  onClick={handleInstallClick}
+                  aria-label="Download / Install App"
+                  sx={{
+                    display: { xs: 'inline-flex', sm: 'none' },
+                    bgcolor: 'primary.main',
+                    color: '#ffffff',
+                    width: 36,
+                    height: 36,
+                    borderRadius: 2,
+                    '&:hover': { bgcolor: 'primary.dark' },
+                    boxShadow: '0 2px 6px rgba(25, 118, 210, 0.28)',
+                    flexShrink: 0,
+                  }}
+                >
+                  <GetAppIcon sx={{ fontSize: 20 }} />
+                </IconButton>
+              </Tooltip>
 
-                  {/* Tablet & Desktop Button with Text */}
-                  <Button
-                    variant="contained"
-                    size="small"
-                    startIcon={<GetAppIcon />}
-                    onClick={handleInstallClick}
-                    sx={{
-                      display: { xs: 'none', sm: 'inline-flex' },
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      whiteSpace: 'nowrap',
-                      borderRadius: 2,
-                      boxShadow: '0 2px 6px rgba(25, 118, 210, 0.28)',
-                      flexShrink: 0,
-                    }}
-                  >
-                    Install App
-                  </Button>
-                </>
-              )}
+              {/* Tablet & Desktop Button with Text */}
+              <Button
+                variant="contained"
+                size="small"
+                startIcon={<GetAppIcon />}
+                onClick={handleInstallClick}
+                sx={{
+                  display: { xs: 'none', sm: 'inline-flex' },
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  borderRadius: 2,
+                  boxShadow: '0 2px 6px rgba(25, 118, 210, 0.28)',
+                  flexShrink: 0,
+                }}
+              >
+                Download App
+              </Button>
 
               {/* Notification Bell */}
               <NotificationBell />
@@ -222,6 +223,12 @@ function MainAppLayout() {
 
         {/* Mobile Bottom Navigation Bar */}
         <MobileBottomNav />
+
+        {/* PWA Install Instructions Modal */}
+        <InstallAppModal
+          open={showInstallGuide}
+          onClose={() => setShowInstallGuide(false)}
+        />
       </Box>
     </Box>
   );

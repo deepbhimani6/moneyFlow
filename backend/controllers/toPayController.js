@@ -40,11 +40,18 @@ const resolveOrCreateMember = async (item, user) => {
   });
 
   if (!member) {
+    let baseUsername = memberName.toLowerCase().replace(/[^a-z0-9]/g, "") || "member";
+    let candidateUsername = baseUsername;
+    let counter = 1;
+    while (await Member.findOne({ username: candidateUsername })) {
+      candidateUsername = `${baseUsername}${counter++}`;
+    }
+
     member = await Member.create({
       fullName: memberName,
       email: "",
       phoneNumber: "",
-      username: memberName.toLowerCase().replace(/[^a-z0-9]/g, ""),
+      username: candidateUsername,
       password: "",
       createdBy: user ? user._id : null,
       joinDate: null,

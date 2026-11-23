@@ -14,11 +14,16 @@ import {
   Box,
   Alert,
   CircularProgress,
+  Avatar,
+  Typography,
+  createFilterOptions,
 } from "@mui/material";
 import { memberService, toPayService } from "../services/api";
 import { useProfile } from "../context/ProfileContext";
 import { useAuth } from "../context/AuthContext";
 import { capitalizeName, isCurrentLoggedInUser } from "../utils/formatters";
+
+const filter = createFilterOptions();
 
 const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
   const { profile } = useProfile();
@@ -39,6 +44,13 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
   const amountRef = useRef(null);
   const dateRef = useRef(null);
   const timeRef = useRef(null);
+
+  const getInitials = (name) => {
+    if (!name) return "?";
+    const parts = String(name).trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  };
 
   // Fetch available members
   useEffect(() => {
@@ -158,20 +170,126 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
           {/* 1. Member / Person Name (Single Select or FreeSolo) */}
           <Autocomplete
             freeSolo
+            clearOnBlur={false}
+            selectOnFocus
             options={availableMembers}
-            getOptionLabel={(option) => (typeof option === "string" ? option : option.fullName || "")}
+            filterOptions={(options, params) => {
+              const filtered = filter(options, params);
+              const { inputValue: rawInput } = params;
+              const trimmed = (rawInput || "").trim();
+              const isExisting = options.some(
+                (opt) => (typeof opt === "string" ? opt : opt.fullName || "").toLowerCase() === trimmed.toLowerCase()
+              );
+              if (trimmed !== "" && !isExisting) {
+                filtered.push({
+                  inputValue: trimmed,
+                  fullName: `Add "${capitalizeName(trimmed)}"`,
+                  isNewOption: true,
+                });
+              }
+              return filtered;
+            }}
+            getOptionLabel={(option) => {
+              if (typeof option === "string") return option;
+              if (option?.isNewOption) return capitalizeName(option.inputValue || "");
+              return option?.fullName || "";
+            }}
             isOptionEqualToValue={(option, value) => {
-              if (typeof value === "string") return option.fullName === value;
-              return option._id === value?._id;
+              if (typeof value === "string") {
+                const optName = typeof option === "string" ? option : option?.fullName;
+                return optName?.toLowerCase() === value.toLowerCase();
+              }
+              return option?._id === value?._id;
             }}
             value={selectedMember}
             inputValue={inputValue}
-            onInputChange={(event, newInputValue) => {
-              setInputValue(newInputValue);
+            onInputChange={(event, newInputValue, reason) => {
+              if (reason !== "reset") {
+                setInputValue(newInputValue);
+              }
             }}
             onChange={(event, newValue) => {
-              setSelectedMember(newValue);
+              if (typeof newValue === "object" && newValue?.isNewOption) {
+                const formatted = capitalizeName(newValue.inputValue);
+                setSelectedMember(formatted);
+                setInputValue(formatted);
+              } else if (typeof newValue === "string") {
+                const formatted = capitalizeName(newValue);
+                setSelectedMember(formatted);
+                setInputValue(formatted);
+              } else {
+                setSelectedMember(newValue);
+                setInputValue(newValue ? newValue.fullName || "" : "");
+              }
               if (errors.member) setErrors((prev) => ({ ...prev, member: false }));
+            }}
+            onBlur={() => {
+              if (inputValue && inputValue.trim()) {
+                const trimmed = capitalizeName(inputValue.trim());
+                setSelectedMember(trimmed);
+                setInputValue(trimmed);
+                if (errors.member) setErrors((prev) => ({ ...prev, member: false }));
+              }
+            }}
+            renderOption={(props, option) => {
+              if (option.isNewOption) {
+                return (
+                  <Box
+                    component="li"
+                    {...props}
+                    key="add-new-pay-option"
+                    sx={{
+                      fontWeight: 600,
+                      color: "primary.main !important",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                      py: 1.25,
+                      cursor: "pointer",
+                      bgcolor: "rgba(25, 118, 210, 0.04)",
+                      "&:hover": { bgcolor: "rgba(25, 118, 210, 0.12)" },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        bgcolor: "primary.main",
+                        color: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 16,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      +
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
+                      Add &quot;{capitalizeName(option.inputValue)}&quot;
+                    </Typography>
+                  </Box>
+                );
+              }
+              return (
+                <Box component="li" {...props} key={option._id || option.fullName} sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <Avatar sx={{ width: 28, height: 28, fontSize: 12, bgcolor: option.avatarColor || "#1976d2" }}>
+                    {getInitials(option.fullName)}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {capitalizeName(option.fullName)}
+                    </Typography>
+                    {option.email && (
+                      <Typography variant="caption" color="text.secondary">
+                        {option.email}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              );
             }}
             renderInput={(params) => (
               <TextField
@@ -181,6 +299,17 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
                 required
                 inputRef={memberInputRef}
                 error={Boolean(errors.member)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    if (inputValue && inputValue.trim()) {
+                      e.preventDefault();
+                      const trimmed = capitalizeName(inputValue.trim());
+                      setSelectedMember(trimmed);
+                      setInputValue(trimmed);
+                      if (errors.member) setErrors((prev) => ({ ...prev, member: false }));
+                    }
+                  }
+                }}
                 inputProps={{
                   ...params.inputProps,
                   style: { textTransform: "capitalize" },

@@ -19,12 +19,15 @@ import {
   Checkbox,
   CircularProgress,
   Avatar,
+  createFilterOptions,
 } from "@mui/material";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { memberService, entryService } from "../services/api";
 import { useProfile } from "../context/ProfileContext";
 import { useAuth } from "../context/AuthContext";
 import { formatAmount, capitalizeName, isCurrentLoggedInUser } from "../utils/formatters";
+
+const filter = createFilterOptions();
 
 const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
   const { profile } = useProfile();
@@ -261,21 +264,131 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
           <Autocomplete
             multiple
             freeSolo
+            clearOnBlur={false}
+            selectOnFocus
             options={autocompleteOptions}
-            getOptionLabel={(option) => (typeof option === "string" ? option : option.fullName || "")}
+            filterOptions={(options, params) => {
+              const filtered = filter(options, params);
+              const { inputValue: rawInput } = params;
+              const trimmed = (rawInput || "").trim();
+              const isExisting = options.some(
+                (opt) => (typeof opt === "string" ? opt : opt.fullName || "").toLowerCase() === trimmed.toLowerCase()
+              );
+              if (trimmed !== "" && !isExisting) {
+                filtered.push({
+                  inputValue: trimmed,
+                  fullName: `Add "${capitalizeName(trimmed)}"`,
+                  isNewOption: true,
+                });
+              }
+              return filtered;
+            }}
+            getOptionLabel={(option) => {
+              if (typeof option === "string") return option;
+              if (option.isNewOption) return capitalizeName(option.inputValue || "");
+              return option.fullName || "";
+            }}
             isOptionEqualToValue={(option, value) => {
-              if (typeof value === "string") return option.fullName === value;
+              if (typeof value === "string") {
+                const optName = typeof option === "string" ? option : option.fullName;
+                return optName?.toLowerCase() === value.toLowerCase();
+              }
               return option._id === value?._id;
             }}
             value={selectedNames}
             inputValue={inputValue}
-            onInputChange={(event, newInputValue) => {
-              setInputValue(newInputValue);
+            onInputChange={(event, newInputValue, reason) => {
+              // Do not wipe out typed text on reset unless user actually picked or cleared
+              if (reason !== "reset") {
+                setInputValue(newInputValue);
+              }
             }}
             onChange={(event, newValue) => {
-              setSelectedNames(newValue);
+              const processed = newValue.map((val) => {
+                if (typeof val === "object" && val?.isNewOption) {
+                  return capitalizeName(val.inputValue);
+                }
+                if (typeof val === "string") {
+                  return capitalizeName(val);
+                }
+                return val;
+              });
+              setSelectedNames(processed);
               setInputValue("");
               if (errors.members) setErrors((prev) => ({ ...prev, members: false }));
+            }}
+            onBlur={() => {
+              if (inputValue && inputValue.trim()) {
+                const trimmed = capitalizeName(inputValue.trim());
+                const alreadySelected = selectedNames.some(
+                  (item) => (typeof item === "string" ? item : item.fullName || "").toLowerCase() === trimmed.toLowerCase()
+                );
+                if (!alreadySelected) {
+                  setSelectedNames((prev) => [...prev, trimmed]);
+                  setInputValue("");
+                  if (errors.members) setErrors((prev) => ({ ...prev, members: false }));
+                }
+              }
+            }}
+            renderOption={(props, option) => {
+              if (option.isNewOption) {
+                return (
+                  <Box
+                    component="li"
+                    {...props}
+                    key="add-new-custom-option"
+                    sx={{
+                      fontWeight: 600,
+                      color: "primary.main !important",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 1.5,
+                      py: 1.25,
+                      cursor: "pointer",
+                      bgcolor: "rgba(25, 118, 210, 0.04)",
+                      "&:hover": { bgcolor: "rgba(25, 118, 210, 0.12)" },
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        bgcolor: "primary.main",
+                        color: "#ffffff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 16,
+                        fontWeight: 700,
+                        flexShrink: 0,
+                      }}
+                    >
+                      +
+                    </Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, color: "primary.main" }}>
+                      Add &quot;{capitalizeName(option.inputValue)}&quot;
+                    </Typography>
+                  </Box>
+                );
+              }
+              return (
+                <Box component="li" {...props} key={option._id || option.fullName} sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <Avatar sx={{ width: 28, height: 28, fontSize: 12, bgcolor: option.avatarColor || "#1976d2" }}>
+                    {getInitials(option.fullName)}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {capitalizeName(option.fullName)}
+                    </Typography>
+                    {option.email && (
+                      <Typography variant="caption" color="text.secondary">
+                        {option.email}
+                      </Typography>
+                    )}
+                  </Box>
+                </Box>
+              );
             }}
             renderTags={(value, getTagProps) => (
               <>
@@ -322,7 +435,23 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                 required
                 inputRef={memberInputRef}
                 error={Boolean(errors.members)}
-                placeholder="Choose members or type & press enter..."
+                placeholder={selectedNames.length > 0 ? "Add another member..." : "Choose members or type name..."}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    if (inputValue && inputValue.trim()) {
+                      e.preventDefault();
+                      const trimmed = capitalizeName(inputValue.trim());
+                      const alreadySelected = selectedNames.some(
+                        (item) => (typeof item === "string" ? item : item.fullName || "").toLowerCase() === trimmed.toLowerCase()
+                      );
+                      if (!alreadySelected) {
+                        setSelectedNames((prev) => [...prev, trimmed]);
+                        setInputValue("");
+                        if (errors.members) setErrors((prev) => ({ ...prev, members: false }));
+                      }
+                    }
+                  }
+                }}
                 inputProps={{
                   ...params.inputProps,
                   style: { textTransform: "capitalize" },

@@ -206,6 +206,12 @@ const MembersPage = () => {
 
   useEffect(() => {
     fetchMembers();
+
+    const handleEntryCreated = () => {
+      fetchMembers();
+    };
+    window.addEventListener("moneyflow-entry-created", handleEntryCreated);
+    return () => window.removeEventListener("moneyflow-entry-created", handleEntryCreated);
   }, []);
 
   useEffect(() => {
