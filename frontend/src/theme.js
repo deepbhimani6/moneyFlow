@@ -1,6 +1,6 @@
 import { createTheme } from '@mui/material/styles';
 
-const theme = createTheme({
+const baseTheme = createTheme({
   breakpoints: {
     values: {
       xs: 0,
@@ -51,6 +51,9 @@ const theme = createTheme({
   shape: {
     borderRadius: 8,
   },
+});
+
+const theme = createTheme(baseTheme, {
   components: {
     MuiCssBaseline: {
       styleOverrides: {
@@ -76,7 +79,7 @@ const theme = createTheme({
     MuiInputLabel: {
       styleOverrides: {
         root: {
-          '@media (max-width: 600px)': {
+          [baseTheme.breakpoints.down('sm')]: {
             fontSize: '0.875rem',
             transform: 'translate(14px, 9px) scale(1)',
             '&.MuiInputLabel-shrink': {
@@ -96,7 +99,7 @@ const theme = createTheme({
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          '@media (max-width: 600px)': {
+          [baseTheme.breakpoints.down('sm')]: {
             fontSize: '0.875rem',
             minHeight: '38px',
           },
@@ -119,7 +122,7 @@ const theme = createTheme({
           },
         },
         input: {
-          '@media (max-width: 600px)': {
+          [baseTheme.breakpoints.down('sm')]: {
             padding: '8.5px 12px !important',
             fontSize: '0.875rem !important',
             height: '1.4375em',
@@ -137,7 +140,7 @@ const theme = createTheme({
     MuiSelect: {
       styleOverrides: {
         select: {
-          '@media (max-width: 600px)': {
+          [baseTheme.breakpoints.down('sm')]: {
             paddingTop: '8.5px !important',
             paddingBottom: '8.5px !important',
             fontSize: '0.875rem !important',
@@ -175,7 +178,7 @@ const theme = createTheme({
       },
       styleOverrides: {
         root: {
-          '@media (max-width: 600px)': {
+          [baseTheme.breakpoints.down('sm')]: {
             '& .MuiDialog-container': {
               height: '100% !important',
               width: '100% !important',
@@ -185,7 +188,7 @@ const theme = createTheme({
         paper: {
           borderRadius: 16,
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          '@media (max-width: 600px)': {
+          [baseTheme.breakpoints.down('sm')]: {
             margin: '0 !important',
             width: '100% !important',
             maxWidth: '100% !important',
@@ -201,7 +204,7 @@ const theme = createTheme({
     MuiDialogTitle: {
       styleOverrides: {
         root: {
-          '@media (max-width: 600px)': {
+          [baseTheme.breakpoints.down('sm')]: {
             padding: '14px 16px !important',
             fontSize: '1.1rem !important',
           },
@@ -211,7 +214,7 @@ const theme = createTheme({
     MuiDialogContent: {
       styleOverrides: {
         root: {
-          '@media (max-width: 600px)': {
+          [baseTheme.breakpoints.down('sm')]: {
             padding: '16px !important',
             flex: '1 1 auto',
             overflowY: 'auto',
@@ -222,7 +225,7 @@ const theme = createTheme({
     MuiDialogActions: {
       styleOverrides: {
         root: {
-          '@media (max-width: 600px)': {
+          [baseTheme.breakpoints.down('sm')]: {
             padding: '12px 16px !important',
           },
         },
