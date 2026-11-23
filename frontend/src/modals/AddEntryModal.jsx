@@ -616,16 +616,16 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               {/* Mode 1: Equal Split Summary */}
               {splitMode === "equal" && (
                 <Box sx={{ p: 1.5, bgcolor: "rgba(25, 118, 210, 0.08)", borderRadius: 1.5, border: "1px dashed #90caf9" }}>
-                  <Typography variant="body2" sx={{ color: "text.secondary", mb: 0.5 }}>
+                  <Typography variant="body2" component="p" sx={{ color: "text.secondary", fontSize: "0.875rem", lineHeight: 1.5, mb: 0.5 }}>
                     Total amount is divided equally among <strong>{totalSplitCount} participants</strong>.
                   </Typography>
                   {numericAmount > 0 ? (
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: "primary.main" }}>
+                    <Typography variant="body2" component="p" sx={{ fontWeight: 700, color: "primary.main", fontSize: "0.875rem", lineHeight: 1.5 }}>
                       ₹ {formatAmount(splitPerPerson)} per person
                       {includeMine ? " (your share added to For Self)" : ""}
                     </Typography>
                   ) : (
-                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                    <Typography variant="body2" component="p" sx={{ color: "text.secondary", fontSize: "0.75rem", lineHeight: 1.5 }}>
                       Enter total amount below to calculate per-person share.
                     </Typography>
                   )}
