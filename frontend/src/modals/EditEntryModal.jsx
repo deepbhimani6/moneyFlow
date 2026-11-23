@@ -481,12 +481,31 @@ const EditEntryModal = ({ open, onClose, entry, onEntryUpdated }) => {
                             placeholder="0"
                             InputProps={{
                               startAdornment: (
-                                <Typography variant="caption" sx={{ mr: 0.5, color: 'text.secondary', fontWeight: 700 }}>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    mr: 0.5,
+                                    color: 'text.secondary',
+                                    fontWeight: 700,
+                                    lineHeight: 1,
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                  }}
+                                >
                                   ₹
                                 </Typography>
                               ),
                             }}
-                            sx={{ width: 120, '& .MuiInputBase-input': { py: 0.75, fontSize: '0.85rem', fontWeight: 600 } }}
+                            sx={{
+                              width: 120,
+                              '& .MuiInputBase-input': {
+                                py: 0.75,
+                                pl: '0 !important',
+                                paddingLeft: '0 !important',
+                                fontSize: '0.85rem',
+                                fontWeight: 600,
+                              },
+                            }}
                             inputProps={{ min: '0', step: 'any' }}
                           />
                         </Box>

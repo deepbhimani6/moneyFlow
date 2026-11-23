@@ -122,15 +122,24 @@ const theme = createTheme(baseTheme, {
           },
         },
         input: {
+          '&.MuiInputBase-inputAdornedStart': {
+            paddingLeft: '0 !important',
+          },
           [baseTheme.breakpoints.down('sm')]: {
             paddingTop: '12px !important',
             paddingBottom: '12px !important',
             paddingBlock: '12px !important',
-            paddingLeft: '14px !important',
-            paddingRight: '14px !important',
+            paddingLeft: '14px',
+            paddingRight: '14px',
             fontSize: '0.875rem !important',
             height: '1.4375em',
+            '&.MuiInputBase-inputAdornedStart': {
+              paddingLeft: '0 !important',
+            },
           },
+        },
+        inputAdornedStart: {
+          paddingLeft: '0 !important',
         },
         notchedOutline: {
           boxShadow: 'none !important',
@@ -138,6 +147,16 @@ const theme = createTheme(baseTheme, {
         inputMultiline: {
           minHeight: '60px',
           boxSizing: 'border-box',
+        },
+      },
+    },
+    MuiInputAdornment: {
+      styleOverrides: {
+        root: {
+          lineHeight: '1 !important',
+          '& .MuiTypography-root': {
+            lineHeight: '1 !important',
+          },
         },
       },
     },
