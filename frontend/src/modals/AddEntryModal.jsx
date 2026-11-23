@@ -583,7 +583,11 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                       fontSize: "0.8rem",
                       borderRadius: 1.5,
                       flex: 1,
-                      py: 0.75,
+                      height: 36,
+                      minHeight: 36,
+                      py: 0,
+                      boxSizing: "border-box",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     Split Equally
@@ -597,7 +601,11 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                       fontSize: "0.8rem",
                       borderRadius: 1.5,
                       flex: 1,
-                      py: 0.75,
+                      height: 36,
+                      minHeight: 36,
+                      py: 0,
+                      boxSizing: "border-box",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     Split Separately (Member-wise)
@@ -697,7 +705,7 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
                               ),
                             }}
                             sx={{
-                              width: 120,
+                              width: 90,
                               "& .MuiInputBase-input": {
                                 py: 0.75,
                                 pl: "0 !important",
