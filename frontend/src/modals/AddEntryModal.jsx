@@ -14,6 +14,7 @@ import {
   Chip,
   Box,
   Typography,
+  FormHelperText,
   Alert,
   FormControlLabel,
   Checkbox,
@@ -753,9 +754,9 @@ const AddEntryModal = ({ open, onClose, onEntryCreated }) => {
               )}
             </Select>
             {isSplitActive && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1 }}>
-                Type automatically set to "Split" for multi-participant splits
-              </Typography>
+              <FormHelperText>
+                Type automatically set to &quot;Split&quot; for multi-participant splits
+              </FormHelperText>
             )}
           </FormControl>
 

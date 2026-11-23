@@ -76,6 +76,19 @@ const theme = createTheme(baseTheme, {
         },
       },
     },
+    MuiFormHelperText: {
+      styleOverrides: {
+        root: {
+          fontSize: '0.75rem',
+          lineHeight: 1.5,
+          color: '#64748b',
+          marginTop: '4px',
+          marginLeft: '14px',
+          marginRight: '14px',
+          fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+        },
+      },
+    },
     MuiInputLabel: {
       styleOverrides: {
         root: {

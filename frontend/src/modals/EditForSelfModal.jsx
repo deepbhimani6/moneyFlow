@@ -249,9 +249,9 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
             </Select>
             {errors.type && <FormHelperText error>Type is required</FormHelperText>}
             {isSplit && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1 }}>
+              <FormHelperText>
                 Type is fixed for split group participants ({type})
-              </Typography>
+              </FormHelperText>
             )}
           </FormControl>
 

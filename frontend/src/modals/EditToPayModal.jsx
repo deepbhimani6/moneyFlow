@@ -12,6 +12,7 @@ import {
   MenuItem,
   Box,
   Typography,
+  FormHelperText,
   Alert,
   CircularProgress,
   Chip,
@@ -348,9 +349,9 @@ const EditToPayModal = ({ open, onClose, entry, onEntryUpdated }) => {
               )}
             </Select>
             {isSplit && (
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, ml: 1 }}>
+              <FormHelperText>
                 Type is fixed for split group participants ({status})
-              </Typography>
+              </FormHelperText>
             )}
           </FormControl>
 
