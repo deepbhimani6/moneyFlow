@@ -183,6 +183,32 @@ const MemberDetailPage = () => {
     }
   };
 
+  const renderTypeChip = (entry) => {
+    const isSplit = Boolean(entry.isSplit) || entry.type === "Split";
+    if (isSplit) {
+      return (
+        <Chip
+          icon={<CallSplitIcon sx={{ "&&": { fontSize: 14 } }} />}
+          label="Split"
+          size="small"
+          color="info"
+          variant="outlined"
+          sx={{ height: 24, fontSize: "0.74rem", fontWeight: 600 }}
+        />
+      );
+    }
+
+    return (
+      <Chip
+        label={entry.type || "Expense"}
+        size="small"
+        variant="outlined"
+        color={entry.type === "Loan" ? "warning" : entry.type === "Expense" ? "error" : "default"}
+        sx={{ height: 24, fontSize: "0.74rem", fontWeight: 600 }}
+      />
+    );
+  };
+
   const renderStatusChip = (entry) => {
     const isReceive = entry.directionType === "receive";
     const isPending = entry.paymentStatus === "Pending";
@@ -805,23 +831,7 @@ const MemberDetailPage = () => {
                             color={isReceive ? "primary" : "warning"}
                             sx={{ height: 24, fontSize: "0.74rem", fontWeight: 600 }}
                           />
-                          <Chip
-                            label={entry.type}
-                            size="small"
-                            variant="outlined"
-                            color={entry.type === "Loan" ? "warning" : entry.type === "Expense" ? "error" : "default"}
-                            sx={{ height: 24, fontSize: "0.74rem", fontWeight: 600 }}
-                          />
-                          {entry.isSplit && (
-                            <Chip
-                              icon={<CallSplitIcon sx={{ "&&": { fontSize: 14 } }} />}
-                              label="Split"
-                              size="small"
-                              color="info"
-                              variant="outlined"
-                              sx={{ height: 24, fontSize: "0.74rem", fontWeight: 600 }}
-                            />
-                          )}
+                          {renderTypeChip(entry)}
                         </Box>
 
                         <Box sx={{ flexShrink: 0 }}>
@@ -962,21 +972,7 @@ const MemberDetailPage = () => {
                             />
                           </TableCell>
                           <TableCell>
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                                {entry.type}
-                              </Typography>
-                              {entry.isSplit && (
-                                <Chip
-                                  icon={<CallSplitIcon sx={{ "&&": { fontSize: 14 } }} />}
-                                  label="Split"
-                                  size="small"
-                                  color="info"
-                                  variant="outlined"
-                                  sx={{ height: 24, fontSize: "0.74rem", fontWeight: 600 }}
-                                />
-                              )}
-                            </Box>
+                            {renderTypeChip(entry)}
                           </TableCell>
                           <TableCell sx={{ whiteSpace: "nowrap" }}>
                             <Typography variant="body2" sx={{ fontWeight: 500 }}>

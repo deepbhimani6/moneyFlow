@@ -39,10 +39,13 @@ import DeleteConfirmModal from "../modals/DeleteConfirmModal";
 import { formatDate, formatTime, formatAmount } from "../utils/formatters";
 
 const getTypeChip = (type, isSplit) => {
-  if (isSplit) {
+  if (isSplit || type === "Split") {
+    if (!type || type === "Split") {
+      return <Chip icon={<CallSplitIcon sx={{ "&&": { fontSize: 14 } }} />} label="Split" size="small" color="info" variant="outlined" />;
+    }
     return (
       <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.5 }}>
-        <Chip label={type || "Expense"} size="small" color={type === "Add Balance" ? "primary" : "error"} variant="outlined" />
+        <Chip label={type} size="small" color={type === "Add Balance" ? "primary" : "error"} variant="outlined" />
         <Chip icon={<CallSplitIcon sx={{ "&&": { fontSize: 14 } }} />} label="Split" size="small" color="info" variant="outlined" />
       </Box>
     );
