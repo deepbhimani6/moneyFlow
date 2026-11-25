@@ -183,6 +183,44 @@ const MemberDetailPage = () => {
     }
   };
 
+  const disabledCheckboxIcon = (
+    <Box
+      component="span"
+      sx={{
+        width: 20,
+        height: 20,
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Box
+        component="span"
+        sx={{
+          width: 15,
+          height: 15,
+          borderRadius: "2px",
+          bgcolor: "rgba(0, 0, 0, 0.26)",
+        }}
+      />
+    </Box>
+  );
+
+  const renderRowCheckbox = (entry, isMyEntry, isSelected, checkboxSx) => (
+    <Tooltip title={!isMyEntry ? "Cannot select entries created by another member" : ""}>
+      <span style={{ display: "inline-flex", cursor: !isMyEntry ? "not-allowed" : "default" }}>
+        <Checkbox
+          size="small"
+          disabled={!isMyEntry}
+          checked={isSelected}
+          onChange={() => handleSelectOne(entry._id)}
+          {...(!isMyEntry ? { icon: disabledCheckboxIcon } : {})}
+          sx={checkboxSx}
+        />
+      </span>
+    </Tooltip>
+  );
+
   const renderTypeChip = (entry) => {
     const isSplit = Boolean(entry.isSplit) || entry.type === "Split";
     if (isSplit) {
@@ -813,17 +851,7 @@ const MemberDetailPage = () => {
                       {/* Top row: Badges + Status */}
                       <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 1, mb: 1.25 }}>
                         <Box sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0.75, minWidth: 0, flex: 1 }}>
-                          <Tooltip title={!isMyEntry ? "Cannot select entries created by another member" : ""}>
-                            <span>
-                              <Checkbox
-                                size="small"
-                                disabled={!isMyEntry}
-                                checked={isSelected}
-                                onChange={() => handleSelectOne(entry._id)}
-                                sx={{ p: 0.25 }}
-                              />
-                            </span>
-                          </Tooltip>
+                          {renderRowCheckbox(entry, isMyEntry, isSelected, { p: 0.25 })}
                           <Chip
                             label={entry.direction}
                             size="small"
@@ -951,16 +979,7 @@ const MemberDetailPage = () => {
                       return (
                         <TableRow key={entry._id} hover sx={{ "&:last-child td, &:last-child th": { border: 0 } }}>
                           <TableCell padding="checkbox">
-                            <Tooltip title={!isMyEntry ? "Cannot select entries created by another member" : ""}>
-                              <span>
-                                <Checkbox
-                                  size="small"
-                                  disabled={!isMyEntry}
-                                  checked={selectedIds.includes(entry._id)}
-                                  onChange={() => handleSelectOne(entry._id)}
-                                />
-                              </span>
-                            </Tooltip>
+                            {renderRowCheckbox(entry, isMyEntry, selectedIds.includes(entry._id))}
                           </TableCell>
                           <TableCell>
                             <Chip
