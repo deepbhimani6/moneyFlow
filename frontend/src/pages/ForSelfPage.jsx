@@ -18,8 +18,6 @@ import {
   CircularProgress,
   TablePagination,
   Tooltip,
-  Snackbar,
-  Alert,
   TableSortLabel,
   Divider,
   Fab,
@@ -32,6 +30,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { forSelfService } from "../services/api";
+import AppToast from "../components/AppToast";
 import AddForSelfModal from "../modals/AddForSelfModal";
 import EditForSelfModal from "../modals/EditForSelfModal";
 import FilterForSelfModal from "../modals/FilterForSelfModal";
@@ -744,21 +743,12 @@ const ForSelfPage = () => {
       />
 
       {/* Snackbar feedback */}
-      <Snackbar
+      <AppToast
         open={snackbar.open}
-        autoHideDuration={4000}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        message={snackbar.message}
+        severity={snackbar.severity}
+      />
     </Box>
   );
 };

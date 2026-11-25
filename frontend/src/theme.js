@@ -293,6 +293,11 @@ const theme = createTheme(baseTheme, {
         },
       },
     },
+    MuiSnackbar: {
+      defaultProps: {
+        anchorOrigin: { vertical: 'bottom', horizontal: 'left' },
+      },
+    },
     MuiDialog: {
       defaultProps: {
         maxWidth: 'sm',

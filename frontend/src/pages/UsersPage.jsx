@@ -19,7 +19,6 @@ import {
   CircularProgress,
   TablePagination,
   Tooltip,
-  Snackbar,
   Alert,
   TableSortLabel,
   Dialog,
@@ -37,6 +36,7 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CloseIcon from "@mui/icons-material/Close";
 
 import { userService } from "../services/api";
+import AppToast from "../components/AppToast";
 import { useProfile } from "../context/ProfileContext";
 import { useAuth } from "../context/AuthContext";
 import EditMemberModal from "../modals/EditMemberModal";
@@ -1076,21 +1076,12 @@ const UsersPage = () => {
       </Dialog>
 
       {/* Snackbar notification */}
-      <Snackbar
+      <AppToast
         open={snackbar.open}
-        autoHideDuration={4000}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "left" }}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: "100%", borderRadius: 2 }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        message={snackbar.message}
+        severity={snackbar.severity}
+      />
     </Box>
   );
 };

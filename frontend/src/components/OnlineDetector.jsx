@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Alert, Box, Snackbar } from '@mui/material';
+import { Alert, Box } from '@mui/material';
 import WifiOffIcon from '@mui/icons-material/WifiOff';
-import WifiIcon from '@mui/icons-material/Wifi';
+import AppToast from './AppToast';
 
 const OnlineDetector = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -40,12 +40,11 @@ const OnlineDetector = () => {
         </Box>
       )}
 
-      <Snackbar
+      <AppToast
         open={showBackOnlineToast}
-        autoHideDuration={4000}
         onClose={() => setShowBackOnlineToast(false)}
         message="Back online. Connected to MongoDB."
-        action={<WifiIcon sx={{ color: '#4caf50', mr: 1 }} />}
+        severity="success"
       />
     </>
   );

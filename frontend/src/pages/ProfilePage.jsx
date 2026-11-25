@@ -8,8 +8,6 @@ import {
   TextField,
   Button,
   Avatar,
-  Alert,
-  Snackbar,
   CircularProgress,
   InputAdornment,
   IconButton,
@@ -20,6 +18,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useProfile } from '../context/ProfileContext';
+import AppToast from '../components/AppToast';
 import { capitalizeName, capitalizeWordsInput } from '../utils/formatters';
 
 const AVATAR_COLORS = [
@@ -495,21 +494,12 @@ const ProfilePage = () => {
       </Card>
 
       {/* Feedback Snackbar */}
-      <Snackbar
+      <AppToast
         open={snackbar.open}
-        autoHideDuration={4000}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ width: '100%', borderRadius: 2 }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        message={snackbar.message}
+        severity={snackbar.severity}
+      />
     </Box>
   );
 };

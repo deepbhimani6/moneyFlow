@@ -18,7 +18,6 @@ import {
   CircularProgress,
   TablePagination,
   Tooltip,
-  Snackbar,
   Alert,
   TableSortLabel,
   Divider,
@@ -31,6 +30,7 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { toPayService } from "../services/api";
+import AppToast from "../components/AppToast";
 import AddToPayModal from "../modals/AddToPayModal";
 import EditToPayModal from "../modals/EditToPayModal";
 import FilterToPayModal from "../modals/FilterToPayModal";
@@ -1016,11 +1016,12 @@ const ToPayPage = () => {
         }
       />
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}>
-        <Alert severity={snackbar.severity} sx={{ width: "100%" }}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+      <AppToast
+        open={snackbar.open}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        message={snackbar.message}
+        severity={snackbar.severity}
+      />
     </Box>
   );
 };

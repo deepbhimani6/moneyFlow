@@ -28,7 +28,6 @@ import {
   IconButton,
   Menu,
   MenuItem,
-  Snackbar,
   Alert,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -43,7 +42,11 @@ import PhoneOutlinedIcon from "@mui/icons-material/PhoneOutlined";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
 import { memberService, entryService, toPayService } from "../services/api";
 import { formatDate, formatAmount, capitalizeName } from "../utils/formatters";
+import AppToast from "../components/AppToast";
 import MemberDetailFilterModal, { defaultMemberDetailFilters } from "../modals/MemberDetailFilterModal";
+import EditEntryModal from "../modals/EditEntryModal";
+import EditToPayModal from "../modals/EditToPayModal";
+import DeleteConfirmModal from "../modals/DeleteConfirmModal";
 
 const MemberDetailPage = () => {
   const { id } = useParams();
@@ -59,11 +62,27 @@ const MemberDetailPage = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
-  // Selection & Bulk Status
+  // Selection & Bulk Actions
   const [selectedIds, setSelectedIds] = useState([]);
   const [bulkAnchorEl, setBulkAnchorEl] = useState(null);
   const [statusMenuAnchorEl, setStatusMenuAnchorEl] = useState(null);
+  const [editingEntry, setEditingEntry] = useState(null);
+  const [confirmBulkDeleteOpen, setConfirmBulkDeleteOpen] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
+  const groupIdsByDirection = (items) => {
+    const receiveIds = [];
+    const payIds = [];
+    for (const item of items) {
+      if (item.directionType === "receive") {
+        receiveIds.push(item._id);
+      } else {
+        payIds.push(item._id);
+      }
+    }
+    return { receiveIds, payIds };
+  };
 
   const handleToggleStatus = async (entry) => {
     if (entry.canEdit === false) {
@@ -142,15 +161,7 @@ const MemberDetailPage = () => {
       return;
     }
 
-    const receiveIds = [];
-    const payIds = [];
-    for (const e of editableEntries) {
-      if (e.directionType === "receive") {
-        receiveIds.push(e._id);
-      } else {
-        payIds.push(e._id);
-      }
-    }
+    const { receiveIds, payIds } = groupIdsByDirection(editableEntries);
 
     try {
       let updatedCount = 0;
@@ -180,6 +191,62 @@ const MemberDetailPage = () => {
         message: err.response?.data?.message || "Failed bulk status update.",
         severity: "error",
       });
+    }
+  };
+
+  const handleBulkEdit = () => {
+    setBulkAnchorEl(null);
+    if (selectedIds.length !== 1) return;
+    const target = entries.find((e) => e._id === selectedIds[0]);
+    if (!target) return;
+    if (target.canEdit === false || !(target.isMine || target.creatorName === "You")) {
+      setSnackbar({
+        open: true,
+        message: "Only the creator of this entry can edit it.",
+        severity: "warning",
+      });
+      return;
+    }
+    setEditingEntry(target);
+  };
+
+  const handleConfirmBulkDelete = async () => {
+    if (validDeletableEntries.length === 0) return;
+    const { receiveIds, payIds } = groupIdsByDirection(validDeletableEntries);
+    try {
+      setActionLoading(true);
+      let deletedCount = 0;
+      if (receiveIds.length > 0) {
+        const res = await entryService.bulkDelete(receiveIds);
+        deletedCount += res.deletedCount || receiveIds.length;
+      }
+      if (payIds.length > 0) {
+        const res = await toPayService.bulkDelete(payIds);
+        deletedCount += res.deletedCount || payIds.length;
+      }
+
+      const remainingCount = Math.max(0, filteredEntries.length - deletedCount);
+      if (remainingCount <= page * rowsPerPage && page > 0) {
+        setPage(Math.max(0, Math.ceil(remainingCount / rowsPerPage) - 1));
+      }
+
+      setSnackbar({
+        open: true,
+        message: `${deletedCount} ${deletedCount === 1 ? "entry" : "entries"} deleted successfully.`,
+        severity: "success",
+      });
+      setSelectedIds([]);
+      setConfirmBulkDeleteOpen(false);
+      fetchMemberDetail(false);
+    } catch (err) {
+      console.error(err);
+      setSnackbar({
+        open: true,
+        message: err.response?.data?.message || "Failed bulk deletion.",
+        severity: "error",
+      });
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -321,6 +388,21 @@ const MemberDetailPage = () => {
     payEntriesCount: 0,
   };
   const entries = data?.entries || [];
+
+  const selectedEntries = useMemo(
+    () => entries.filter((e) => selectedIds.includes(e._id)),
+    [entries, selectedIds]
+  );
+
+  const validDeletableEntries = useMemo(
+    () => selectedEntries.filter((e) => e.canEdit !== false && (e.isMine || e.creatorName === "You")),
+    [selectedEntries]
+  );
+
+  const singleEditableEntry = useMemo(() => {
+    if (selectedIds.length !== 1) return null;
+    return validDeletableEntries.length === 1 ? validDeletableEntries[0] : null;
+  }, [selectedIds.length, validDeletableEntries]);
 
   // Filter entries
   const filteredEntries = useMemo(() => {
@@ -723,6 +805,25 @@ const MemberDetailPage = () => {
                 >
                   Change Status
                 </MenuItem>
+                <Tooltip title={selectedIds.length > 1 ? "Select a single entry to edit" : ""}>
+                  <span style={{ display: "block" }}>
+                    <MenuItem
+                      disabled={!singleEditableEntry}
+                      onClick={handleBulkEdit}
+                    >
+                      Edit
+                    </MenuItem>
+                  </span>
+                </Tooltip>
+                <MenuItem
+                  onClick={() => {
+                    setBulkAnchorEl(null);
+                    setConfirmBulkDeleteOpen(true);
+                  }}
+                  sx={{ color: "error.main" }}
+                >
+                  Delete Selected
+                </MenuItem>
               </Menu>
 
               {/* Status Submenu */}
@@ -1088,21 +1189,59 @@ const MemberDetailPage = () => {
         }}
       />
 
+      {/* Edit Entry Modals (To Receive / To Pay) */}
+      <EditEntryModal
+        open={Boolean(editingEntry && editingEntry.directionType === "receive")}
+        entry={editingEntry?.directionType === "receive" ? editingEntry : null}
+        onClose={() => setEditingEntry(null)}
+        onEntryUpdated={(msg) => {
+          setSelectedIds([]);
+          fetchMemberDetail(false);
+          setSnackbar({ open: true, message: msg || "Entry updated successfully.", severity: "success" });
+        }}
+      />
+
+      <EditToPayModal
+        open={Boolean(editingEntry && editingEntry.directionType === "pay")}
+        entry={editingEntry?.directionType === "pay" ? editingEntry : null}
+        onClose={() => setEditingEntry(null)}
+        onEntryUpdated={(msg) => {
+          setSelectedIds([]);
+          fetchMemberDetail(false);
+          setSnackbar({ open: true, message: msg || "Entry updated successfully.", severity: "success" });
+        }}
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        open={confirmBulkDeleteOpen}
+        onClose={() => !actionLoading && setConfirmBulkDeleteOpen(false)}
+        onConfirm={handleConfirmBulkDelete}
+        title="Confirm Bulk Deletion"
+        disableConfirm={validDeletableEntries.length === 0}
+        message={
+          validDeletableEntries.length === 0 ? (
+            <Alert severity="error">
+              None of the {selectedIds.length} selected entries can be deleted because they were created by another member.
+            </Alert>
+          ) : (
+            <Typography variant="body1">
+              Are you sure you want to delete <strong>{validDeletableEntries.length}</strong> selected{" "}
+              {validDeletableEntries.length === 1 ? "entry" : "entries"}? This action cannot be undone.
+            </Typography>
+          )
+        }
+        loading={actionLoading}
+        confirmText={`Delete (${validDeletableEntries.length})`}
+      />
+
       {/* Feedback Snackbar */}
-      <Snackbar
+      <AppToast
         open={snackbar.open}
-        autoHideDuration={4000}
         onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-          severity={snackbar.severity}
-          sx={{ width: "100%", borderRadius: 2 }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        message={snackbar.message}
+        severity={snackbar.severity}
+      />
     </Box>
   );
 };
