@@ -63,6 +63,7 @@ const theme = createTheme(baseTheme, {
         },
         'input[type="date"], input[type="time"]': {
           position: 'relative',
+          minHeight: '1.4375em',
           WebkitAppearance: 'none !important',
           appearance: 'none !important',
         },
