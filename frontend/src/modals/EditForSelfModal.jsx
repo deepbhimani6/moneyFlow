@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import CallSplitIcon from "@mui/icons-material/CallSplit";
+import DateTimeField from "../components/DateTimeField";
 import { forSelfService } from "../services/api";
 import { toInputDateFormat, toInputTimeFormat, formatAmount } from "../utils/formatters";
 
@@ -318,7 +319,7 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
 
           {/* 4. Date & Time */}
           <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
-            <TextField
+            <DateTimeField
               label="Date"
               type="date"
               value={date}
@@ -330,10 +331,9 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
                 if (errors.date) setErrors((prev) => ({ ...prev, date: false }));
               }}
               fullWidth
-              InputLabelProps={{ shrink: true }}
               required
             />
-            <TextField
+            <DateTimeField
               label="Time"
               type="time"
               value={time}
@@ -345,7 +345,6 @@ const EditForSelfModal = ({ open, onClose, entry, onEntryUpdated }) => {
                 if (errors.time) setErrors((prev) => ({ ...prev, time: false }));
               }}
               fullWidth
-              InputLabelProps={{ shrink: true }}
               required
             />
           </Box>

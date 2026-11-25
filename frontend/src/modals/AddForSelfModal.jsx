@@ -17,6 +17,7 @@ import {
   IconButton,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import DateTimeField from "../components/DateTimeField";
 import { forSelfService } from "../services/api";
 
 const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
@@ -191,7 +192,7 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
 
           {/* 4. Date & Time */}
           <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
-            <TextField
+            <DateTimeField
               label="Date"
               type="date"
               value={date}
@@ -203,10 +204,9 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
                 if (errors.date) setErrors((prev) => ({ ...prev, date: false }));
               }}
               fullWidth
-              InputLabelProps={{ shrink: true }}
               required
             />
-            <TextField
+            <DateTimeField
               label="Time"
               type="time"
               value={time}
@@ -218,7 +218,6 @@ const AddForSelfModal = ({ open, onClose, onEntryCreated }) => {
                 if (errors.time) setErrors((prev) => ({ ...prev, time: false }));
               }}
               fullWidth
-              InputLabelProps={{ shrink: true }}
               required
             />
           </Box>

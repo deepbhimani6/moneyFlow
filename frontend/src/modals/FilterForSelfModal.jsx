@@ -14,6 +14,7 @@ import {
   IconButton,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import DateTimeField from "../components/DateTimeField";
 
 const FilterForSelfModal = ({ open, onClose, currentFilters, onApplyFilters, onResetFilters }) => {
   const [filters, setFilters] = useState(currentFilters || {});
@@ -113,20 +114,18 @@ const FilterForSelfModal = ({ open, onClose, currentFilters, onApplyFilters, onR
 
         {/* Date Range */}
         <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
-          <TextField
+          <DateTimeField
             label="From Date"
             type="date"
             value={filters.startDate || ""}
             onChange={(e) => handleChange("startDate", e.target.value)}
-            InputLabelProps={{ shrink: true }}
             fullWidth
           />
-          <TextField
+          <DateTimeField
             label="To Date"
             type="date"
             value={filters.endDate || ""}
             onChange={(e) => handleChange("endDate", e.target.value)}
-            InputLabelProps={{ shrink: true }}
             fullWidth
           />
         </Box>

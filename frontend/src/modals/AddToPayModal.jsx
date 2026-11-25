@@ -20,6 +20,7 @@ import {
   IconButton,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import DateTimeField from "../components/DateTimeField";
 import { memberService, toPayService } from "../services/api";
 import { useProfile } from "../context/ProfileContext";
 import { useAuth } from "../context/AuthContext";
@@ -382,7 +383,7 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
 
           {/* 4. Date & 5. Time */}
           <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
-            <TextField
+            <DateTimeField
               label="Date"
               type="date"
               value={date}
@@ -394,10 +395,9 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
                 if (errors.date) setErrors((prev) => ({ ...prev, date: false }));
               }}
               fullWidth
-              InputLabelProps={{ shrink: true }}
               required
             />
-            <TextField
+            <DateTimeField
               label="Time"
               type="time"
               value={time}
@@ -409,7 +409,6 @@ const AddToPayModal = ({ open, onClose, onEntryCreated }) => {
                 if (errors.time) setErrors((prev) => ({ ...prev, time: false }));
               }}
               fullWidth
-              InputLabelProps={{ shrink: true }}
               required
             />
           </Box>

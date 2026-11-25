@@ -15,6 +15,7 @@ import {
   IconButton,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import DateTimeField from "../components/DateTimeField";
 import { memberService } from "../services/api";
 import { useProfile } from "../context/ProfileContext";
 import { useAuth } from "../context/AuthContext";
@@ -192,20 +193,18 @@ const FilterToPayModal = ({ open, onClose, currentFilters, onApplyFilters, onRes
 
         {/* Date Range */}
         <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
-          <TextField
+          <DateTimeField
             label="From Date"
             type="date"
             value={filters.startDate || ""}
             onChange={(e) => handleChange("startDate", e.target.value)}
-            InputLabelProps={{ shrink: true }}
             fullWidth
           />
-          <TextField
+          <DateTimeField
             label="To Date"
             type="date"
             value={filters.endDate || ""}
             onChange={(e) => handleChange("endDate", e.target.value)}
-            InputLabelProps={{ shrink: true }}
             fullWidth
           />
         </Box>

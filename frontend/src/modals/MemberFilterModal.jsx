@@ -17,6 +17,7 @@ import {
   IconButton,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+import DateTimeField from "../components/DateTimeField";
 import { capitalizeName } from "../utils/formatters";
 
 const defaultFilters = {
@@ -163,20 +164,18 @@ const MemberFilterModal = ({
               Invite Date Range
             </Typography>
             <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
-              <TextField
+              <DateTimeField
                 label="From Date"
                 type="date"
                 value={filters.inviteStartDate || ""}
                 onChange={(e) => handleChange("inviteStartDate", e.target.value)}
-                InputLabelProps={{ shrink: true }}
                 fullWidth
               />
-              <TextField
+              <DateTimeField
                 label="To Date"
                 type="date"
                 value={filters.inviteEndDate || ""}
                 onChange={(e) => handleChange("inviteEndDate", e.target.value)}
-                InputLabelProps={{ shrink: true }}
                 fullWidth
               />
             </Box>
@@ -189,20 +188,18 @@ const MemberFilterModal = ({
             Join Date Range (First Login)
           </Typography>
           <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
-            <TextField
+            <DateTimeField
               label="From Date"
               type="date"
               value={filters.joinStartDate || ""}
               onChange={(e) => handleChange("joinStartDate", e.target.value)}
-              InputLabelProps={{ shrink: true }}
               fullWidth
             />
-            <TextField
+            <DateTimeField
               label="To Date"
               type="date"
               value={filters.joinEndDate || ""}
               onChange={(e) => handleChange("joinEndDate", e.target.value)}
-              InputLabelProps={{ shrink: true }}
               fullWidth
             />
           </Box>

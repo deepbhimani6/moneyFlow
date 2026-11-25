@@ -61,6 +61,32 @@ const theme = createTheme(baseTheme, {
           color: '#d32f2f !important',
           fontWeight: 700,
         },
+        'input[type="date"], input[type="time"]': {
+          position: 'relative',
+          WebkitAppearance: 'none !important',
+          appearance: 'none !important',
+        },
+        'input[type="date"]::-webkit-date-and-time-value, input[type="time"]::-webkit-date-and-time-value': {
+          textAlign: 'left',
+        },
+        'input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator': {
+          position: 'absolute',
+          right: 0,
+          width: '1px',
+          height: '1px',
+          minWidth: 0,
+          minHeight: 0,
+          padding: 0,
+          margin: 0,
+          border: 0,
+          opacity: 0,
+          overflow: 'hidden',
+          pointerEvents: 'none',
+          background: 'transparent !important',
+          color: 'transparent !important',
+          WebkitAppearance: 'none !important',
+          appearance: 'none !important',
+        },
       },
     },
     MuiFormLabel: {
@@ -135,8 +161,12 @@ const theme = createTheme(baseTheme, {
           },
         },
         input: {
+          minWidth: 0,
           '&.MuiInputBase-inputAdornedStart': {
             paddingLeft: '0 !important',
+          },
+          '&.MuiInputBase-inputAdornedEnd': {
+            paddingRight: '0 !important',
           },
           [baseTheme.breakpoints.down('sm')]: {
             paddingTop: '12px !important',
@@ -149,10 +179,16 @@ const theme = createTheme(baseTheme, {
             '&.MuiInputBase-inputAdornedStart': {
               paddingLeft: '0 !important',
             },
+            '&.MuiInputBase-inputAdornedEnd': {
+              paddingRight: '0 !important',
+            },
           },
         },
         inputAdornedStart: {
           paddingLeft: '0 !important',
+        },
+        inputAdornedEnd: {
+          paddingRight: '0 !important',
         },
         notchedOutline: {
           boxShadow: 'none !important',
