@@ -17,11 +17,10 @@ import IosShareIcon from '@mui/icons-material/IosShare';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import LaptopMacIcon from '@mui/icons-material/LaptopMac';
 import AddToHomeScreenIcon from '@mui/icons-material/AddToHomeScreen';
+import { useIsStandaloneApp } from '../utils/pwa';
 
 const InstallAppModal = ({ open, onClose }) => {
-  const isStandalone =
-    typeof window !== 'undefined' &&
-    (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
+  const isStandalone = useIsStandaloneApp();
 
   const isIOS =
     typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
